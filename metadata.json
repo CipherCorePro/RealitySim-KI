@@ -1,5 +1,5 @@
 {
-  "name": "Copy of last llm NEW RealitySim AI",
+  "name": "RealitySim AI",
   "description": "An interactive web-based simulation environment where AI agents with unique beliefs and memories interact with a dynamic world. Control agents with natural language, run simulation steps, and visualize the emergent cognitive behavior of the system.",
   "requestFramePermissions": [],
   "prompt": ""
