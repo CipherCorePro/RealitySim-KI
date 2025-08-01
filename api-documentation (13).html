@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technische Dokumentation: RealitySim AI</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a; /* slate-900 */
+            --bg-medium: #1e293b; /* slate-800 */
+            --bg-light: #334155; /* slate-700 */
+            --text-light: #e2e8f0; /* slate-200 */
+            --text-medium: #94a3b8; /* slate-400 */
+            --text-dark: #64748b; /* slate-500 */
+            --accent-emerald: #10b981; /* emerald-500 */
+            --accent-sky: #0ea5e9; /* sky-500 */
+            --accent-red: #ef4444; /* red-500 */
+            --border-color: #475569; /* slate-600 */
+            --code-bg: #172033; /* slate-850 */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            display: flex;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        a {
+            color: var(--accent-sky);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        h1, h2, h3, h4 {
+            color: var(--text-light);
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+
+        h1 { font-size: 2.5em; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5em; }
+        h2 { font-size: 2em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3em; }
+        h3 { font-size: 1.5em; }
+        h4 { font-size: 1.2em; }
+
+        .container {
+            display: flex;
+            width: 100%;
+        }
+
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-medium);
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar h2 {
+            color: var(--accent-emerald);
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar ul li {
+            margin-bottom: 8px;
+        }
+
+        .sidebar ul li a {
+            display: block;
+            padding: 8px 10px;
+            color: var(--text-medium);
+            border-radius: 5px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .sidebar ul li a:hover {
+            background-color: var(--bg-light);
+            color: var(--text-light);
+            text-decoration: none;
+        }
+
+        .sidebar ul ul {
+            margin-left: 15px;
+            margin-top: 5px;
+            border-left: 1px solid var(--border-color);
+            padding-left: 10px;
+        }
+
+        .sidebar ul ul li a {
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .file-section {
+            background-color: var(--bg-medium);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .file-section h2 {
+            color: var(--accent-sky);
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .component-box {
+            background-color: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .component-box h3 {
+            color: var(--accent-emerald);
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .component-box h4 {
+            color: var(--text-light);
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .signature {
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            display: block;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .params-list, .returns-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .params-list li, .returns-list li {
+            margin-bottom: 5px;
+            padding-left: 10px;
+            border-left: 2px solid var(--accent-sky);
+        }
+
+        .params-list li strong, .returns-list li strong {
+            color: var(--accent-emerald);
+        }
+
+        .description {
+            margin-top: 10px;
+            color: var(--text-medium);
+        }
+
+        .code-block {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.9em;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .note {
+            background-color: rgba(255, 255, 0, 0.1);
+            border-left: 4px solid yellow;
+            padding: 10px 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Projektübersicht</h2>
+        <ul>
+            <li><a href="#project-metadata">Projekt-Metadaten</a></li>
+            <li><a href="#file-types">types.ts</a>
+                <ul>
+                    <li><a href="#interface-Beliefs">Beliefs</a></li>
+                    <li><a href="#interface-Emotions">Emotions</a></li>
+                    <li><a href="#type-RelationshipType">RelationshipType</a></li>
+                    <li><a href="#interface-Relationship">Relationship</a></li>
+                    <li><a href="#interface-Resonance">Resonance</a></li>
+                    <li><a href="#interface-LogEntry">LogEntry</a></li>
+                    <li><a href="#interface-SocialMemoryEntry">SocialMemoryEntry</a></li>
+                    <li><a href="#interface-ActionExecutionResult">ActionExecutionResult</a></li>
+                    <li><a href="#interface-Action">Action</a></li>
+                    <li><a href="#type-ResourceType">ResourceType</a></li>
+                    <li><a href="#interface-Inventory">Inventory</a></li>
+                    <li><a href="#interface-Agent">Agent</a></li>
+                    <li><a href="#interface-Entity">Entity</a></li>
+                    <li><a href="#interface-EnvironmentState">EnvironmentState</a></li>
+                    <li><a href="#interface-Religion">Religion</a></li>
+                    <li><a href="#interface-WorldState">WorldState</a></li>
+                    <li><a href="#interface-Culture">Culture</a></li>
+                </ul>
+            </li>
+            <li><a href="#file-components-BeliefsChart">components/BeliefsChart.tsx</a>
+                <ul>
+                    <li><a href="#interface-BeliefsChartProps">BeliefsChartProps</a></li>
+                    <li><a href="#component-CustomTooltip">CustomTooltip</a></li>
+                    <li><a href="#component-BeliefsChart">BeliefsChart</a></li>
+                </ul>
+            </li>
+            <li><a href="#file-components-ControlPanel">components/ControlPanel.tsx</a>
+                <ul>
+                    <li><a href="#interface-ControlPanelProps">ControlPanelProps</a></li>
+                    <li><a href="#component-ControlPanel">ControlPanel</a></li>
+                </ul>
+            </li>
+            <li><a href="#file-components-LogPanel">components/LogPanel.tsx</a>
+                <ul>
+                    <li><a href="#interface-LogPanelProps">LogPanelProps</a></li>
+                    <li><a href="#component-LogPanel">LogPanel</a></li>
+                </ul>
+            </li>
+            <li><a href="#file-components-WorldGraph">components/WorldGraph.tsx</a>
+                <ul>
+                    <li><a href="#interface-WorldGraphProps">WorldGraphProps</a></li>
+                    <li><a href="#function-getEntityIcon">getEntityIcon</a></li>
+                    <li><a href="#function-getRoleIcon">getRoleIcon</a></li>
+                    <li><a href="#const-cultureColors">cultureColors</a></li>
+                    <li><a href="#component-WorldGraph">WorldGraph</a></li>
+                </ul>
+            </li>
+            <li><a href="#file-components-CreateObjectPanel">components/CreateObjectPanel.tsx</a>
+                <ul>
+                    <li><a href="#interface-CreateObjectPanelProps">CreateObjectPanelProps</a></li>
+                    <li><a href="#component-CreateObjectPanel">CreateObjectPanel</a></li>
+                </ul>
+            </li>
+            <li><a href="#file-components-ExporterPanel">components/ExporterPanel.tsx</a>
+                <ul>
+                    <li><a href="#interface-ExporterPanelProps">ExporterPanelProps</a></li>
+                    <li><a href="#component-ExporterPanel">ExporterPanel</a></li>
+                </ul>
+            </li>
+            <li><a href="#file-components-AdminPanel">components/AdminPanel.tsx</a>
+                <ul>
+                    <li><a href="#interface-AdminPanelProps">AdminPanelProps</a></li>
+                    <li><a href="#component-AdminPanel">AdminPanel</a></li>
+                </ul>
+            </li>
+            <li><a href="#file-contexts-LanguageContext">contexts/LanguageContext.tsx</a>
+                <ul>
+                    <li><a href="#type-Language">Language</a></li>
+                    <li><a href="#interface-LanguageContextType">LanguageContextType</a></li>
+                    <li><a href="#const-LanguageContext">LanguageContext</a></li>
+                    <li><a href="#component-LanguageProvider">LanguageProvider</a></li>
+                    <li><a href="#hook-useLanguage">useLanguage</a></li>
+                </ul>
+            </li>
+            <li><a href="#file-hooks-useTranslations">hooks/useTranslations.ts</a>
+                <ul>
+                    <li><a href="#hook-useTranslations">useTranslations</a></li>
+                </ul>
+            </li>
+            <li><a href="#file-components-LanguageSwitcher">components/LanguageSwitcher.tsx</a>
+                <ul>
+                    <li><a href="#component-LanguageSwitcher">LanguageSwitcher</a></li>
+                </ul>
+            </li>
+            <li><a href="#file-Dokumentation-md">Dokumentation.md</a></li>
+            <li><a href="#file-package-json">package.json</a></li>
+            <li><a href="#file-index-html">index.html</a></li>
+            <li><a href="#file-index-tsx">index.tsx</a>
+                <ul>
+                    <li><a href="#const-SETTINGS_KEY">SETTINGS_KEY</a></li>
+                    <li><a href="#interface-Settings">Settings</a></li>
+                    <li><a href="#interface-SettingsContextType">SettingsContextType</a></li>
+                    <li><a href="#const-SettingsContext">SettingsContext</a></li>
+                    <li><a href="#component-SettingsProvider">SettingsProvider</a></li>
+                    <li><a href="#hook-useSettings">useSettings</a></li>
+                </ul>
+            </li>
+            <li><a href="#file-tsconfig-json">tsconfig.json</a></li>
+            <li><a href="#file-vite-config-ts">vite.config.ts</a></li>
+            <li><a href="#file-env-local">.env.local</a></li>
+            <li><a href="#file-gitignore">.gitignore</a></li>
+            <li><a href="#file-README-md">README.md</a></li>
+        </ul>
+    </div>
+    <div class="content">
+        <h1>Technische Dokumentation: RealitySim AI</h1>
+        <p>Diese Dokumentation bietet eine detaillierte technische Analyse des Quellcodes des Projekts "Copy of last llm NEW RealitySim AI". Sie beschreibt die Struktur, Komponenten, Schnittstellen und Funktionen der Anwendung, die eine interaktive webbasierte Simulationsumgebung für KI-Agenten darstellt.</p>
+
+        <section id="project-metadata" class="file-section">
+            <h2><a href="#project-metadata">Projekt-Metadaten</a></h2>
+            <p>Diese Datei enthält grundlegende Informationen über das Projekt.</p>
+            <div class="component-box">
+                <h3>Projektinformationen</h3>
+                <div class="description">
+                    <p>Definiert den Namen und die Beschreibung des Projekts sowie Berechtigungen und Start-Prompt.</p>
+                    <ul>
+                        <li><strong>name</strong>: Der Name des Projekts.</li>
+                        <li><strong>description</strong>: Eine kurze Beschreibung der Anwendung.</li>
+                        <li><strong>requestFramePermissions</strong>: Eine Liste der angeforderten Frame-Berechtigungen (aktuell leer).</li>
+                        <li><strong>prompt</strong>: Ein initialer Prompt (aktuell leer).</li>
+                    </ul>
+                </div>
+                <pre class="code-block">{
+  "name": "Copy of last llm NEW RealitySim AI",
+  "description": "An interactive web-based simulation environment where AI agents with unique beliefs and memories interact with a dynamic world. Control agents with natural language, run simulation steps, and visualize the emergent cognitive behavior of the system.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}</pre>
+            </div>
+        </section>
+
+        <section id="file-types" class="file-section">
+            <h2><a href="#file-types">types.ts</a></h2>
+            <p>Diese Datei definiert die Kern-TypeScript-Schnittstellen und -Typen, die die Datenstrukturen der Simulationswelt und ihrer Entitäten repräsentieren.</p>
+
+            <div id="interface-Beliefs" class="component-box">
+                <h3>Interface: Beliefs</h3>
+                <p class="signature"><code>interface Beliefs { [key: string]: number; }</code></p>
+                <div class="description">
+                    <p>Repräsentiert ein Netzwerk von Überzeugungen, wobei jeder Schlüssel eine Überzeugung und der Wert ihre Stärke (numerisch) darstellt.</p>
+                </div>
+            </div>
+
+            <div id="interface-Emotions" class="component-box">
+                <h3>Interface: Emotions</h3>
+                <p class="signature"><code>interface Emotions { [key: string]: number; }</code></p>
+                <div class="description">
+                    <p>Repräsentiert die emotionalen Zustände, wobei jeder Schlüssel eine Emotion und der Wert ihre Intensität darstellt.</p>
+                </div>
+            </div>
+
+            <div id="type-RelationshipType" class="component-box">
+                <h3>Typ: RelationshipType</h3>
+                <p class="signature"><code>type RelationshipType = 'stranger' | 'acquaintance' | 'friend' | 'rival' | 'partner' | 'spouse' | 'ex-partner';</code></p>
+                <div class="description">
+                    <p>Definiert die möglichen Typen von Beziehungen zwischen Agenten.</p>
+                </div>
+            </div>
+
+            <div id="interface-Relationship" class="component-box">
+                <h3>Interface: Relationship</h3>
+                <p class="signature"><code>interface Relationship { type: RelationshipType; score: number; disposition: Emotions; }</code></p>
+                <div class="description">
+                    <p>Beschreibt eine Beziehung zwischen zwei Agenten.</p>
+                </div>
+                <h4>Eigenschaften:</h4>
+                <ul class="params-list">
+                    <li><strong>type</strong>: <code>RelationshipType</code> - Der Typ der Beziehung (z.B. 'friend', 'rival').</li>
+                    <li><strong>score</strong>: <code>number</code> - Ein numerischer Wert, der die Stärke oder Qualität der Beziehung angibt.</li>
+                    <li><strong>disposition</strong>: <code>Emotions</code> - Langfristig erlernte Emotionen gegenüber diesem Agenten.</li>
+                </ul>
+            </div>
+
+            <div id="interface-Resonance" class="component-box">
+                <h3>Interface: Resonance</h3>
+                <p class="signature"><code>interface Resonance { [key: string]: number; }</code></p>
+                <div class="description">
+                    <p>Repräsentiert die Resonanz oder Präferenz eines Agenten für bestimmte Aktionen oder Konzepte.</p>
+                </div>
+            </div>
+
+            <div id="interface-LogEntry" class="component-box">
+                <h3>Interface: LogEntry</h3>
+                <p class="signature"><code>interface LogEntry { key: string; params?: { [key: string]: any }; }</code></p>
+                <div class="description">
+                    <p>Definiert einen Eintrag im Ereignisprotokoll der Simulation.</p>
+                </div>
+                <h4>Eigenschaften:</h4>
+                <ul class="params-list">
+                    <li><strong>key</strong>: <code>string</code> - Der Schlüssel für den Protokolleintrag (oft für Übersetzungen verwendet).</li>
+                    <li><strong>params</strong>?: <code>{ [key: string]: any }</code> - Optionale Parameter, die im Protokolleintrag ersetzt werden können.</li>
+                </ul>
+            </div>
+
+            <div id="interface-SocialMemoryEntry" class="component-box">
+                <h3>Interface: SocialMemoryEntry</h3>
+                <p class="signature"><code>interface SocialMemoryEntry { agentId: string; action: string; result: 'accepted' | 'rejected' | 'initiated' | 'reciprocated'; emotionalImpact: number; timestamp: number; }</code></p>
+                <div class="description">
+                    <p>Repräsentiert einen Eintrag im sozialen Gedächtnis eines Agenten, der vergangene Interaktionen festhält.</p>
+                </div>
+                <h4>Eigenschaften:</h4>
+                <ul class="params-list">
+                    <li><strong>agentId</strong>: <code>string</code> - Die ID des interagierenden Agenten.</li>
+                    <li><strong>action</strong>: <code>string</code> - Die durchgeführte Aktion.</li>
+                    <li><strong>result</strong>: <code>'accepted' | 'rejected' | 'initiated' | 'reciprocated'</code> - Das Ergebnis der Interaktion.</li>
+                    <li><strong>emotionalImpact</strong>: <code>number</code> - Der emotionale Einfluss der Interaktion (-1 bis 1).</li>
+                    <li><strong>timestamp</strong>: <code>number</code> - Der Zeitpunkt der Interaktion.</li>
+                </ul>
+            </div>
+
+            <div id="interface-ActionExecutionResult" class="component-box">
+                <h3>Interface: ActionExecutionResult</h3>
+                <p class="signature"><code>interface ActionExecutionResult { newEnvironment: EnvironmentState; log: LogEntry; sideEffects?: { createAgent?: Partial&lt;Agent&gt; & { name: string, description: string, parents: [Agent, Agent] }; updateReligion?: { agentId: string, newReligionId: string | null }; createEntity?: Partial&lt;Entity&gt;; }; }</code></p>
+                <div class="description">
+                    <p>Definiert das Ergebnis der Ausführung einer Aktion durch einen Agenten.</p>
+                </div>
+                <h4>Eigenschaften:</h4>
+                <ul class="params-list">
+                    <li><strong>newEnvironment</strong>: <code>EnvironmentState</code> - Der neue Zustand der Umgebung nach der Aktion.</li>
+                    <li><strong>log</strong>: <code>LogEntry</code> - Ein Protokolleintrag, der die Aktion beschreibt.</li>
+                    <li><strong>sideEffects</strong>?: <code>object</code> - Optionale Nebenwirkungen der Aktion, wie das Erstellen neuer Agenten oder Entitäten.</li>
+                </ul>
+            </div>
+
+            <div id="interface-Action" class="component-box">
+                <h3>Interface: Action</h3>
+                <p class="signature"><code>interface Action { name: string; description: string; beliefKey?: string; execute?: (agent: Agent, allAgents: Map&lt;string, Agent&gt;, allEntities: Map&lt;string, Entity&gt;, environment: EnvironmentState) => ActionExecutionResult; }</code></p>
+                <div class="description">
+                    <p>Definiert eine Aktion, die Agenten ausführen können.</p>
+                    <div class="note">
+                        <p><strong>Hinweis:</strong> Das <code>execute</code>-Feld ist mit <code>@ts-ignore</code> markiert, was auf eine potenzielle zirkuläre Abhängigkeit oder eine komplexe Typinferenz hinweisen könnte, die manuell ignoriert wird.</p>
+                    </div>
+                </div>
+                <h4>Eigenschaften:</h4>
+                <ul class="params-list">
+                    <li><strong>name</strong>: <code>string</code> - Der Name der Aktion.</li>
+                    <li><strong>description</strong>: <code>string</code> - Eine Beschreibung der Aktion.</li>
+                    <li><strong>beliefKey</strong>?: <code>string</code> - Ein optionaler Schlüssel, der die Aktion mit einer bestimmten Überzeugung verknüpft.</li>
+                    <li><strong>execute</strong>?: <code>(agent: Agent, allAgents: Map&lt;string, Agent&gt;, allEntities: Map&lt;string, Entity&gt;, environment: EnvironmentState) => ActionExecutionResult</code> - Eine optionale Funktion, die die Logik der Aktion implementiert.</li>
+                </ul>
+            </div>
+
+            <div id="type-ResourceType" class="component-box">
+                <h3>Typ: ResourceType</h3>
+                <p class="signature"><code>type ResourceType = 'food' | 'water' | 'wood' | 'medicine';</code></p>
+                <div class="description">
+                    <p>Definiert die möglichen Typen von Ressourcen in der Simulation.</p>
+                </div>
+            </div>
+
+            <div id="interface-Inventory" class="component-box">
+                <h3>Interface: Inventory</h3>
+                <p class="signature"><code>interface Inventory { [resourceType: string]: number; }</code></p>
+                <div class="description">
+                    <p>Repräsentiert das Inventar eines Agenten, das die Mengen verschiedener Ressourcen speichert.</p>
+                </div>
+            </div>
+
+            <div id="interface-Agent" class="component-box">
+                <h3>Interface: Agent</h3>
+                <p class="signature"><code>interface Agent { id: string; name: string; description: string; x: number; y: number; beliefNetwork: Beliefs; emotions: Emotions; resonance: Resonance; socialMemory: SocialMemoryEntry[]; lastActions: Action[]; adminAgent: boolean; health: number; isAlive: boolean; sickness?: string | null; conversationHistory: { speakerName: string; message: string; }[]; age: number; genome: string[]; relationships: { [agentId: string]: Relationship }; cultureId: string | null; religionId: string | null; role: string | null; offspringCount: number; hunger: number; thirst: number; fatigue: number; inventory: Inventory; }</code></p>
+                <div class="description">
+                    <p>Definiert die Eigenschaften eines KI-Agenten in der Simulation.</p>
+                </div>
+                <h4>Eigenschaften:</h4>
+                <ul class="params-list">
+                    <li><strong>id</strong>: <code>string</code> - Eindeutige ID des Agenten.</li>
+                    <li><strong>name</strong>: <code>string</code> - Name des Agenten.</li>
+                    <li><strong>description</strong>: <code>string</code> - Beschreibung des Agenten.</li>
+                    <li><strong>x</strong>: <code>number</code> - X-Koordinate der Position des Agenten.</li>
+                    <li><strong>y</strong>: <code>number</code> - Y-Koordinate der Position des Agenten.</li>
+                    <li><strong>beliefNetwork</strong>: <code>Beliefs</code> - Das Überzeugungsnetzwerk des Agenten.</li>
+                    <li><strong>emotions</strong>: <code>Emotions</code> - Die aktuellen Emotionen des Agenten.</li>
+                    <li><strong>resonance</strong>: <code>Resonance</code> - Die Resonanz des Agenten für Aktionen.</li>
+                    <li><strong>socialMemory</strong>: <code>SocialMemoryEntry[]</code> - Das soziale Gedächtnis des Agenten.</li>
+                    <li><strong>lastActions</strong>: <code>Action[]</code> - Die zuletzt ausgeführten Aktionen des Agenten.</li>
+                    <li><strong>adminAgent</strong>: <code>boolean</code> - Gibt an, ob der Agent ein Administrator-Agent ist.</li>
+                    <li><strong>health</strong>: <code>number</code> - Der Gesundheitszustand des Agenten.</li>
+                    <li><strong>isAlive</strong>: <code>boolean</code> - Gibt an, ob der Agent am Leben ist.</li>
+                    <li><strong>sickness</strong>?: <code>string | null</code> - Aktuelle Krankheit des Agenten, falls vorhanden.</li>
+                    <li><strong>conversationHistory</strong>: <code>{ speakerName: string; message: string; }[]</code> - Der Konversationsverlauf des Agenten.</li>
+                    <li><strong>age</strong>: <code>number</code> - Das Alter des Agenten.</li>
+                    <li><strong>genome</strong>: <code>string[]</code> - Das Genom des Agenten.</li>
+                    <li><strong>relationships</strong>: <code>{ [agentId: string]: Relationship }</code> - Beziehungen zu anderen Agenten.</li>
+                    <li><strong>cultureId</strong>: <code>string | null</code> - Die ID der Kultur, der der Agent angehört.</li>
+                    <li><strong>religionId</strong>: <code>string | null</code> - Die ID der Religion, der der Agent angehört.</li>
+                    <li><strong>role</strong>: <code>string | null</code> - Die Rolle des Agenten (z.B. 'Leader', 'Healer').</li>
+                    <li><strong>offspringCount</strong>: <code>number</code> - Anzahl der Nachkommen des Agenten.</li>
+                    <li><strong>hunger</strong>: <code>number</code> - Hungerlevel (0-100, 100 = verhungert).</li>
+                    <li><strong>thirst</strong>: <code>number</code> - Durstlevel (0-100, 100 = dehydriert).</li>
+                    <li><strong>fatigue</strong>: <code>number</code> - Müdigkeitslevel (0-100, 100 = erschöpft).</li>
+                    <li><strong>inventory</strong>: <code>Inventory</code> - Das Inventar des Agenten.</li>
+                </ul>
+            </div>
+
+            <div id="interface-Entity" class="component-box">
+                <h3>Interface: Entity</h3>
+                <p class="signature"><code>interface Entity { id: string; name: string; description: string; x: number; y: number; isResource?: boolean; resourceType?: ResourceType; quantity?: number; }</code></p>
+                <div class="description">
+                    <p>Definiert die Eigenschaften einer Entität (Objekt) in der Simulationswelt.</p>
+                </div>
+                <h4>Eigenschaften:</h4>
+                <ul class="
