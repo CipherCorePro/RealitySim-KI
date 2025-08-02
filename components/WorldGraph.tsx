@@ -1,7 +1,9 @@
 
+
+
 import React from 'react';
 import type { Agent, Entity, EnvironmentState, Culture } from '../types';
-import { Share2, Home, User, Skull, Award, HeartPulse, FlaskConical, Apple, Droplet, Log, PlusSquare } from './IconComponents';
+import { Share2, Home, User, Skull, Award, HeartPulse, FlaskConical, Apple, Droplet, Log, PlusSquare, Hammer, Users, Gavel } from './IconComponents';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface WorldGraphProps {
@@ -12,18 +14,20 @@ interface WorldGraphProps {
 }
 
 const getEntityIcon = (entity: Entity) => {
+    if (entity.isJail) {
+        return Gavel;
+    }
+    if (entity.isMarketplace) {
+        return Users;
+    }
     if (entity.isResource) {
         switch (entity.resourceType) {
-            case 'food':
-                return Apple;
-            case 'water':
-                return Droplet;
-            case 'wood':
-                return Log;
-            case 'medicine':
-                return PlusSquare;
-            default:
-                return Home;
+            case 'food': return Apple;
+            case 'water': return Droplet;
+            case 'wood': return Log;
+            case 'medicine': return PlusSquare;
+            case 'iron': return Hammer;
+            default: return Home;
         }
     }
     switch (entity.name.toLowerCase()) {
@@ -38,14 +42,10 @@ const getEntityIcon = (entity: Entity) => {
 
 const getRoleIcon = (role: string | null) => {
     switch (role) {
-        case 'Leader':
-            return Award;
-        case 'Healer':
-            return HeartPulse;
-        case 'Scientist':
-            return FlaskConical;
-        default:
-            return null;
+        case 'Leader': return Award;
+        case 'Healer': return HeartPulse;
+        case 'Scientist': return FlaskConical;
+        default: return null;
     }
 }
 
@@ -121,36 +121,10 @@ export const WorldGraph: React.FC<WorldGraphProps> = ({ agents, entities, enviro
                     {/* Relationship lines */}
                     {relationshipLines.map(line => {
                         let strokeColor = "rgba(107, 114, 128, 0.7)";
-                        let strokeDash = "2 3";
-                        let strokeW = "1";
-                        switch (line.type) {
-                            case 'partner':
-                            case 'spouse':
-                                strokeColor = "rgba(236, 72, 153, 0.8)"; // pink
-                                strokeDash = "none";
-                                strokeW = "1.5";
-                                break;
-                            case 'friend':
-                                strokeColor = "rgba(16, 185, 129, 0.7)"; // green
-                                strokeDash = "none";
-                                break;
-                            case 'rival':
-                                strokeColor = "rgba(239, 68, 68, 0.7)"; // red
-                                strokeDash = "4 4";
-                                break;
-                        }
-
-                        return (
-                            <line
-                                key={line.key}
-                                x1={line.x1} y1={line.y1}
-                                x2={line.x2} y2={line.y2}
-                                stroke={strokeColor}
-                                strokeWidth={strokeW}
-                                strokeDasharray={strokeDash}
-                                opacity={line.opacity}
-                            />
-                        )
+                        if (line.type === 'spouse') strokeColor = "rgba(236, 72, 153, 0.8)";
+                        if (line.type === 'friend') strokeColor = "rgba(16, 185, 129, 0.7)";
+                        if (line.type === 'rival') strokeColor = "rgba(239, 68, 68, 0.7)";
+                        return <line key={line.key} x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke={strokeColor} strokeWidth="1" opacity={line.opacity}/>
                     })}
 
 
@@ -160,10 +134,16 @@ export const WorldGraph: React.FC<WorldGraphProps> = ({ agents, entities, enviro
                         const iconSize = Math.min(cellWidth, cellHeight) * 0.6;
                         const x = entity.x * cellWidth + (cellWidth - iconSize) / 2;
                         const y = entity.y * cellHeight + (cellHeight - iconSize) / 2;
+                        const owner = entity.ownerId ? agents.find(a => a.id === entity.ownerId) : null;
+                        const ownerName = owner ? owner.name : 'Unowned';
+                        let color = 'text-emerald-400';
+                        if (entity.isMarketplace) color = 'text-yellow-400';
+                        if (entity.isJail) color = 'text-red-400';
+
                         return (
                             <g key={entity.id} transform={`translate(${x}, ${y})`}>
-                               <title>{entity.name}{entity.isResource ? ` (${entity.quantity})` : ''}</title>
-                               <Icon width={iconSize} height={iconSize} className="text-emerald-400" />
+                               <title>{entity.name}{entity.isResource ? ` (${entity.quantity})` : ''} - Owner: ${ownerName}</title>
+                               <Icon width={iconSize} height={iconSize} className={color} />
                             </g>
                         )
                     })}
@@ -181,7 +161,7 @@ export const WorldGraph: React.FC<WorldGraphProps> = ({ agents, entities, enviro
                         const roleIconSize = agentIconSize * 0.5;
 
                         return (
-                            <g key={agent.id} transform={`translate(${x}, ${y})`}>
+                            <g key={agent.id} transform={`translate(${x}, ${y})`} opacity={agent.imprisonedUntil ? 0.5 : 1}>
                                 <title>{agent.name} ({agent.health.toFixed(0)} HP, {agent.age.toFixed(1)} yrs)</title>
                                 {agent.isAlive && agent.cultureId && (
                                      <circle cx={agentIconSize/2} cy={agentIconSize/2} r={agentIconSize/2 + 3} fill={cultureColor} opacity="0.3" />

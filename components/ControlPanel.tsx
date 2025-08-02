@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Play, RotateCcw, FastForward, Globe } from './IconComponents';
+import { Play, RotateCcw, FastForward, Globe, PlusSquare } from './IconComponents';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface ControlPanelProps {
@@ -8,12 +8,14 @@ interface ControlPanelProps {
     onRunSteps: (steps: number) => void;
     onReset: () => void;
     onGenerateWorld: () => void;
+    onGenerateContent: () => void;
     isGenerating: boolean;
 }
 
-export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, onReset, onGenerateWorld, isGenerating }) => {
+export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, onReset, onGenerateWorld, onGenerateContent, isGenerating }) => {
     const [runSteps, setRunSteps] = useState(10);
     const t = useTranslations();
+    const generatingText = t('log_generating');
 
     return (
         <div className="flex items-center gap-2">
@@ -23,7 +25,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, 
                 className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center gap-2 disabled:bg-slate-600 disabled:cursor-wait"
             >
                 <Globe className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
-                {isGenerating ? t('log_generatingWorld') : t('controlPanel_generateWorld')}
+                {isGenerating ? generatingText : t('controlPanel_generateWorld')}
+            </button>
+            <button
+                onClick={onGenerateContent}
+                disabled={isGenerating}
+                className="bg-purple-500 hover:bg-purple-400 text-white font-bold py-2 px-3 rounded-md transition-colors flex items-center gap-2 disabled:bg-slate-600 disabled:cursor-wait"
+            >
+                <PlusSquare className="w-4 h-4" />
+                {isGenerating ? generatingText : t('controlPanel_addWithAI')}
             </button>
             <button
                 onClick={onStep}

@@ -1,8 +1,7 @@
 
 import { useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { translations } from '../translations';
-import type { TranslationKey } from '../translations';
+import { translations, TranslationKey } from '../translations';
 
 export const useTranslations = () => {
     const { language } = useLanguage();

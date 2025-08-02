@@ -8,8 +8,10 @@ import { LanguageProvider } from './contexts/LanguageContext';
 const SETTINGS_KEY = 'realitysim_settings';
 
 interface Settings {
+    provider: 'lm_studio' | 'gemini';
     lmStudioUrl: string;
     lmStudioModel: string;
+    geminiModel: string;
 }
 
 interface SettingsContextType {
@@ -21,8 +23,10 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [settings, setSettingsState] = useState<Settings>({
+        provider: 'lm_studio',
         lmStudioUrl: '',
         lmStudioModel: '',
+        geminiModel: 'gemini-2.5-flash',
     });
 
     useEffect(() => {
@@ -30,7 +34,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         if (storedSettings) {
             try {
                 const parsed = JSON.parse(storedSettings);
-                setSettingsState(parsed);
+                // Merge with defaults to ensure new fields are present
+                setSettingsState(currentSettings => ({...currentSettings, ...parsed}));
             } catch (e) {
                 console.error("Failed to parse settings from localStorage", e);
             }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { useTranslations } from '../hooks/useTranslations';
-import type { TranslationKey } from '../translations';
+import { TranslationKey } from '../translations';
 
 interface BeliefsChartProps {
     data: { name: string; value: number }[];
@@ -11,10 +11,13 @@ interface BeliefsChartProps {
 
 const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
+        const value = payload[0].value;
+        const displayValue = (typeof value === 'number' && !isNaN(value)) ? value.toFixed(2) : String(value);
+
         return (
             <div className="bg-slate-700/80 backdrop-blur-sm p-2 border border-slate-600 rounded-md text-sm">
                 <p className="label text-slate-200">{`${label}`}</p>
-                <p className="intro text-sky-400">{`Value: ${payload[0].value.toFixed(2)}`}</p>
+                <p className="intro text-sky-400">{`Value: ${displayValue}`}</p>
             </div>
         );
     }

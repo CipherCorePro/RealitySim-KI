@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { RealityEngine } from './services/simulation';
-import type { WorldState, Agent, Entity, EnvironmentState, LogEntry, Culture } from './types';
-import { initialWorldState, GENOME_OPTIONS } from './constants';
+import type { WorldState, Agent, Entity, EnvironmentState, LogEntry, Culture, Law, Personality } from './types';
+import { initialWorldState, GENOME_OPTIONS, INITIAL_CURRENCY, SKILL_TYPES } from './constants';
 import { AgentCard } from './components/AgentCard';
 import { ControlPanel } from './components/ControlPanel';
 import { LogPanel } from './components/LogPanel';
@@ -10,13 +10,13 @@ import { WorldGraph } from './components/WorldGraph';
 import { CreateObjectPanel } from './components/CreateObjectPanel';
 import { ExporterPanel } from './components/ExporterPanel';
 import { AdminPanel } from './components/AdminPanel';
-import { generateActionFromPrompt, generateWorld, LmStudioError } from './services/geminiService';
-import { BrainCircuit, Cpu, Zap, Microscope, Boxes, Trash2, Settings, X, Globe, Users } from './components/IconComponents';
+import { generateActionFromPrompt, generateWorld, generateAgents, generateEntities, LmStudioError } from './services/geminiService';
+import { BrainCircuit, Cpu, Zap, Microscope, Boxes, Trash2, Settings, X, Globe, Users, PlusSquare } from './components/IconComponents';
 import { useLanguage } from './contexts/LanguageContext';
 import { useTranslations } from './hooks/useTranslations';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { useSettings } from './index';
-import type { TranslationKey } from './translations';
+import { TranslationKey } from './translations';
 
 // --- Settings Modal Component ---
 interface SettingsModalProps {
@@ -26,28 +26,35 @@ interface SettingsModalProps {
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     const { settings, setSettings } = useSettings();
-    const [url, setUrl] = useState(settings.lmStudioUrl);
-    const [model, setModel] = useState(settings.lmStudioModel);
     const t = useTranslations();
 
+    const [provider, setProvider] = useState(settings.provider);
+    const [url, setUrl] = useState(settings.lmStudioUrl);
+    const [model, setModel] = useState(settings.lmStudioModel);
+    const [geminiModel, setGeminiModel] = useState(settings.geminiModel);
+
     useEffect(() => {
-        setUrl(settings.lmStudioUrl);
-        setModel(settings.lmStudioModel);
-    }, [settings.lmStudioUrl, settings.lmStudioModel, isOpen]);
+        if (isOpen) {
+            setProvider(settings.provider);
+            setUrl(settings.lmStudioUrl);
+            setModel(settings.lmStudioModel);
+            setGeminiModel(settings.geminiModel);
+        }
+    }, [settings, isOpen]);
 
     if (!isOpen) {
         return null;
     }
 
     const handleSave = () => {
-        setSettings({ ...settings, lmStudioUrl: url, lmStudioModel: model });
+        setSettings({ provider, lmStudioUrl: url, lmStudioModel: model, geminiModel });
         onClose();
     };
 
     return (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
             <div className="bg-slate-850 p-6 rounded-lg border border-slate-700 w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
                         <Settings className="w-6 h-6 text-sky-400"/>
                         {t('settings_title')}
@@ -59,30 +66,60 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 
                 <div className="space-y-6">
                     <div>
-                        <label htmlFor="lm-studio-url" className="block text-sm font-medium text-slate-300 mb-1">{t('settings_lmStudioUrl_label')}</label>
-                        <input
-                            id="lm-studio-url"
-                            type="text"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            placeholder="http://localhost:1234"
-                            className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none transition"
-                        />
-                        <p className="text-xs text-slate-500 mt-2">{t('settings_lmStudioUrl_description')}</p>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">{t('settings_aiProvider_label')}</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => setProvider('lm_studio')}
+                                className={`p-3 rounded-md border text-center transition-colors ${provider === 'lm_studio' ? 'bg-sky-600 border-sky-500' : 'bg-slate-700 border-slate-600 hover:bg-slate-600'}`}
+                            >
+                                LM Studio
+                            </button>
+                             <button
+                                onClick={() => setProvider('gemini')}
+                                className={`p-3 rounded-md border text-center transition-colors ${provider === 'gemini' ? 'bg-sky-600 border-sky-500' : 'bg-slate-700 border-slate-600 hover:bg-slate-600'}`}
+                            >
+                                Google Gemini
+                            </button>
+                        </div>
                     </div>
 
-                     <div>
-                        <label htmlFor="lm-studio-model" className="block text-sm font-medium text-slate-300 mb-1">{t('settings_lmStudioModel_label')}</label>
-                        <input
-                            id="lm-studio-model"
-                            type="text"
-                            value={model}
-                            onChange={(e) => setModel(e.target.value)}
-                            placeholder="e.g. google/gemma-2b-it"
-                            className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none transition"
-                        />
-                        <p className="text-xs text-slate-500 mt-2">{t('settings_lmStudioModel_description')}</p>
-                    </div>
+                    {provider === 'lm_studio' && (
+                        <div className="space-y-4">
+                             <div>
+                                <label htmlFor="lm-studio-url" className="block text-sm font-medium text-slate-300 mb-1">{t('settings_lmStudioUrl_label')}</label>
+                                <input id="lm-studio-url" type="text" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://localhost:1234" className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none transition"/>
+                                <p className="text-xs text-slate-500 mt-2">{t('settings_lmStudioUrl_description')}</p>
+                            </div>
+                            <div>
+                                <label htmlFor="lm-studio-model" className="block text-sm font-medium text-slate-300 mb-1">{t('settings_lmStudioModel_label')}</label>
+                                <input id="lm-studio-model" type="text" value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. google/gemma-2b-it" className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none transition"/>
+                                <p className="text-xs text-slate-500 mt-2">{t('settings_lmStudioModel_description')}</p>
+                            </div>
+                        </div>
+                    )}
+                    
+                     {provider === 'gemini' && (
+                        <div className="space-y-4">
+                             <div>
+                                <label htmlFor="gemini-model" className="block text-sm font-medium text-slate-300 mb-1">{t('settings_geminiModel_label')}</label>
+                                <select id="gemini-model" value={geminiModel} onChange={e => setGeminiModel(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+                                    <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                                    <option value="gemini-1.5-flash-latest">gemini-1.5-flash-latest</option>
+                                    <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
+                                    <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                                    <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+                                </select>
+                                 <p className="text-xs text-slate-500 mt-2">{t('settings_geminiModel_description')}</p>
+                            </div>
+                            <div>
+                                 <label htmlFor="gemini-api-key" className="block text-sm font-medium text-slate-300 mb-1">{t('settings_geminiApiKey_label')}</label>
+                                 <div className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-400">
+                                     {t('settings_geminiApiKey_value')}
+                                 </div>
+                                 <p className="text-xs text-slate-500 mt-2">{t('settings_geminiApiKey_description')}</p>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex justify-end gap-2 pt-4">
                         <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-md transition-colors">{t('settings_cancel')}</button>
@@ -95,15 +132,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 };
 // --- End Settings Modal ---
 
-
 // --- Generate World Modal ---
 interface GenerateWorldModalProps {
     isOpen: boolean;
     onClose: () => void;
     onGenerate: (agentCount: number, entityCount: number) => void;
+    isGenerating: boolean;
 }
 
-const GenerateWorldModal: React.FC<GenerateWorldModalProps> = ({ isOpen, onClose, onGenerate }) => {
+const GenerateWorldModal: React.FC<GenerateWorldModalProps> = ({ isOpen, onClose, onGenerate, isGenerating }) => {
     const [agentCount, setAgentCount] = useState(20);
     const [entityCount, setEntityCount] = useState(20);
     const t = useTranslations();
@@ -140,7 +177,8 @@ const GenerateWorldModal: React.FC<GenerateWorldModalProps> = ({ isOpen, onClose
                             onChange={(e) => setAgentCount(Math.max(1, parseInt(e.target.value, 10)))}
                             min="1"
                             max="100"
-                            className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition"
+                            disabled={isGenerating}
+                            className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"
                         />
                          <p className="text-xs text-slate-500 mt-2">{t('generateWorldModal_agentsDescription')}</p>
                     </div>
@@ -154,14 +192,15 @@ const GenerateWorldModal: React.FC<GenerateWorldModalProps> = ({ isOpen, onClose
                              onChange={(e) => setEntityCount(Math.max(0, parseInt(e.target.value, 10)))}
                             min="0"
                             max="100"
-                            className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition"
+                            disabled={isGenerating}
+                            className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"
                         />
                         <p className="text-xs text-slate-500 mt-2">{t('generateWorldModal_entitiesDescription')}</p>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4">
                         <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-md transition-colors">{t('settings_cancel')}</button>
-                        <button onClick={handleGenerateClick} className="bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-md transition-colors">{t('generateWorldModal_generate')}</button>
+                        <button onClick={handleGenerateClick} disabled={isGenerating} className="bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:bg-slate-600 disabled:cursor-wait">{isGenerating ? t('log_generating') : t('generateWorldModal_generate')}</button>
                     </div>
                 </div>
             </div>
@@ -169,6 +208,219 @@ const GenerateWorldModal: React.FC<GenerateWorldModalProps> = ({ isOpen, onClose
     );
 };
 // --- End Generate World Modal ---
+
+// --- Generate Content Modal ---
+interface GenerateContentModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onGenerateAgents: (count: number) => void;
+    onGenerateEntities: (count: number) => void;
+    isGenerating: boolean;
+}
+
+const GenerateContentModal: React.FC<GenerateContentModalProps> = ({ isOpen, onClose, onGenerateAgents, onGenerateEntities, isGenerating }) => {
+    const [agentCount, setAgentCount] = useState(5);
+    const [entityCount, setEntityCount] = useState(10);
+    const t = useTranslations();
+
+    if (!isOpen) {
+        return null;
+    }
+
+    const handleGenerateAgentsClick = () => {
+        onGenerateAgents(agentCount);
+    };
+    
+    const handleGenerateEntitiesClick = () => {
+        onGenerateEntities(entityCount);
+    };
+
+    const generatingText = t('log_generating');
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
+            <div className="bg-slate-850 p-6 rounded-lg border border-slate-700 w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
+                        <PlusSquare className="w-6 h-6 text-purple-400"/>
+                        {t('generateContent_title')}
+                    </h2>
+                    <button onClick={onClose} className="text-slate-500 hover:text-slate-200 p-1">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <div className="space-y-8">
+                    {/* Agent Generation */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2"><Users className="w-5 h-5"/>{t('generateContent_addAgents')}</h3>
+                        <div>
+                            <label htmlFor="agent-count-add" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_agentsLabel')}</label>
+                            <input
+                                id="agent-count-add"
+                                type="number"
+                                value={agentCount}
+                                onChange={(e) => setAgentCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                min="1"
+                                max="50"
+                                disabled={isGenerating}
+                                className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"
+                            />
+                            <p className="text-xs text-slate-500 mt-2">{t('generateContent_agentsDescription')}</p>
+                        </div>
+                        <button 
+                            onClick={handleGenerateAgentsClick}
+                            disabled={isGenerating}
+                            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:bg-slate-600 disabled:cursor-wait flex items-center justify-center gap-2"
+                        >
+                            <Globe className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+                            {isGenerating ? generatingText : t('generateContent_generateAgentsBtn')}
+                        </button>
+                    </div>
+
+                    {/* Entity Generation */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2"><Boxes className="w-5 h-5"/>{t('generateContent_addEntities')}</h3>
+                         <div>
+                            <label htmlFor="entity-count-add" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_entitiesLabel')}</label>
+                            <input
+                                id="entity-count-add"
+                                type="number"
+                                value={entityCount}
+                                onChange={(e) => setEntityCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                min="1"
+                                max="50"
+                                disabled={isGenerating}
+                                className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"
+                            />
+                            <p className="text-xs text-slate-500 mt-2">{t('generateContent_entitiesDescription')}</p>
+                        </div>
+                         <button 
+                            onClick={handleGenerateEntitiesClick}
+                            disabled={isGenerating}
+                            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:bg-slate-600 disabled:cursor-wait flex items-center justify-center gap-2"
+                         >
+                            <Globe className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+                            {isGenerating ? generatingText : t('generateContent_generateEntitiesBtn')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+// --- End Generate Content Modal ---
+
+// --- Data Sanitization Helpers ---
+const safeParseInt = (val: any, fallback: number): number => {
+    const num = parseInt(String(val), 10);
+    return isNaN(num) ? fallback : num;
+};
+
+const sanitizeObjectToNumber = (obj: any): { [key: string]: number } => {
+    if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
+        return {};
+    }
+    return Object.entries(obj).reduce((acc, [key, value]) => {
+        const num = parseFloat(String(value));
+        if (typeof key === 'string' && !isNaN(num)) {
+            acc[key] = num;
+        }
+        return acc;
+    }, {} as { [key: string]: number });
+};
+
+const sanitizePersonality = (p: any): Personality => {
+    const defaults: Personality = { openness: 0.5, conscientiousness: 0.5, extraversion: 0.5, agreeableness: 0.5, neuroticism: 0.5 };
+    const sanitized = sanitizeObjectToNumber(p);
+    return {
+        openness: (sanitized.openness >= 0 && sanitized.openness <= 1) ? sanitized.openness : defaults.openness,
+        conscientiousness: (sanitized.conscientiousness >= 0 && sanitized.conscientiousness <= 1) ? sanitized.conscientiousness : defaults.conscientiousness,
+        extraversion: (sanitized.extraversion >= 0 && sanitized.extraversion <= 1) ? sanitized.extraversion : defaults.extraversion,
+        agreeableness: (sanitized.agreeableness >= 0 && sanitized.agreeableness <= 1) ? sanitized.agreeableness : defaults.agreeableness,
+        neuroticism: (sanitized.neuroticism >= 0 && sanitized.neuroticism <= 1) ? sanitized.neuroticism : defaults.neuroticism,
+    };
+};
+
+const sanitizeAndCreateAgents = (generatedAgents: any[], worldState: WorldState): Agent[] => {
+    return generatedAgents.map((geminiAgent: any, index: number) => {
+        const beliefNetwork = sanitizeObjectToNumber(geminiAgent.beliefs);
+        const personality = sanitizePersonality(geminiAgent.personality);
+        
+        const defaultSkills = SKILL_TYPES.reduce((acc, skill) => ({ ...acc, [skill]: 1 }), {} as { [key: string]: number });
+        const skills = { ...defaultSkills, ...sanitizeObjectToNumber(geminiAgent.skills) };
+        
+        const defaultEmotions = { happiness: 0.5, sadness: 0.1, anger: 0.1, fear: 0.1, trust: 0.3, love: 0.1 };
+        const emotions = { ...defaultEmotions, ...sanitizeObjectToNumber(geminiAgent.emotions) };
+        const inventory = typeof geminiAgent.inventory === 'object' && geminiAgent.inventory !== null && !Array.isArray(geminiAgent.inventory) 
+            ? sanitizeObjectToNumber(geminiAgent.inventory) 
+            : {};
+
+        const x = safeParseInt(geminiAgent.x, Math.floor(Math.random() * worldState.environment.width));
+        const y = safeParseInt(geminiAgent.y, Math.floor(Math.random() * worldState.environment.height));
+        const age = safeParseInt(geminiAgent.age, 25);
+        const hunger = safeParseInt(geminiAgent.hunger, Math.floor(Math.random() * 50));
+        const thirst = safeParseInt(geminiAgent.thirst, Math.floor(Math.random() * 50));
+        const fatigue = safeParseInt(geminiAgent.fatigue, Math.floor(Math.random() * 50));
+        const stress = safeParseInt(geminiAgent.stress, Math.floor(Math.random() * 30));
+        const socialStatus = safeParseInt(geminiAgent.socialStatus, Math.floor(Math.random() * 40) + 30);
+        const currency = safeParseInt(geminiAgent.currency, INITIAL_CURRENCY);
+
+        return {
+            id: `agent-gen-${Date.now()}-${index}`,
+            name: String(geminiAgent.name || `Agent ${index + 1}`),
+            description: String(geminiAgent.description || 'An agent generated by the AI.'),
+            x: Math.max(0, Math.min(worldState.environment.width - 1, x)),
+            y: Math.max(0, Math.min(worldState.environment.height - 1, y)),
+            beliefNetwork,
+            emotions,
+            resonance: {},
+            socialMemory: [],
+            lastActions: [],
+            adminAgent: false,
+            health: 100,
+            isAlive: true,
+            sickness: null,
+            conversationHistory: [],
+            age,
+            genome: (Array.isArray(geminiAgent.genome) ? geminiAgent.genome : []).filter((g: any) => typeof g === 'string' && GENOME_OPTIONS.includes(g)),
+            relationships: {},
+            cultureId: geminiAgent.cultureId || null,
+            religionId: geminiAgent.religionId || null,
+            role: geminiAgent.role || null,
+            offspringCount: 0,
+            hunger,
+            thirst,
+            fatigue,
+            inventory,
+            personality,
+            goals: (Array.isArray(geminiAgent.goals) ? geminiAgent.goals : []).filter((g: any) => typeof g === 'object' && g !== null && g.type && g.description),
+            stress,
+            socialStatus,
+            skills,
+            trauma: [],
+            currency,
+        };
+    });
+};
+
+const sanitizeAndCreateEntities = (generatedEntities: any[], worldState: WorldState): Entity[] => {
+    return generatedEntities.map((geminiEntity, index) => {
+        const x = safeParseInt(geminiEntity.x, Math.floor(Math.random() * worldState.environment.width));
+        const y = safeParseInt(geminiEntity.y, Math.floor(Math.random() * worldState.environment.height));
+        return {
+            id: `entity-gen-${Date.now()}-${index}`,
+            name: geminiEntity.name,
+            description: geminiEntity.description,
+            x: Math.max(0, Math.min(worldState.environment.width - 1, x)),
+            y: Math.max(0, Math.min(worldState.environment.height - 1, y)),
+            isMarketplace: !!geminiEntity.isMarketplace,
+            isResource: !!geminiEntity.isResource,
+            resourceType: geminiEntity.resourceType,
+            quantity: safeParseInt(geminiEntity.quantity, 10),
+        };
+    });
+};
 
 
 export default function App() {
@@ -179,6 +431,7 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGenerateWorldModalOpen, setIsGenerateWorldModalOpen] = useState(false);
+  const [isGenerateContentModalOpen, setIsGenerateContentModalOpen] = useState(false);
 
   const t = useTranslations();
   const { language } = useLanguage();
@@ -246,8 +499,17 @@ export default function App() {
     setLogs([`[${new Date().toLocaleTimeString()}] ${t('log_simulationReset')}`]);
   }, [t]);
 
+  const isAiConfigured = useCallback(() => {
+    if (settings.provider === 'gemini') {
+        // For Gemini, we assume API_KEY is in env.
+        return true;
+    }
+    // For LM Studio, we need URL and model.
+    return !!settings.lmStudioUrl && !!settings.lmStudioModel;
+  }, [settings]);
+
   const handleGenerateWorld = useCallback(async (agentCount: number, entityCount: number) => {
-    if (!settings.lmStudioUrl || !settings.lmStudioModel) {
+    if (!isAiConfigured()) {
         addRawLog(t('log_configure_ai_full'));
         setIsSettingsOpen(true);
         return;
@@ -272,69 +534,23 @@ export default function App() {
             }));
         }
 
-        const newAgents: Agent[] = generatedData.agents.map((geminiAgent: any, index: number) => {
-            const beliefNetwork = (geminiAgent.beliefs || []).reduce((acc: { [key: string]: number }, belief: { key: string, value: number }) => {
-                if (belief.key && typeof belief.value === 'number') {
-                    acc[belief.key] = belief.value;
-                }
-                return acc;
-            }, {});
-            
-            const x = geminiAgent.x ?? Math.floor(Math.random() * worldState.environment.width);
-            const y = geminiAgent.y ?? Math.floor(Math.random() * worldState.environment.height);
-
-            return {
-                id: `agent-gen-${Date.now()}-${index}`,
-                name: geminiAgent.name,
-                description: geminiAgent.description,
-                x: Math.max(0, Math.min(worldState.environment.width - 1, x)),
-                y: Math.max(0, Math.min(worldState.environment.height - 1, y)),
-                beliefNetwork,
-                emotions: { happiness: 0.5, sadness: 0.1, anger: 0.1, fear: 0.1, trust: 0.3, love: 0.1 },
-                resonance: {},
-                socialMemory: [],
-                lastActions: [],
-                adminAgent: false,
-                health: 100,
-                isAlive: true,
-                sickness: null,
-                conversationHistory: [],
-                age: geminiAgent.age,
-                genome: (geminiAgent.genome || []).filter((g: string) => GENOME_OPTIONS.includes(g)),
-                relationships: {},
-                cultureId: geminiAgent.cultureId || null,
-                religionId: geminiAgent.religionId || null,
-                role: geminiAgent.role || null,
-                offspringCount: 0,
-                hunger: geminiAgent.hunger ?? Math.floor(Math.random() * 50),
-                thirst: geminiAgent.thirst ?? Math.floor(Math.random() * 50),
-                fatigue: geminiAgent.fatigue ?? Math.floor(Math.random() * 50),
-                inventory: geminiAgent.inventory ?? {},
-            };
-        });
-
-        const newEntities: Entity[] = generatedData.entities.map((geminiEntity, index) => {
-            const x = geminiEntity.x ?? Math.floor(Math.random() * worldState.environment.width);
-            const y = geminiEntity.y ?? Math.floor(Math.random() * worldState.environment.height);
-            return {
-                id: `entity-gen-${Date.now()}-${index}`,
-                name: geminiEntity.name,
-                description: geminiEntity.description,
-                x: Math.max(0, Math.min(worldState.environment.width - 1, x)),
-                y: Math.max(0, Math.min(worldState.environment.height - 1, y)),
-            };
-        });
+        const newAgents: Agent[] = sanitizeAndCreateAgents(generatedData.agents, worldState);
+        const newEntities: Entity[] = sanitizeAndCreateEntities(generatedData.entities, worldState);
         
         const adminAgent = engine.getAgentById('agent-admin');
         const finalAgents = adminAgent ? [...newAgents, adminAgent] : newAgents;
 
+        const currentEngineState = engine.getState();
         const newWorldState: WorldState = {
             agents: finalAgents,
             entities: newEntities,
-            actions: engine.getState().actions, // Keep existing actions
-            environment: worldState.environment, // Keep existing environment
-            cultures: engine.getState().cultures,
-            religions: engine.getState().religions,
+            actions: currentEngineState.actions,
+            environment: currentEngineState.environment,
+            cultures: currentEngineState.cultures,
+            religions: currentEngineState.religions,
+            government: currentEngineState.government,
+            markets: currentEngineState.markets,
+            techTree: currentEngineState.techTree,
         };
         
         const newEngine = new RealityEngine(newWorldState);
@@ -353,15 +569,101 @@ export default function App() {
     } finally {
         setIsGenerating(false);
     }
-}, [engine, addRawLog, t, language, worldState.environment, settings.lmStudioUrl, settings.lmStudioModel]);
+}, [engine, addRawLog, t, language, worldState, settings, isAiConfigured]);
+
+
+const handleGenerateAgents = useCallback(async (count: number) => {
+    if (!isAiConfigured()) {
+        addRawLog(t('log_configure_ai_full'));
+        setIsSettingsOpen(true);
+        return;
+    }
+
+    setIsGenerating(true);
+    addRawLog(t('log_generatingAgents', { count }));
+    setIsGenerateContentModalOpen(false);
+
+    try {
+        const generatedData = await generateAgents(worldState.environment, language, count);
+        if (!generatedData || !generatedData.agents) {
+            throw new Error("Invalid data received from agent generation.");
+        }
+        
+        const newAgents = sanitizeAndCreateAgents(generatedData.agents, worldState);
+        
+        const currentEngineState = engine.getState();
+        const newWorldState: WorldState = {
+            ...currentEngineState,
+            agents: [...currentEngineState.agents, ...newAgents],
+        };
+        
+        const newEngine = new RealityEngine(newWorldState);
+        setEngine(newEngine);
+        setWorldState(newEngine.getState());
+        addRawLog(t('log_addedAgents', { count: newAgents.length }));
+
+    } catch (error) {
+        if (error instanceof LmStudioError && error.translationKey) {
+            addRawLog(t(error.translationKey as TranslationKey));
+        } else {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            addRawLog(t('log_aiError', { error: `Agent generation failed: ${errorMessage}` }));
+        }
+    } finally {
+        setIsGenerating(false);
+    }
+}, [engine, addRawLog, t, language, worldState, settings, isAiConfigured]);
+
+
+const handleGenerateEntities = useCallback(async (count: number) => {
+    if (!isAiConfigured()) {
+        addRawLog(t('log_configure_ai_full'));
+        setIsSettingsOpen(true);
+        return;
+    }
+
+    setIsGenerating(true);
+    addRawLog(t('log_generatingEntities', { count }));
+    setIsGenerateContentModalOpen(false);
+
+    try {
+        const generatedData = await generateEntities(worldState.environment, language, count);
+        if (!generatedData || !generatedData.entities) {
+            throw new Error("Invalid data received from entity generation.");
+        }
+        
+        const newEntities = sanitizeAndCreateEntities(generatedData.entities, worldState);
+
+        const currentEngineState = engine.getState();
+        const newWorldState: WorldState = {
+            ...currentEngineState,
+            entities: [...currentEngineState.entities, ...newEntities],
+        };
+        
+        const newEngine = new RealityEngine(newWorldState);
+        setEngine(newEngine);
+        setWorldState(newEngine.getState());
+        addRawLog(t('log_addedEntities', { count: newEntities.length }));
+    } catch (error) {
+        if (error instanceof LmStudioError && error.translationKey) {
+            addRawLog(t(error.translationKey as TranslationKey));
+        } else {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            addRawLog(t('log_aiError', { error: `Entity generation failed: ${errorMessage}` }));
+        }
+    } finally {
+        setIsGenerating(false);
+    }
+}, [engine, addRawLog, t, language, worldState, settings, isAiConfigured]);
+
 
   const handlePrompt = useCallback(async (agentId: string, prompt: string, useAi: boolean) => {
     let actionToExecute = prompt;
 
     if (useAi) {
-      addRawLog(t('log_agentProcessingPrompt', {agentId: agentId.substring(0,4), prompt, aiInfo: '(using local AI)'}));
+      addRawLog(t('log_agentProcessingPrompt', {agentId: agentId.substring(0,4), prompt, aiInfo: settings.provider }));
       
-      if (!settings.lmStudioUrl || !settings.lmStudioModel) {
+      if (!isAiConfigured()) {
         addRawLog(t('log_configure_ai_full'));
         setIsSettingsOpen(true);
         return;
@@ -393,10 +695,10 @@ export default function App() {
         // actionToExecute is already set to prompt, so we just proceed
     }
 
-    const { logs: newLogs } = engine.processAgentPrompt(agentId, actionToExecute);
+    const { logs: newLogs } = await engine.processAgentPrompt(agentId, actionToExecute);
     setWorldState({ ...engine.getState() });
     newLogs.forEach(log => addLog(log));
-  }, [engine, addLog, addRawLog, t, language, settings.lmStudioUrl, settings.lmStudioModel]);
+  }, [engine, addLog, addRawLog, t, language, settings, isAiConfigured]);
   
   const handleCreate = useCallback((type: 'agent' | 'entity' | 'action', data: any) => {
     if (type === 'agent') {
@@ -477,6 +779,47 @@ export default function App() {
     addLog({ key: 'log_adminModifiedEnv' });
   }, [engine, addLog]);
 
+  const handleSetAgentCurrency = useCallback((agentId: string, currency: number) => {
+    engine.setAgentCurrency(agentId, currency);
+    const agentName = engine.getAgentById(agentId)?.name || 'Unknown Agent';
+    setWorldState({ ...engine.getState() });
+    addLog({ key: 'log_adminSetCurrency', params: { name: agentName, currency } });
+  }, [engine, addLog]);
+
+  const handleEnactLaw = useCallback((law: Law) => {
+      engine.enactLaw(law);
+      setWorldState({ ...engine.getState() });
+      addLog({ key: 'log_action_enact_law_success', params: { agentName: 'Admin', lawName: law.name } });
+  }, [engine, addLog]);
+
+  const handleRepealLaw = useCallback((lawId: string) => {
+      const lawName = engine.getState().government.laws.find(l => l.id === lawId)?.name;
+      engine.repealLaw(lawId);
+      setWorldState({ ...engine.getState() });
+      addLog({ key: 'log_adminRepealedLaw', params: { lawName: lawName || 'a law' } });
+  }, [engine, addLog]);
+
+  const handleStartElection = useCallback(() => {
+      engine.startElection();
+      setWorldState({ ...engine.getState() });
+      addLog({ key: 'log_election_started' });
+  }, [engine, addLog]);
+  
+  const handleSetLeader = useCallback((agentId: string) => {
+      engine.setLeader(agentId);
+      const agentName = engine.getAgentById(agentId)?.name || 'Unknown Agent';
+      setWorldState({ ...engine.getState() });
+      addLog({ key: 'log_adminSetLeader', params: { name: agentName } });
+  }, [engine, addLog]);
+
+  const handleUnlockTech = useCallback((cultureId: string, techId: string) => {
+      engine.unlockTech(cultureId, techId);
+      const cultureName = engine.getState().cultures.find(c => c.id === cultureId)?.name || 'A culture';
+      const techName = t(`tech_${techId}` as any) || techId;
+      setWorldState({ ...engine.getState() });
+      addLog({ key: 'log_adminUnlockedTech', params: { cultureName, techId: techName } });
+  }, [engine, addLog, t]);
+
   const downloadJSON = (data: any, filename: string) => {
     const jsonStr = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -535,11 +878,16 @@ export default function App() {
                 if (typeof jsonStr !== 'string') {
                     throw new Error("File content is not a string.");
                 }
-                const loadedState: WorldState = JSON.parse(jsonStr);
+                const parsedState = JSON.parse(jsonStr);
 
-                if (!loadedState.agents || !loadedState.environment || !loadedState.actions) {
+                if (!parsedState.agents || !parsedState.environment || !parsedState.actions) {
                     throw new Error("Invalid or incomplete world state file.");
                 }
+                
+                const loadedState: WorldState = {
+                    ...initialWorldState,
+                    ...parsedState,
+                };
                 
                 const newEngine = new RealityEngine(loadedState);
                 setEngine(newEngine);
@@ -573,7 +921,7 @@ export default function App() {
             <LanguageSwitcher />
         </div>
         <div className="flex items-center gap-2">
-            <ControlPanel onStep={handleStep} onRunSteps={handleRunSteps} onReset={handleReset} onGenerateWorld={() => setIsGenerateWorldModalOpen(true)} isGenerating={isGenerating} />
+            <ControlPanel onStep={handleStep} onRunSteps={handleRunSteps} onReset={handleReset} onGenerateWorld={() => setIsGenerateWorldModalOpen(true)} onGenerateContent={() => setIsGenerateContentModalOpen(true)} isGenerating={isGenerating} />
             <button
                 onClick={() => setIsSettingsOpen(true)}
                 className="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold p-2.5 rounded-md transition-colors"
@@ -639,6 +987,8 @@ export default function App() {
                     environment={worldState.environment}
                     actions={worldState.actions}
                     agents={worldState.agents}
+                    government={worldState.government}
+                    cultures={worldState.cultures || []}
                     onUpdateEnvironment={handleUpdateEnvironment}
                     onCreateAction={(data) => handleCreate('action', data)}
                     onDeleteAction={(name) => handleDelete('action', name)}
@@ -646,6 +996,12 @@ export default function App() {
                     onInflictSickness={handleInflictSickness}
                     onResurrectAgent={handleResurrectAgent}
                     onSetAgentPosition={handleSetAgentPosition}
+                    onSetAgentCurrency={handleSetAgentCurrency}
+                    onEnactLaw={handleEnactLaw}
+                    onRepealLaw={handleRepealLaw}
+                    onStartElection={handleStartElection}
+                    onSetLeader={handleSetLeader}
+                    onUnlockTech={handleUnlockTech}
                 />
             ) : (
                 <>
@@ -692,10 +1048,17 @@ export default function App() {
       <GenerateWorldModal 
         isOpen={isGenerateWorldModalOpen}
         onClose={() => setIsGenerateWorldModalOpen(false)}
+        isGenerating={isGenerating}
         onGenerate={async (agentCount, entityCount) => {
-            setIsGenerateWorldModalOpen(false);
             await handleGenerateWorld(agentCount, entityCount);
         }}
+       />
+       <GenerateContentModal
+        isOpen={isGenerateContentModalOpen}
+        onClose={() => setIsGenerateContentModalOpen(false)}
+        onGenerateAgents={handleGenerateAgents}
+        onGenerateEntities={handleGenerateEntities}
+        isGenerating={isGenerating}
        />
     </div>
   );

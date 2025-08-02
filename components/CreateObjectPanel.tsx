@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
-import { PlusCircle, Dna, Award } from './IconComponents';
+import { PlusCircle, Dna, Award, Smile } from './IconComponents';
 import { useTranslations } from '../hooks/useTranslations';
-import { GENOME_OPTIONS, ROLES } from '../constants';
+import { GENOME_OPTIONS, ROLES, PERSONALITY_TRAITS } from '../constants';
+import type { Personality } from '../types';
 
 interface CreateObjectPanelProps {
     onCreate: (type: 'agent' | 'entity' | 'action', data: any) => void;
@@ -15,6 +17,13 @@ export const CreateObjectPanel: React.FC<CreateObjectPanelProps> = ({ onCreate }
     const [beliefKey, setBeliefKey] = useState('');
     const [genome, setGenome] = useState('');
     const [role, setRole] = useState<string>(ROLES[0]);
+    const [personality, setPersonality] = useState<Personality>({
+        openness: 0.5,
+        conscientiousness: 0.5,
+        extraversion: 0.5,
+        agreeableness: 0.5,
+        neuroticism: 0.5,
+    });
     const t = useTranslations();
 
     const handleGenerateGenes = () => {
@@ -22,6 +31,23 @@ export const CreateObjectPanel: React.FC<CreateObjectPanelProps> = ({ onCreate }
         const selectedCount = Math.floor(Math.random() * 3) + 1; // 1 to 3 genes
         const selected = shuffled.slice(0, selectedCount);
         setGenome(selected.join(', '));
+    };
+
+    const handleRandomizePersonality = () => {
+        setPersonality({
+            openness: Math.random(),
+            conscientiousness: Math.random(),
+            extraversion: Math.random(),
+            agreeableness: Math.random(),
+            neuroticism: Math.random(),
+        });
+    };
+
+    const handlePersonalityChange = (trait: keyof Personality, value: string) => {
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue) && numValue >= 0 && numValue <= 1) {
+            setPersonality(prev => ({ ...prev, [trait]: numValue }));
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -36,6 +62,7 @@ export const CreateObjectPanel: React.FC<CreateObjectPanelProps> = ({ onCreate }
             }
             data.genome = genome.split(',').map(g => g.trim()).filter(Boolean);
             data.role = role;
+            data.personality = personality;
         }
         if (type === 'action') {
             data.beliefKey = beliefKey;
@@ -75,6 +102,26 @@ export const CreateObjectPanel: React.FC<CreateObjectPanelProps> = ({ onCreate }
                                 {ROLES.map(r => <option key={r} value={r}>{t(`role_${r.toLowerCase()}` as any)}</option>)}
                             </select>
                         </div>
+                        <details>
+                           <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-200 transition-colors flex items-center gap-1"><Smile className="w-4 h-4" /> {t('personality_title')}</summary>
+                           <div className="p-2 bg-slate-900/50 rounded-md mt-2 space-y-2">
+                            {PERSONALITY_TRAITS.map(trait => (
+                                <div key={trait} className="flex items-center gap-2">
+                                <label className="w-1/3 capitalize text-slate-300">{t(`personality_${trait}` as any)}</label>
+                                <input 
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value={personality[trait as keyof Personality]}
+                                    onChange={(e) => handlePersonalityChange(trait as keyof Personality, e.target.value)}
+                                    className="w-2/3"
+                                />
+                                </div>
+                            ))}
+                             <button type="button" onClick={handleRandomizePersonality} className="w-full text-xs py-1 mt-2 bg-slate-600 hover:bg-slate-500 rounded">{t('create_randomize_personality')}</button>
+                           </div>
+                        </details>
                      </>
                 )}
                  {type === 'action' && (
