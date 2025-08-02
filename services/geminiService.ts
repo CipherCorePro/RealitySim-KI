@@ -60,7 +60,7 @@ Consider the agent's current state, survival needs, personality, goals, stress, 
         world_market: 'Market Listings (Dynamic Prices)',
         user_prompt: `**User's Prompt:**`,
         instructions: `Based on all the information, which single action is the most logical for the agent?
-- **PRIORITIZE SURVIVAL & FREEDOM:** If imprisoned, the only option is 'Rest'. If hunger, thirst, or fatigue are high, resolve it. This is the highest priority.
+- **PRIORITIZE SURVIVAL & FREEDOM:** If imprisoned, the only option is 'Rest'. If hunger, thirst, or fatigue are very high (over 80), resolving them is a high priority, but also consider urgent opportunities or goals.
 - **OBEY THE LAW:** If an action is illegal (e.g., 'Steal'), do not choose it, especially if the agent has high conscientiousness or there are Guards nearby.
 - **FOLLOW GOALS:** If the agent has a goal like 'avengeRival', they should prioritize fighting that specific rival when nearby.
 - **USE THE MARKET:** Prices are dynamic. If an item is cheap, buy it. If an item is expensive, consider selling it via 'List Item on Market'.
@@ -75,11 +75,12 @@ Your age is {agentAge} ({agentLifeStage}). Health: {agentHealth}/100. Needs: Hun
 Your skills are: {agentSkills}. Your inventory: {agentInventory}. Your goals: {agentGoals}.
 You are at ({agentX}, {agentY}). The world leader is {worldLeader}. Active laws: {worldLaws}.
 You are talking to {otherAgentName}. Your relationship is '{relationshipType}' ({relationshipScore}/100). Your disposition towards them: {relationshipDisposition}.`,
+        agent_recent_experiences: 'Your Recent Experiences (what you did, what you saw):',
+        agent_recent_experiences_none: 'Nothing of note has happened recently.',
         conversation_history: `**Recent Conversation History (last 5 messages):**`,
         conversation_no_history: `This is the start of your conversation.`,
-        conversation_instruction: `Based on your personality, needs, and relationship, generate a response.
-Your response MUST be a JSON object with "dialogue" (what you say) and "action" (your next move from the list below).
-Talk about what's on your mind (e.g., being hungry, needing money, the new law). You can propose a trade if you want something they might have.
+        conversation_instruction: `Based on your personality, needs, and relationship, generate a response. Your response MUST be a JSON object with "dialogue" (what you say) and "action" (your next move from the list below).
+Talk about what's on your mind. Topics could include: your personal goals, your opinion on the leader, the weather, or your financial worries. **You can also gossip about other agents, complain about a negative event (like losing a fight), boast about a success, talk about your last action, or curse if you are highly stressed or angry.** If your needs (hunger, thirst) are low, focus on other topics. You can also propose a trade.
 Available actions: {availableActions}. Keep your dialogue concise.`,
         lifeStage_child: 'Child',
         lifeStage_adolescent: 'Adolescent',
@@ -133,7 +134,7 @@ Berücksichtigen Sie Zustand, Bedürfnisse, Persönlichkeit, Ziele, Stress, Fäh
         world_market: 'Marktangebote (Dynamische Preise)',
         user_prompt: `**Eingabe des Benutzers:**`,
         instructions: `Welche einzelne Aktion ist auf Basis aller Informationen die logischste für den Agenten?
-- **ÜBERLEBEN & FREIHEIT PRIORISIEREN:** Wenn inhaftiert, ist 'Ausruhen' die einzige Option. Wenn Hunger, Durst oder Müdigkeit hoch sind, löse das Problem.
+- **ÜBERLEBEN & FREIHEIT PRIORISIEREN:** Wenn inhaftiert, ist 'Ausruhen' die einzige Option. Wenn Hunger, Durst oder Müdigkeit **sehr hoch** (über 80) sind, hat deren Lösung hohe Priorität, aber berücksichtige auch dringende Gelegenheiten oder Ziele.
 - **GESETZE BEACHTEN:** Wenn eine Aktion illegal ist, wähle sie nicht, besonders bei hoher Gewissenhaftigkeit oder wenn Wachen in der Nähe sind.
 - **ZIELE VERFOLGEN:** Wenn der Agent ein Ziel wie 'avengeRival' hat, sollte er den Kampf mit diesem Rivalen priorisieren, wenn er in der Nähe ist.
 - **MARKT NUTZEN:** Die Preise sind dynamisch. Wenn ein Gegenstand billig ist, kaufe ihn. Wenn er teuer ist, erwäge, ihn über 'Gegenstand auf Markt anbieten' zu verkaufen.
@@ -148,11 +149,12 @@ Ihr Alter ist {agentAge} ({agentLifeStage}). Gesundheit: {agentHealth}/100. Bed�
 Ihre Fähigkeiten sind: {agentSkills}. Ihr Inventar: {agentInventory}. Ihre Ziele: {agentGoals}.
 Sie sind bei ({agentX}, {agentY}). Der Anführer der Welt ist {worldLeader}. Aktive Gesetze: {worldLaws}.
 Sie sprechen mit {otherAgentName}. Ihre Beziehung ist '{relationshipType}' ({relationshipScore}/100). Ihre Disposition: {relationshipDisposition}.`,
+        agent_recent_experiences: 'Ihre jüngsten Erfahrungen (was Sie getan, was Sie gesehen haben):',
+        agent_recent_experiences_none: 'Nichts Bemerkenswertes ist kürzlich passiert.',
         conversation_history: `**Kürzlicher Gesprächsverlauf (letzte 5 Nachrichten):**`,
         conversation_no_history: `Dies ist der Beginn Ihres Gesprächs.`,
-        conversation_instruction: `Basierend auf Ihrer Persönlichkeit, Bedürfnissen und Beziehung, generieren Sie eine Antwort.
-Ihre Antwort MUSS ein JSON-Objekt mit "dialogue" (was Sie sagen) und "action" (Ihr nächster Schritt aus der Liste) sein.
-Sprechen Sie darüber, was Sie beschäftigt (Hunger, Geldnot, das neue Gesetz). Sie können einen Handel vorschlagen.
+        conversation_instruction: `Basierend auf Ihrer Persönlichkeit, Bedürfnissen und Beziehung, generieren Sie eine Antwort. Ihre Antwort MUSS ein JSON-Objekt mit "dialogue" (was Sie sagen) und "action" (Ihr nächster Schritt aus der Liste) sein.
+Sprechen Sie darüber, was Sie beschäftigt. Themen könnten sein: Ihre Ziele, Ihre Meinung zum Anführer, das Wetter, ein Gerücht das Sie gehört haben, oder Ihre finanziellen Sorgen. **Sie können auch über andere Agenten lästern, sich über ein negatives Ereignis beschweren (wie einen verlorenen Kampf), mit einem Erfolg prahlen, über Ihre letzte Tat berichten oder fluchen, wenn Sie sehr gestresst oder wütend sind.** Wenn Ihre Bedürfnisse (Hunger, Durst) niedrig sind, konzentrieren Sie sich auf andere Themen. Sie können einen Handel vorschlagen.
 Verfügbare Aktionen: {availableActions}. Halten Sie Ihren Dialog kurz.`,
         lifeStage_child: 'Kind',
         lifeStage_adolescent: 'Jugendlicher',
@@ -344,6 +346,18 @@ export async function generateAgentConversation(
     const leaderName = government.leaderId ? worldState.agents.find(a => a.id === government.leaderId)?.name : 'None';
     const lawsStr = government.laws.map(l => l.name).join(', ') || 'None';
 
+    const recentExperienceList: string[] = [];
+    const lastAction = speaker.lastActions?.[0];
+    if (lastAction) {
+        recentExperienceList.push(`You just performed the action '${lastAction.name}'.`);
+    }
+    const lastMemory = speaker.socialMemory?.[0];
+    if (lastMemory && lastMemory.timestamp > worldState.environment.time - 10) {
+        const otherAgentName = worldState.agents.find(a => a.id === lastMemory.agentId)?.name || 'someone';
+        recentExperienceList.push(`You recently observed ${otherAgentName} involved in an event related to '${lastMemory.action}'.`);
+    }
+    const recentExperiencesStr = recentExperienceList.length > 0 ? recentExperienceList.join(' ') : t.agent_recent_experiences_none;
+
     const systemPrompt = `${t.conversation_system_base
         .replace('{agentName}', speaker.name)
         .replace('{agentDescription}', speaker.description)
@@ -371,6 +385,8 @@ export async function generateAgentConversation(
         .replace('{relationshipScore}', relationshipWithListener.score.toFixed(1))
         .replace('{relationshipDisposition}', JSON.stringify(relationshipWithListener.disposition))}
 
+${t.agent_recent_experiences} ${recentExperiencesStr}
+
 ${history.length > 0 ? t.conversation_history : ''}
 ${historyStr}
 
@@ -392,7 +408,7 @@ const getWorldGenPrompts = (language: Language) => ({
 Generate a world with EXACTLY {agentCount} unique human agents and EXACTLY {entityCount} unique entities.
 The world is a {width}x{height} grid.`,
         agent_details: `For each agent, provide: **name (a unique, creative, human-sounding name like 'Elara' or 'Finnian', not 'Agent 1')**, description, age (1-80), x, y, cultureId ('culture-utopian' or 'culture-primitivist'), religionId ('religion-technotheism' or 'religion-gaianism'), role ('${ROLES.join("', '")}'), genome (an array of 1-3 strings from '${GENOME_OPTIONS.join("', '")}'), beliefs (an object mapping belief keys like 'progress_good' to a value between 0.0 and 1.0), emotions (an object with keys like 'happiness', 'sadness' with values 0.0-1.0), personality (an object with keys 'openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism' with values 0.0-1.0), skills (an object mapping skill names to a numeric level, e.g., {"healing": 15, "woodcutting": 5}), socialStatus (30-70), stress (5-30), hunger, thirst, fatigue (0-50), inventory (an object like {"wood": 10}), and currency (20-100).`,
-        entity_details: `For each entity: **name (a unique, descriptive name like 'Whispering Falls' or 'Old Town Market', not 'Resource 1')**, description, x, y. Some MUST be resources ('isResource': true, 'resourceType', 'quantity'). One MUST be a marketplace ('isMarketplace': true). One MUST be a jail ('isJail': true).`,
+        entity_base_details: `For each entity: **name (a unique, descriptive name like 'Whispering Falls' or 'Old Town Market', not 'Resource 1')**, description, x, y.`,
         world_response_instructions: `Your response MUST be a JSON object: { "agents": [ ... ], "entities": [ ... ] }. DO NOT add extra text. Ensure all numeric values are actually numbers, not strings.`,
         agents_response_instructions: `Your response MUST be a JSON object: { "agents": [ ... ] }. DO NOT add extra text or entity data. Ensure all numeric values are actually numbers, not strings.`,
         entities_response_instructions: `Your response MUST be a JSON object: { "entities": [ ... ] }. DO NOT add extra text or agent data. Ensure all numeric values are actually numbers, not strings.`,
@@ -401,7 +417,7 @@ The world is a {width}x{height} grid.`,
         world_system_base: `Sie sind ein Datengenerierungs-Bot. Ihre einzige Aufgabe ist die Erstellung eines JSON-Objekts.
 Generieren Sie eine Welt mit EXAKT {agentCount} Agenten und EXAKT {entityCount} Entitäten auf einem {width}x{height} Raster.`,
         agent_details: `Für jeden Agenten: **name (ein einzigartiger, kreativer, menschlich klingender Name wie 'Elara' oder 'Finnian', nicht 'Agent 1')**, description, age (1-80), x, y, cultureId ('culture-utopian' oder 'culture-primitivist'), religionId ('religion-technotheism' oder 'religion-gaianism'), role ('${ROLES.join("', '")}'), genome (ein Array mit 1-3 Strings aus '${GENOME_OPTIONS.join("', '")}'), beliefs (ein Objekt, das Belief-Schlüssel wie 'progress_good' auf einen Wert zwischen 0.0 und 1.0 abbildet), emotions (ein Objekt mit Schlüsseln wie 'happiness', 'sadness' mit Werten von 0.0-1.0), personality (ein Objekt mit den Schlüsseln 'openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism' mit Werten von 0.0-1.0), skills (ein Objekt, das Fähigkeitsnamen auf ein numerisches Level abbildet, z.B. {"healing": 15, "woodcutting": 5}), socialStatus (30-70), stress (5-30), hunger, thirst, fatigue (0-50), inventory (ein Objekt wie {"wood": 10}), und currency (20-100).`,
-        entity_details: `Für jede Entität: **name (ein einzigartiger, beschreibender Name wie 'Flüsterwasserfall' oder 'Alter Stadtmarkt', nicht 'Resource 1')**, description, x, y. Einige MÜSSEN Ressourcen sein ('isResource': true, 'resourceType', 'quantity'). Eine MUSS ein Marktplatz sein ('isMarketplace': true). Eine MUSS ein Gefängnis sein ('isJail': true).`,
+        entity_base_details: `Für jede Entität: **name (ein einzigartiger, beschreibender Name wie 'Flüsterwasserfall' oder 'Alter Stadtmarkt', nicht 'Resource 1')**, description, x, y.`,
         world_response_instructions: `Ihre Antwort MUSS ein JSON-Objekt sein: { "agents": [ ... ], "entities": [ ... ] }. Fügen Sie KEINEN zusätzlichen Text hinzu. Stellen Sie sicher, dass alle numerischen Werte Zahlen sind, keine Strings.`,
         agents_response_instructions: `Ihre Antwort MUSS ein JSON-Objekt sein: { "agents": [ ... ] }. Fügen Sie KEINEN zusätzlichen Text oder Entitätsdaten hinzu. Stellen Sie sicher, dass alle numerischen Werte Zahlen sind, keine Strings.`,
         entities_response_instructions: `Ihre Antwort MUSS ein JSON-Objekt sein: { "entities": [ ... ] }. Fügen Sie KEINEN zusätzlichen Text oder Agentendaten hinzu. Stellen Sie sicher, dass alle numerischen Werte Zahlen sind, keine Strings.`,
@@ -409,12 +425,48 @@ Generieren Sie eine Welt mit EXAKT {agentCount} Agenten und EXAKT {entityCount} 
 }[language]);
 
 export async function generateWorld(
-    environment: EnvironmentState, language: Language, agentCount: number, entityCount: number
+    environment: EnvironmentState, language: Language, agentCount: number, entityCounts: { [key: string]: number }
 ): Promise<{ agents: any[], entities: any[] } | null> {
     const t = getWorldGenPrompts(language);
+    const totalEntityCount = Object.values(entityCounts).reduce((sum, val) => sum + val, 0);
+
+    const buildingCount = entityCounts.buildings || 0;
+    let building_instruction_en = '';
+    if (buildingCount > 0) {
+        building_instruction_en = `EXACTLY ${buildingCount} building/general entities. IMPORTANT: Among these, one MUST be a marketplace ('isMarketplace': true) and one MUST be a jail ('isJail': true), assuming the count is 2 or more. If the count is 1, make it a marketplace.`;
+    }
+    let building_instruction_de = '';
+     if (buildingCount > 0) {
+        building_instruction_de = `EXAKT ${buildingCount} Gebäude/allgemeine Entitäten. WICHTIG: Darunter MUSS ein Marktplatz ('isMarketplace': true) und ein Gefängnis ('isJail': true) sein, sofern die Anzahl 2 oder mehr beträgt. Wenn die Anzahl 1 ist, erstellen Sie einen Marktplatz.`;
+    }
+
+    const details_en = [
+        entityCounts.food > 0 ? `EXACTLY ${entityCounts.food} food resources ('isResource': true, 'resourceType': 'food', 'quantity').` : '',
+        entityCounts.water > 0 ? `EXACTLY ${entityCounts.water} water resources ('isResource': true, 'resourceType': 'water', 'quantity').` : '',
+        entityCounts.wood > 0 ? `EXACTLY ${entityCounts.wood} wood resources ('isResource': true, 'resourceType': 'wood', 'quantity').` : '',
+        entityCounts.iron > 0 ? `EXACTLY ${entityCounts.iron} iron resources ('isResource': true, 'resourceType': 'iron', 'quantity').` : '',
+        building_instruction_en
+    ].filter(Boolean).join('\n');
+    
+    const details_de = [
+        entityCounts.food > 0 ? `EXAKT ${entityCounts.food} Nahrungsquellen ('isResource': true, 'resourceType': 'food', 'quantity').` : '',
+        entityCounts.water > 0 ? `EXAKT ${entityCounts.water} Wasserquellen ('isResource': true, 'resourceType': 'water', 'quantity').` : '',
+        entityCounts.wood > 0 ? `EXAKT ${entityCounts.wood} Holzquellen ('isResource': true, 'resourceType': 'wood', 'quantity').` : '',
+        entityCounts.iron > 0 ? `EXAKT ${entityCounts.iron} Eisenquellen ('isResource': true, 'resourceType': 'iron', 'quantity').` : '',
+        building_instruction_de
+    ].filter(Boolean).join('\n');
+
+    const specificEntityDetails = language === 'de' ? details_de : details_en;
+    
     const systemPrompt = `${t.world_system_base
+        .replace('{agentCount}', String(agentCount))
+        .replace('{entityCount}', String(totalEntityCount))
         .replace('{width}', String(environment.width)).replace('{height}', String(environment.height))
-        .replace('{agentCount}', String(agentCount)).replace('{entityCount}', String(entityCount))}\n${t.agent_details}\n${t.entity_details}\n\n${t.world_response_instructions}`;
+    }\n${t.agent_details}\n
+For entities: ${t.entity_base_details}
+You must follow these specific counts for entities:
+${specificEntityDetails}\n
+${t.world_response_instructions}`;
     
     try {
         const jsonText = await callAi(systemPrompt, null, true);
@@ -450,16 +502,43 @@ export async function generateAgents(
 }
 
 export async function generateEntities(
-    environment: EnvironmentState, language: Language, entityCount: number
+    environment: EnvironmentState, language: Language, entityCounts: { [key: string]: number }
 ): Promise<{ entities: any[] } | null> {
     const t = getWorldGenPrompts(language);
+    const totalCount = Object.values(entityCounts).reduce((sum, val) => sum + val, 0);
+
+    const details_en = [
+        entityCounts.food > 0 ? `EXACTLY ${entityCounts.food} food resources ('isResource': true, 'resourceType': 'food', 'quantity').` : '',
+        entityCounts.water > 0 ? `EXACTLY ${entityCounts.water} water resources ('isResource': true, 'resourceType': 'water', 'quantity').` : '',
+        entityCounts.wood > 0 ? `EXACTLY ${entityCounts.wood} wood resources ('isResource': true, 'resourceType': 'wood', 'quantity').` : '',
+        entityCounts.iron > 0 ? `EXACTLY ${entityCounts.iron} iron resources ('isResource': true, 'resourceType': 'iron', 'quantity').` : '',
+        entityCounts.buildings > 0 ? `EXACTLY ${entityCounts.buildings} general entities (like buildings, landmarks, non-resource objects).` : '',
+    ].filter(Boolean).join('\n');
+
+    const details_de = [
+        entityCounts.food > 0 ? `EXAKT ${entityCounts.food} Nahrungsquellen ('isResource': true, 'resourceType': 'food', 'quantity').` : '',
+        entityCounts.water > 0 ? `EXAKT ${entityCounts.water} Wasserquellen ('isResource': true, 'resourceType': 'water', 'quantity').` : '',
+        entityCounts.wood > 0 ? `EXAKT ${entityCounts.wood} Holzquellen ('isResource': true, 'resourceType': 'wood', 'quantity').` : '',
+        entityCounts.iron > 0 ? `EXAKT ${entityCounts.iron} Eisenquellen ('isResource': true, 'resourceType': 'iron', 'quantity').` : '',
+        entityCounts.buildings > 0 ? `EXAKT ${entityCounts.buildings} allgemeine Entitäten (wie Gebäude, Sehenswürdigkeiten, nicht-Ressourcen Objekte).` : '',
+    ].filter(Boolean).join('\n');
+    
+    const specificDetails = language === 'de' ? details_de : details_en;
+
     const systemPrompt = `${t.world_system_base
         .replace('EXACTLY {agentCount} unique human agents and ', '')
         .replace('EXAKT {agentCount} Agenten und ', '')
+        .replace('EXACTLY {entityCount} unique entities', `a total of ${totalCount} unique entities`)
+        .replace('EXAKT {entityCount} Entitäten', `insgesamt ${totalCount} einzigartigen Entitäten`)
         .replace('{agentCount}', '0') // Fallback
-        .replace('{entityCount}', String(entityCount))
+        .replace('{entityCount}', String(totalCount))
         .replace('{width}', String(environment.width))
-        .replace('{height}', String(environment.height))}\n${t.entity_details}\n\n${t.entities_response_instructions}`;
+        .replace('{height}', String(environment.height))}
+${t.entity_base_details}
+The generation must follow these specific counts:
+${specificDetails}
+
+${t.entities_response_instructions}`;
 
     try {
         const jsonText = await callAi(systemPrompt, null, true);

@@ -11,12 +11,13 @@ import { CreateObjectPanel } from './components/CreateObjectPanel';
 import { ExporterPanel } from './components/ExporterPanel';
 import { AdminPanel } from './components/AdminPanel';
 import { generateActionFromPrompt, generateWorld, generateAgents, generateEntities, LmStudioError } from './services/geminiService';
-import { BrainCircuit, Cpu, Zap, Microscope, Boxes, Trash2, Settings, X, Globe, Users, PlusSquare } from './components/IconComponents';
+import { BrainCircuit, Cpu, Zap, Microscope, Boxes, Trash2, Settings, X, Globe, Users, PlusSquare, Apple, Droplet, Log, Hammer, Home } from './components/IconComponents';
 import { useLanguage } from './contexts/LanguageContext';
 import { useTranslations } from './hooks/useTranslations';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { useSettings } from './index';
 import { TranslationKey } from './translations';
+import { ProcessingIndicator } from './components/ProcessingIndicator';
 
 // --- Settings Modal Component ---
 interface SettingsModalProps {
@@ -136,21 +137,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 interface GenerateWorldModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onGenerate: (agentCount: number, entityCount: number) => void;
+    onGenerate: (agentCount: number, entityCounts: { [key: string]: number }) => void;
     isGenerating: boolean;
 }
 
 const GenerateWorldModal: React.FC<GenerateWorldModalProps> = ({ isOpen, onClose, onGenerate, isGenerating }) => {
     const [agentCount, setAgentCount] = useState(20);
-    const [entityCount, setEntityCount] = useState(20);
+    const [entityCounts, setEntityCounts] = useState({ food: 5, water: 3, wood: 5, iron: 4, buildings: 3 });
     const t = useTranslations();
 
     if (!isOpen) {
         return null;
     }
+    
+    const handleEntityCountChange = (type: string, value: string) => {
+        const count = Math.max(0, parseInt(value, 10) || 0);
+        setEntityCounts(prev => ({...prev, [type]: count}));
+    }
 
     const handleGenerateClick = () => {
-        onGenerate(agentCount, entityCount);
+        onGenerate(agentCount, entityCounts);
         onClose();
     };
 
@@ -184,17 +190,29 @@ const GenerateWorldModal: React.FC<GenerateWorldModalProps> = ({ isOpen, onClose
                     </div>
 
                      <div>
-                        <label htmlFor="entity-count" className="block text-sm font-medium text-slate-300 mb-1 flex items-center gap-2"><Boxes className="w-4 h-4"/>{t('generateWorldModal_entitiesLabel')}</label>
-                        <input
-                            id="entity-count"
-                            type="number"
-                            value={entityCount}
-                             onChange={(e) => setEntityCount(Math.max(0, parseInt(e.target.value, 10)))}
-                            min="0"
-                            max="100"
-                            disabled={isGenerating}
-                            className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"
-                        />
+                        <h3 className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2"><Boxes className="w-4 h-4"/>{t('generateWorldModal_entitiesLabel')}</h3>
+                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-food-world" className="text-xs text-slate-400 flex items-center gap-1"><Apple className="w-3 h-3"/>{t('generateContent_foodSources')}</label>
+                                <input id="entity-count-food-world" type="number" value={entityCounts.food} onChange={e => handleEntityCountChange('food', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-water-world" className="text-xs text-slate-400 flex items-center gap-1"><Droplet className="w-3 h-3"/>{t('generateContent_waterSources')}</label>
+                                <input id="entity-count-water-world" type="number" value={entityCounts.water} onChange={e => handleEntityCountChange('water', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-wood-world" className="text-xs text-slate-400 flex items-center gap-1"><Log className="w-3 h-3"/>{t('generateContent_woodSources')}</label>
+                                <input id="entity-count-wood-world" type="number" value={entityCounts.wood} onChange={e => handleEntityCountChange('wood', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-iron-world" className="text-xs text-slate-400 flex items-center gap-1"><Hammer className="w-3 h-3"/>{t('generateContent_ironSources')}</label>
+                                <input id="entity-count-iron-world" type="number" value={entityCounts.iron} onChange={e => handleEntityCountChange('iron', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="flex flex-col gap-1 col-span-2 lg:col-span-1">
+                                <label htmlFor="entity-count-buildings-world" className="text-xs text-slate-400 flex items-center gap-1"><Home className="w-3 h-3"/>{t('generateContent_buildings')}</label>
+                                <input id="entity-count-buildings-world" type="number" value={entityCounts.buildings} onChange={e => handleEntityCountChange('buildings', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                         </div>
                         <p className="text-xs text-slate-500 mt-2">{t('generateWorldModal_entitiesDescription')}</p>
                     </div>
 
@@ -214,17 +232,22 @@ interface GenerateContentModalProps {
     isOpen: boolean;
     onClose: () => void;
     onGenerateAgents: (count: number) => void;
-    onGenerateEntities: (count: number) => void;
+    onGenerateEntities: (counts: { [key: string]: number }) => void;
     isGenerating: boolean;
 }
 
 const GenerateContentModal: React.FC<GenerateContentModalProps> = ({ isOpen, onClose, onGenerateAgents, onGenerateEntities, isGenerating }) => {
     const [agentCount, setAgentCount] = useState(5);
-    const [entityCount, setEntityCount] = useState(10);
+    const [entityCounts, setEntityCounts] = useState({ food: 2, water: 2, wood: 2, iron: 2, buildings: 2 });
     const t = useTranslations();
 
     if (!isOpen) {
         return null;
+    }
+
+    const handleEntityCountChange = (type: string, value: string) => {
+        const count = Math.max(0, parseInt(value, 10) || 0);
+        setEntityCounts(prev => ({...prev, [type]: count}));
     }
 
     const handleGenerateAgentsClick = () => {
@@ -232,7 +255,7 @@ const GenerateContentModal: React.FC<GenerateContentModalProps> = ({ isOpen, onC
     };
     
     const handleGenerateEntitiesClick = () => {
-        onGenerateEntities(entityCount);
+        onGenerateEntities(entityCounts);
     };
 
     const generatingText = t('log_generating');
@@ -281,20 +304,29 @@ const GenerateContentModal: React.FC<GenerateContentModalProps> = ({ isOpen, onC
                     {/* Entity Generation */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2"><Boxes className="w-5 h-5"/>{t('generateContent_addEntities')}</h3>
-                         <div>
-                            <label htmlFor="entity-count-add" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_entitiesLabel')}</label>
-                            <input
-                                id="entity-count-add"
-                                type="number"
-                                value={entityCount}
-                                onChange={(e) => setEntityCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                                min="1"
-                                max="50"
-                                disabled={isGenerating}
-                                className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"
-                            />
-                            <p className="text-xs text-slate-500 mt-2">{t('generateContent_entitiesDescription')}</p>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="entity-count-food" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_foodSources')}</label>
+                                <input id="entity-count-food" type="number" value={entityCounts.food} onChange={(e) => handleEntityCountChange('food', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                            <div>
+                                <label htmlFor="entity-count-water" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_waterSources')}</label>
+                                <input id="entity-count-water" type="number" value={entityCounts.water} onChange={(e) => handleEntityCountChange('water', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                            <div>
+                                <label htmlFor="entity-count-wood" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_woodSources')}</label>
+                                <input id="entity-count-wood" type="number" value={entityCounts.wood} onChange={(e) => handleEntityCountChange('wood', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                            <div>
+                                <label htmlFor="entity-count-iron" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_ironSources')}</label>
+                                <input id="entity-count-iron" type="number" value={entityCounts.iron} onChange={(e) => handleEntityCountChange('iron', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="col-span-2">
+                                <label htmlFor="entity-count-buildings" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_buildings')}</label>
+                                <input id="entity-count-buildings" type="number" value={entityCounts.buildings} onChange={(e) => handleEntityCountChange('buildings', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
                         </div>
+                        <p className="text-xs text-slate-500 mt-2">{t('generateContent_entitiesDescriptionCategorized')}</p>
                          <button 
                             onClick={handleGenerateEntitiesClick}
                             disabled={isGenerating}
@@ -415,6 +447,7 @@ const sanitizeAndCreateEntities = (generatedEntities: any[], worldState: WorldSt
             x: Math.max(0, Math.min(worldState.environment.width - 1, x)),
             y: Math.max(0, Math.min(worldState.environment.height - 1, y)),
             isMarketplace: !!geminiEntity.isMarketplace,
+            isJail: !!geminiEntity.isJail,
             isResource: !!geminiEntity.isResource,
             resourceType: geminiEntity.resourceType,
             quantity: safeParseInt(geminiEntity.quantity, 10),
@@ -429,6 +462,7 @@ export default function App() {
   const [logs, setLogs] = useState<string[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isProcessingSteps, setIsProcessingSteps] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGenerateWorldModalOpen, setIsGenerateWorldModalOpen] = useState(false);
   const [isGenerateContentModalOpen, setIsGenerateContentModalOpen] = useState(false);
@@ -464,31 +498,47 @@ export default function App() {
   }, []);
 
   const handleStep = useCallback(async () => {
-    const { logs: newLogs } = await engine.step(language);
-    setWorldState({ ...engine.getState() });
-    newLogs.forEach(log => addLog(log));
-    addLog({ key: 'log_simulationStepped' });
-  }, [engine, addLog, language]);
+    setIsProcessingSteps(true);
+    try {
+        const { logs: newLogs } = await engine.step(language);
+        setWorldState({ ...engine.getState() });
+        newLogs.forEach(log => addLog(log));
+        addLog({ key: 'log_simulationStepped' });
+    } catch (error) {
+        console.error("Error during step processing:", error);
+        addRawLog(`Error during step processing: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+        setIsProcessingSteps(false);
+    }
+  }, [engine, addLog, language, addRawLog]);
 
   const handleRunSteps = useCallback(async (steps: number) => {
+    setIsProcessingSteps(true);
     addRawLog(t('log_runningSimulation', { steps }));
-    let allLogs: LogEntry[] = [];
-    for (let i = 0; i < steps; i++) {
-      const { logs: newLogs } = await engine.step(language);
-      allLogs.push(...newLogs);
+    try {
+        let allLogs: LogEntry[] = [];
+        for (let i = 0; i < steps; i++) {
+        const { logs: newLogs } = await engine.step(language);
+        allLogs.push(...newLogs);
+        }
+        setWorldState({ ...engine.getState() });
+
+        // Batch log updates for performance
+        const formattedNewLogs = allLogs.map(logEntry => {
+            // @ts-ignore
+            const message = t(logEntry.key, logEntry.params);
+            return `[${new Date().toLocaleTimeString()}] ${message}`;
+        }).reverse(); // reverse to keep chronological order when prepending
+
+        setLogs(prevLogs => [...formattedNewLogs, ...prevLogs].slice(0, 100));
+
+        addLog({ key: 'log_simulationRanSteps', params: { steps } });
+    } catch (error) {
+        console.error("Error during run steps processing:", error);
+        addRawLog(`Error during run steps processing: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+        setIsProcessingSteps(false);
     }
-    setWorldState({ ...engine.getState() });
-
-    // Batch log updates for performance
-    const formattedNewLogs = allLogs.map(logEntry => {
-        // @ts-ignore
-        const message = t(logEntry.key, logEntry.params);
-        return `[${new Date().toLocaleTimeString()}] ${message}`;
-    }).reverse(); // reverse to keep chronological order when prepending
-
-    setLogs(prevLogs => [...formattedNewLogs, ...prevLogs].slice(0, 100));
-
-    addLog({ key: 'log_simulationRanSteps', params: { steps } });
   }, [engine, addLog, addRawLog, t, language]);
 
   const handleReset = useCallback(() => {
@@ -508,7 +558,7 @@ export default function App() {
     return !!settings.lmStudioUrl && !!settings.lmStudioModel;
   }, [settings]);
 
-  const handleGenerateWorld = useCallback(async (agentCount: number, entityCount: number) => {
+  const handleGenerateWorld = useCallback(async (agentCount: number, entityCounts: { [key: string]: number }) => {
     if (!isAiConfigured()) {
         addRawLog(t('log_configure_ai_full'));
         setIsSettingsOpen(true);
@@ -519,17 +569,19 @@ export default function App() {
     addRawLog(t('log_generatingWorld'));
 
     try {
-        const generatedData = await generateWorld(worldState.environment, language, agentCount, entityCount);
+        const generatedData = await generateWorld(worldState.environment, language, agentCount, entityCounts);
 
         if (!generatedData || !generatedData.agents || !generatedData.entities) {
             throw new Error("Invalid data received from world generation.");
         }
+        
+        const totalEntityCount = Object.values(entityCounts).reduce((sum, val) => sum + val, 0);
 
-        if (generatedData.agents.length !== agentCount || generatedData.entities.length !== entityCount) {
+        if (generatedData.agents.length !== agentCount || generatedData.entities.length !== totalEntityCount) {
             addRawLog(t('log_worldGenerated_warning', { 
                 reqAgents: agentCount, 
                 genAgents: generatedData.agents.length,
-                reqEntities: entityCount,
+                reqEntities: totalEntityCount,
                 genEntities: generatedData.entities.length,
             }));
         }
@@ -615,19 +667,25 @@ const handleGenerateAgents = useCallback(async (count: number) => {
 }, [engine, addRawLog, t, language, worldState, settings, isAiConfigured]);
 
 
-const handleGenerateEntities = useCallback(async (count: number) => {
+const handleGenerateEntities = useCallback(async (counts: { [key: string]: number }) => {
     if (!isAiConfigured()) {
         addRawLog(t('log_configure_ai_full'));
         setIsSettingsOpen(true);
         return;
     }
 
+    const totalCount = Object.values(counts).reduce((sum, val) => sum + val, 0);
+    if (totalCount === 0) {
+        addRawLog("No entities requested to generate.");
+        return;
+    }
+
     setIsGenerating(true);
-    addRawLog(t('log_generatingEntities', { count }));
+    addRawLog(t('log_generatingEntities', { count: totalCount }));
     setIsGenerateContentModalOpen(false);
 
     try {
-        const generatedData = await generateEntities(worldState.environment, language, count);
+        const generatedData = await generateEntities(worldState.environment, language, counts);
         if (!generatedData || !generatedData.entities) {
             throw new Error("Invalid data received from entity generation.");
         }
@@ -914,6 +972,7 @@ const handleGenerateEntities = useCallback(async (count: number) => {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-300 font-sans">
+      <ProcessingIndicator isOpen={isProcessingSteps} />
       <header className="bg-slate-950/70 backdrop-blur-sm p-4 border-b border-slate-700/50 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-3">
             <BrainCircuit className="h-8 w-8 text-sky-400" />
@@ -921,7 +980,7 @@ const handleGenerateEntities = useCallback(async (count: number) => {
             <LanguageSwitcher />
         </div>
         <div className="flex items-center gap-2">
-            <ControlPanel onStep={handleStep} onRunSteps={handleRunSteps} onReset={handleReset} onGenerateWorld={() => setIsGenerateWorldModalOpen(true)} onGenerateContent={() => setIsGenerateContentModalOpen(true)} isGenerating={isGenerating} />
+            <ControlPanel onStep={handleStep} onRunSteps={handleRunSteps} onReset={handleReset} onGenerateWorld={() => setIsGenerateWorldModalOpen(true)} onGenerateContent={() => setIsGenerateContentModalOpen(true)} isGenerating={isGenerating} isProcessing={isProcessingSteps} />
             <button
                 onClick={() => setIsSettingsOpen(true)}
                 className="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold p-2.5 rounded-md transition-colors"
@@ -1049,8 +1108,8 @@ const handleGenerateEntities = useCallback(async (count: number) => {
         isOpen={isGenerateWorldModalOpen}
         onClose={() => setIsGenerateWorldModalOpen(false)}
         isGenerating={isGenerating}
-        onGenerate={async (agentCount, entityCount) => {
-            await handleGenerateWorld(agentCount, entityCount);
+        onGenerate={async (agentCount, entityCounts) => {
+            await handleGenerateWorld(agentCount, entityCounts);
         }}
        />
        <GenerateContentModal

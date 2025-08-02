@@ -1,4 +1,3 @@
-
 import type { WorldState, Agent, Entity, Action, EnvironmentState, Beliefs, Resonance, LogEntry, Relationship, Culture, ActionExecutionResult, Religion, Personality, Skills, Trauma, Goal, Law, TradeOffer, ItemType, SocialMemoryEntry } from '../types';
 import { 
     RESONANCE_DECAY_RATE, RESONANCE_THRESHOLD, RESONANCE_UPDATE_AMOUNT, MAX_LAST_ACTIONS,
@@ -539,15 +538,15 @@ export class RealityEngine {
 
         const actionScores = new Map<Action, number>();
         for (const action of availableActions) {
-            let score = 0;
+            let score = Math.random() * 5; // Base randomness
             if (action.isIllegal) score -= 1000 * agent.personality.conscientiousness;
             actionScores.set(action, score);
         }
 
-        if (agent.hunger > 75) actionScores.set(this.actions.get("Eat Food")!, (actionScores.get(this.actions.get("Eat Food")!) || 0) + 100);
-        if (agent.thirst > 75) actionScores.set(this.actions.get("Drink Water")!, (actionScores.get(this.actions.get("Drink Water")!) || 0) + 100);
-        if (agent.fatigue > 90) actionScores.set(this.actions.get("Rest")!, (actionScores.get(this.actions.get("Rest")!) || 0) + 100);
-        if (agent.currency < 20) actionScores.set(this.actions.get("Work for money")!, (actionScores.get(this.actions.get("Work for money")!) || 0) + 80);
+        if (agent.hunger > 60) actionScores.set(this.actions.get("Eat Food")!, (actionScores.get(this.actions.get("Eat Food")!) || 0) + agent.hunger);
+        if (agent.thirst > 60) actionScores.set(this.actions.get("Drink Water")!, (actionScores.get(this.actions.get("Drink Water")!) || 0) + agent.thirst);
+        if (agent.fatigue > 85) actionScores.set(this.actions.get("Rest")!, (actionScores.get(this.actions.get("Rest")!) || 0) + agent.fatigue);
+        if (agent.currency < 20) actionScores.set(this.actions.get("Work for money")!, (actionScores.get(this.actions.get("Work for money")!) || 0) + (80 - agent.currency));
 
         agent.goals.forEach(goal => {
             if (goal.type === 'avengeRival' && goal.targetId) {
@@ -570,8 +569,25 @@ export class RealityEngine {
 
         const nearbyAgents = Array.from(this.agents.values()).filter(other => other.id !== agent.id && other.isAlive && Math.sqrt(Math.pow(agent.x - other.x, 2) + Math.pow(agent.y - other.y, 2)) < PROXIMITY_DISTANCE_THRESHOLD);
         if (nearbyAgents.length > 0) {
-            let socialScore = 30 + (agent.personality.extraversion * 30) - (agent.stress * 0.5) - (agent.fatigue > 70 ? 20 : 0);
-            if(agent.genome.includes('G-SOCIAL')) socialScore += 50;
+            // Base desire to talk on extraversion.
+            let socialScore = agent.personality.extraversion * 50;
+        
+            // Add motivation from strong emotions (positive or negative).
+            const emotionIntensity = (Math.abs(agent.emotions.happiness - 0.5) + agent.emotions.anger + agent.emotions.sadness) * 25;
+            socialScore += emotionIntensity;
+        
+            // If something interesting happened recently, they might want to gossip/share.
+            if (agent.socialMemory.length > 0 && agent.socialMemory[0].timestamp > this.worldState.environment.time - 5) {
+                socialScore += 20;
+            }
+            
+            // G-SOCIAL gene makes them much more talkative.
+            if(agent.genome.includes('G-SOCIAL')) socialScore += 40;
+            
+            // Being very tired or stressed reduces desire for small talk.
+            socialScore -= (agent.fatigue / 100) * 20;
+            socialScore -= (agent.stress / 100) * 20;
+            
             const talkAction = this.actions.get("Talk");
             if (talkAction) actionScores.set(talkAction, (actionScores.get(talkAction) || 0) + socialScore);
         }
@@ -579,6 +595,7 @@ export class RealityEngine {
         let bestAction: Action | null = null;
         let maxScore = -Infinity;
         for (const [action, score] of actionScores.entries()) { if (score > maxScore) { maxScore = score; bestAction = action; } }
+        
         if (maxScore < 5) {
             const wanderActions = ["Move North", "Move South", "Move East", "Move West"];
             return this.actions.get(wanderActions[Math.floor(Math.random() * wanderActions.length)]) || null;

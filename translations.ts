@@ -1,3 +1,4 @@
+
 export const translations = {
   en: {
     // App.tsx
@@ -12,6 +13,7 @@ export const translations = {
     type_agent: 'agent',
     type_entity: 'entity',
     type_action: 'action',
+    processingSteps: 'Processing step(s)...',
     // Logs
     log_simulationInitialized: 'Simulation initialized.',
     log_simulationStepped: 'Simulation stepped forward.',
@@ -70,8 +72,8 @@ export const translations = {
     generateWorldModal_title: 'Generate New World',
     generateWorldModal_agentsLabel: 'Number of Agents',
     generateWorldModal_agentsDescription: 'How many agents should populate the new world?',
-    generateWorldModal_entitiesLabel: 'Number of Entities',
-    generateWorldModal_entitiesDescription: 'How many entities (objects, animals) should be in the new world?',
+    generateWorldModal_entitiesLabel: 'Entities',
+    generateWorldModal_entitiesDescription: 'Specify how many of each entity type should exist in the new world. Marketplace and Jail will be included in the Buildings count.',
     generateWorldModal_generate: 'Generate',
     // Generate Content Modal
     generateContent_title: 'Generate Content with AI',
@@ -83,6 +85,12 @@ export const translations = {
     generateContent_entitiesDescription: 'How many new entities/resources to generate and add to the world?',
     generateContent_generateAgentsBtn: 'Generate Agents',
     generateContent_generateEntitiesBtn: 'Generate Entities',
+    generateContent_foodSources: 'Food Sources',
+    generateContent_waterSources: 'Water Sources',
+    generateContent_woodSources: 'Wood Sources',
+    generateContent_ironSources: 'Iron Sources',
+    generateContent_buildings: 'Buildings/Objects',
+    generateContent_entitiesDescriptionCategorized: 'Specify how many of each entity type to generate and add to the world.',
     // AgentCard.tsx
     agentCard_statusAndNeeds: 'Status & Needs',
     agentCard_age: 'Age',
@@ -352,6 +360,7 @@ export const translations = {
     type_agent: 'Agent',
     type_entity: 'Entität',
     type_action: 'Aktion',
+    processingSteps: 'Verarbeite Schritt(e)...',
     // Logs
     log_simulationInitialized: 'Simulation initialisiert.',
     log_simulationStepped: 'Simulation einen Schritt weiter.',
@@ -410,8 +419,8 @@ export const translations = {
     generateWorldModal_title: 'Neue Welt generieren',
     generateWorldModal_agentsLabel: 'Anzahl der Agenten',
     generateWorldModal_agentsDescription: 'Wie viele Agenten sollen die neue Welt bevölkern?',
-    generateWorldModal_entitiesLabel: 'Anzahl der Entitäten',
-    generateWorldModal_entitiesDescription: 'Wie viele Entitäten (Objekte, Tiere) soll es in der neuen Welt geben?',
+    generateWorldModal_entitiesLabel: 'Entitäten',
+    generateWorldModal_entitiesDescription: 'Legen Sie fest, wie viele von jedem Entitätstyp in der neuen Welt existieren sollen. Marktplatz und Gefängnis werden in der Gebäudeanzahl mitgezählt.',
     generateWorldModal_generate: 'Generieren',
     // Generate Content Modal
     generateContent_title: 'Inhalte mit KI generieren',
@@ -423,6 +432,12 @@ export const translations = {
     generateContent_entitiesDescription: 'Wie viele neue Entitäten/Ressourcen sollen generiert und der Welt hinzugefügt werden?',
     generateContent_generateAgentsBtn: 'Agenten generieren',
     generateContent_generateEntitiesBtn: 'Entitäten generieren',
+    generateContent_foodSources: 'Nahrungsquellen',
+    generateContent_waterSources: 'Wasserquellen',
+    generateContent_woodSources: 'Holzquellen',
+    generateContent_ironSources: 'Eisenquellen',
+    generateContent_buildings: 'Gebäude/Objekte',
+    generateContent_entitiesDescriptionCategorized: 'Geben Sie an, wie viele von jedem Entitätstyp generiert und der Welt hinzugefügt werden sollen.',
     // AgentCard.tsx
     agentCard_statusAndNeeds: 'Status & Bedürfnisse',
     agentCard_age: 'Alter',

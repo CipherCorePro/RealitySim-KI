@@ -10,9 +10,10 @@ interface ControlPanelProps {
     onGenerateWorld: () => void;
     onGenerateContent: () => void;
     isGenerating: boolean;
+    isProcessing: boolean;
 }
 
-export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, onReset, onGenerateWorld, onGenerateContent, isGenerating }) => {
+export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, onReset, onGenerateWorld, onGenerateContent, isGenerating, isProcessing }) => {
     const [runSteps, setRunSteps] = useState(10);
     const t = useTranslations();
     const generatingText = t('log_generating');
@@ -21,7 +22,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, 
         <div className="flex items-center gap-2">
             <button
                 onClick={onGenerateWorld}
-                disabled={isGenerating}
+                disabled={isGenerating || isProcessing}
                 className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center gap-2 disabled:bg-slate-600 disabled:cursor-wait"
             >
                 <Globe className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
@@ -29,7 +30,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, 
             </button>
             <button
                 onClick={onGenerateContent}
-                disabled={isGenerating}
+                disabled={isGenerating || isProcessing}
                 className="bg-purple-500 hover:bg-purple-400 text-white font-bold py-2 px-3 rounded-md transition-colors flex items-center gap-2 disabled:bg-slate-600 disabled:cursor-wait"
             >
                 <PlusSquare className="w-4 h-4" />
@@ -37,7 +38,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, 
             </button>
             <button
                 onClick={onStep}
-                disabled={isGenerating}
+                disabled={isGenerating || isProcessing}
                 className="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2 px-4 rounded-md transition-colors flex items-center gap-2 disabled:opacity-50"
             >
                 <Play className="w-4 h-4" />
@@ -48,12 +49,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, 
                     type="number"
                     value={runSteps}
                     onChange={e => setRunSteps(parseInt(e.target.value, 10))}
-                    disabled={isGenerating}
+                    disabled={isGenerating || isProcessing}
                     className="bg-transparent w-16 text-center focus:outline-none p-2 disabled:opacity-50"
                  />
                 <button
                     onClick={() => onRunSteps(runSteps)}
-                    disabled={isGenerating}
+                    disabled={isGenerating || isProcessing}
                     className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-r-md transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
                     <FastForward className="w-4 h-4" />
@@ -62,7 +63,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, 
             </div>
             <button
                 onClick={onReset}
-                disabled={isGenerating}
+                disabled={isGenerating || isProcessing}
                 className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center gap-2 disabled:opacity-50"
             >
                  <RotateCcw className="w-4 h-4" />

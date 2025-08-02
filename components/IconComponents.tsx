@@ -1,6 +1,7 @@
 
 
 
+
 import React from 'react';
 
 export const BrainCircuit: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
