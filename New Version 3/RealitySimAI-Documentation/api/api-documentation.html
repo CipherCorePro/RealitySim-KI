@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ver. 4 RealitySim AI - Technical Documentation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0; /* Light text */
+            display: flex;
+            min-height: 100vh;
+        }
+        header {
+            background-color: #2d3748; /* Darker slate */
+            color: #fff;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        h1, h2, h3, h4 {
+            color: #63b3ed; /* Sky blue for headings */
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        h1 { font-size: 2.5rem; border-bottom: 2px solid #4a5568; padding-bottom: 0.5rem; }
+        h2 { font-size: 2rem; border-bottom: 1px solid #4a5568; padding-bottom: 0.3rem; }
+        h3 { font-size: 1.5rem; color: #9f7aea; /* Purple for sub-headings */ }
+        h4 { font-size: 1.2rem; color: #48bb78; /* Green for component names */ }
+
+        .container {
+            display: flex;
+            flex-grow: 1;
+        }
+        .sidebar {
+            width: 280px;
+            background-color: #2d3748;
+            padding: 1.5rem;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+        .sidebar h3 {
+            color: #e2e8f0;
+            margin-top: 0;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar ul li {
+            margin-bottom: 0.5rem;
+        }
+        .sidebar ul li a {
+            color: #a0aec0;
+            text-decoration: none;
+            display: block;
+            padding: 0.4rem 0.6rem;
+            border-radius: 4px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .sidebar ul li a:hover {
+            background-color: #4a5568;
+            color: #fff;
+        }
+        .sidebar ul li ul {
+            margin-top: 0.3rem;
+            padding-left: 1rem;
+        }
+        .sidebar ul li ul li a {
+            font-size: 0.9rem;
+            padding: 0.2rem 0.5rem;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 2rem;
+            max-width: calc(100% - 280px);
+            overflow-x: hidden;
+        }
+
+        section {
+            background-color: #242b38; /* Slightly lighter than body for sections */
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .code-block {
+            background-color: #2d3748;
+            border: 1px solid #4a5568;
+            border-radius: 4px;
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        .code-block pre {
+            margin: 0;
+        }
+
+        .definition {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background-color: #2d3748;
+            border-left: 4px solid #48bb78;
+            border-radius: 4px;
+        }
+        .definition h4 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            color: #48bb78;
+        }
+        .definition p {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+        .definition ul {
+            list-style: disc;
+            padding-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+        .definition ul li {
+            margin-bottom: 0.3rem;
+        }
+        .definition strong {
+            color: #e2e8f0;
+        }
+        .definition .signature {
+            color: #a0aec0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.95rem;
+            margin-top: 0.5rem;
+            display: block;
+        }
+        .definition .params, .definition .returns {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .definition .params strong, .definition .returns strong {
+            color: #9f7aea;
+        }
+        .definition .params ul, .definition .returns ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .definition .params ul li, .definition .returns ul li {
+            margin-bottom: 0.2rem;
+        }
+        .definition .params ul li span:first-child {
+            font-family: 'Fira Code', monospace;
+            color: #63b3ed;
+        }
+        .definition .params ul li span:nth-child(2) {
+            color: #a0aec0;
+        }
+
+        .metadata-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .metadata-table th, .metadata-table td {
+            border: 1px solid #4a5568;
+            padding: 0.8rem;
+            text-align: left;
+        }
+        .metadata-table th {
+            background-color: #4a5568;
+            color: #e2e8f0;
+        }
+        .metadata-table td {
+            background-color: #2d3748;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h3>Project Files</h3>
+        <ul>
+            <li><a href="#metadata-json">metadata.json</a></li>
+            <li><a href="#types-ts">types.ts</a>
+                <ul>
+                    <li><a href="#interface-Beliefs">Beliefs</a></li>
+                    <li><a href="#interface-Emotions">Emotions</a></li>
+                    <li><a href="#interface-Personality">Personality</a></li>
+                    <li><a href="#interface-Skills">Skills</a></li>
+                    <li><a href="#type-GoalType">GoalType</a></li>
+                    <li><a href="#interface-Goal">Goal</a></li>
+                    <li><a href="#interface-Trauma">Trauma</a></li>
+                    <li><a href="#type-RelationshipType">RelationshipType</a></li>
+                    <li><a href="#interface-Relationship">Relationship</a></li>
+                    <li><a href="#interface-Resonance">Resonance</a></li>
+                    <li><a href="#interface-LogEntry">LogEntry</a></li>
+                    <li><a href="#interface-SocialMemoryEntry">SocialMemoryEntry</a></li>
+                    <li><a href="#type-ResourceType">ResourceType</a></li>
+                    <li><a href="#type-CraftedItemType">CraftedItemType</a></li>
+                    <li><a href="#type-ItemType">ItemType</a></li>
+                    <li><a href="#interface-Inventory">Inventory</a></li>
+                    <li><a href="#interface-Recipe">Recipe</a></li>
+                    <li><a href="#interface-TradeOffer">TradeOffer</a></li>
+                    <li><a href="#interface-Market">Market</a></li>
+                    <li><a href="#interface-Law">Law</a></li>
+                    <li><a href="#interface-Government">Government</a></li>
+                    <li><a href="#interface-Election">Election</a></li>
+                    <li><a href="#interface-Technology">Technology</a></li>
+                    <li><a href="#interface-Agent">Agent</a></li>
+                    <li><a href="#interface-Entity">Entity</a></li>
+                    <li><a href="#interface-EnvironmentState">EnvironmentState</a></li>
+                    <li><a href="#interface-Religion">Religion</a></li>
+                    <li><a href="#interface-Culture">Culture</a></li>
+                    <li><a href="#interface-Action">Action</a></li>
+                    <li><a href="#interface-WorldState">WorldState</a></li>
+                    <li><a href="#interface-ActionExecutionResult">ActionExecutionResult</a></li>
+                    <li><a href="#interface-PsychoReport">PsychoReport</a></li>
+                </ul>
+            </li>
+            <li><a href="#components-BeliefsChart-tsx">components/BeliefsChart.tsx</a>
+                <ul>
+                    <li><a href="#interface-BeliefsChartProps">BeliefsChartProps</a></li>
+                    <li><a href="#component-CustomTooltip">CustomTooltip</a></li>
+                    <li><a href="#component-BeliefsChart">BeliefsChart</a></li>
+                </ul>
+            </li>
+            <li><a href="#components-ControlPanel-tsx">components/ControlPanel.tsx</a>
+                <ul>
+                    <li><a href="#interface-ControlPanelProps">ControlPanelProps</a></li>
+                    <li><a href="#component-ControlPanel">ControlPanel</a></li>
+                </ul>
+            </li>
+            <li><a href="#components-LogPanel-tsx">components/LogPanel.tsx</a>
+                <ul>
+                    <li><a href="#interface-LogPanelProps">LogPanelProps</a></li>
+                    <li><a href="#component-LogPanel">LogPanel</a></li>
+                </ul>
+            </li>
+            <li><a href="#components-WorldGraph-tsx">components/WorldGraph.tsx</a>
+                <ul>
+                    <li><a href="#interface-WorldGraphProps">WorldGraphProps</a></li>
+                    <li><a href="#function-getEntityIcon">getEntityIcon</a></li>
+                    <li><a href="#function-getRoleIcon">getRoleIcon</a></li>
+                    <li><a href="#component-WorldGraph">WorldGraph</a></li>
+                </ul>
+            </li>
+            <li><a href="#components-CreateObjectPanel-tsx">components/CreateObjectPanel.tsx</a>
+                <ul>
+                    <li><a href="#interface-CreateObjectPanelProps">CreateObjectPanelProps</a></li>
+                    <li><a href="#component-CreateObjectPanel">CreateObjectPanel</a></li>
+                </ul>
+            </li>
+            <li><a href="#components-ExporterPanel-tsx">components/ExporterPanel.tsx</a>
+                <ul>
+                    <li><a href="#interface-ExporterPanelProps">ExporterPanelProps</a></li>
+                    <li><a href="#component-ExporterPanel">ExporterPanel</a></li>
+                </ul>
+            </li>
+            <li><a href="#components-AdminPanel-tsx">components/AdminPanel.tsx</a>
+                <ul>
+                    <li><a href="#interface-AdminPanelProps">AdminPanelProps</a></li>
+                    <li><a href="#component-AdminPanel">AdminPanel</a></li>
+                </ul>
+            </li>
+            <li><a href="#contexts-LanguageContext-tsx">contexts/LanguageContext.tsx</a>
+                <ul>
+                    <li><a href="#type-Language">Language</a></li>
+                    <li><a href="#interface-LanguageContextType">LanguageContextType</a></li>
+                    <li><a href="#component-LanguageProvider">LanguageProvider</a></li>
+                    <li><a href="#hook-useLanguage">useLanguage</a></li>
+                </ul>
+            </li>
+            <li><a href="#hooks-useTranslations-ts">hooks/useTranslations.ts</a>
+                <ul>
+                    <li><a href="#hook-useTranslations">useTranslations</a></li>
+                </ul>
+            </li>
+            <li><a href="#components-LanguageSwitcher-tsx">components/LanguageSwitcher.tsx</a>
+                <ul>
+                    <li><a href="#component-LanguageSwitcher">LanguageSwitcher</a></li>
+                </ul>
+            </li>
+            <li><a href="#components-ProcessingIndicator-tsx">components/ProcessingIndicator.tsx</a>
+                <ul>
+                    <li><a href="#interface-ProcessingIndicatorProps">ProcessingIndicatorProps</a></li>
+                    <li><a href="#component-ProcessingIndicator">ProcessingIndicator</a></li>
+                </ul>
+            </li>
+            <li><a href="#package-json">package.json</a></li>
+            <li><a href="#index-html">index.html</a></li>
+            <li><a href="#index-tsx">index.tsx</a>
+                <ul>
+                    <li><a href="#constant-SETTINGS_KEY">SETTINGS_KEY</a></li>
+                    <li><a href="#interface-Settings">Settings</a></li>
+                    <li><a href="#interface-SettingsContextType">SettingsContextType</a></li>
+                    <li><a href="#component-SettingsProvider">SettingsProvider</a></li>
+                    <li><a href="#hook-useSettings">useSettings</a></li>
+                </ul>
+            </li>
+            <li><a href="#tsconfig-json">tsconfig.json</a></li>
+            <li><a href="#vite-config-ts">vite.config.ts</a></li>
+            <li><a href="#env-local">.env.local</a></li>
+            <li><a href="#gitignore">.gitignore</a></li>
+            <li><a href="#readme-md">README.md</a></li>
+        </ul>
+    </div>
+    <div class="content">
+        <header>
+            <h1>Ver. 4 RealitySim AI - Technical Documentation</h1>
+            <p>An interactive web-based simulation environment where AI agents with unique beliefs and memories interact with a dynamic world. Control agents with natural language, run simulation steps, and visualize the emergent cognitive behavior of the system.</p>
+        </header>
+
+        <section id="metadata-json">
+            <h2>metadata.json</h2>
+            <p>This file contains metadata about the project, typically used for deployment or external descriptions.</p>
+            <table class="metadata-table">
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Value</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>name</code></td>
+                        <td>"Ver. 4 RealitySim AI"</td>
+                        <td>The name of the application.</td>
+                    </tr>
+                    <tr>
+                        <td><code>description</code></td>
+                        <td>"An interactive web-based simulation environment where AI agents with unique beliefs and memories interact with a dynamic world. Control agents with natural language, run simulation steps, and visualize the emergent cognitive behavior of the system."</td>
+                        <td>A brief description of the project's purpose and functionality.</td>
+                    </tr>
+                    <tr>
+                        <td><code>requestFramePermissions</code></td>
+                        <td>[]</td>
+                        <td>An array of permissions requested for framing, currently empty.</td>
+                    </tr>
+                    <tr>
+                        <td><code>prompt</code></td>
+                        <td>""</td>
+                        <td>A placeholder for a prompt, currently empty.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="types-ts">
+            <h2>types.ts</h2>
+            <p>This file defines the core TypeScript interfaces and types used throughout the RealitySim AI project, establishing the data structures for agents, entities, world state, and various cognitive and economic attributes.</p>
+
+            <div class="definition" id="interface-Beliefs">
+                <h4>Interface: Beliefs</h4>
+                <p>Represents a collection of beliefs, where each belief is a string key mapped to a numerical value.</p>
+                <span class="signature"><code>interface Beliefs { [key: string]: number; }</code></span>
+            </div>
+
+            <div class="definition" id="interface-Emotions">
+                <h4>Interface: Emotions</h4>
+                <p>Represents a collection of emotions, where each emotion is a string key mapped to a numerical value.</p>
+                <span class="signature"><code>interface Emotions { [key: string]: number; }</code></span>
+            </div>
+
+            <div class="definition" id="interface-Personality">
+                <h4>Interface: Personality</h4>
+                <p>Defines the five core personality traits for an agent, each represented by a numerical value between 0 and 1.</p>
+                <span class="signature"><code>interface Personality { openness: number; conscientiousness: number; extraversion: number; agreeableness: number; neuroticism: number; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>openness</code></span>: <span>number (0-1) - Degree of imagination, insight, and feeling.</span></li>
+                    <li><span><code>conscientiousness</code></span>: <span>number (0-1) - Level of organization, thoughtfulness, and goal-directed behavior.</span></li>
+                    <li><span><code>extraversion</code></span>: <span>number (0-1) - How outgoing and social an individual is.</span></li>
+                    <li><span><code>agreeableness</code></span>: <span>number (0-1) - How cooperative and compassionate an individual is.</span></li>
+                    <li><span><code>neuroticism</code></span>: <span>number (0-1) - Tendency to experience unpleasant emotions easily.</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="interface-Skills">
+                <h4>Interface: Skills</h4>
+                <p>Represents a collection of skills, where each skill is a string key mapped to a numerical level.</p>
+                <span class="signature"><code>interface Skills { [key: string]: number; }</code></span>
+                <p class="params"><strong>Example:</strong> <code>{ healing: 15, woodcutting: 22, rhetoric: 5 }</code></p>
+            </div>
+
+            <div class="definition" id="type-GoalType">
+                <h4>Type: GoalType</h4>
+                <p>A union type defining the possible types of goals an agent can have.</p>
+                <span class="signature"><code>type GoalType = 'becomeLeader' | 'buildLargeHouse' | 'masterSkill' | 'avengeRival' | 'achieveWealth' | 'mentorYoungAgent' | 'seekCounseling';</code></span>
+            </div>
+
+            <div class="definition" id="interface-Goal">
+                <h4>Interface: Goal</h4>
+                <p>Defines the structure of a goal for an agent.</p>
+                <span class="signature"><code>interface Goal { type: GoalType; status: 'active' | 'completed' | 'failed'; progress: number; description: string; targetId?: string; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>type</code></span>: <span>GoalType - The specific type of goal.</span></li>
+                    <li><span><code>status</code></span>: <span>'active' | 'completed' | 'failed' - The current status of the goal.</span></li>
+                    <li><span><code>progress</code></span>: <span>number (0-100) - The completion progress of the goal.</span></li>
+                    <li><span><code>description</code></span>: <span>string - A textual description of the goal.</span></li>
+                    <li><span><code>targetId</code></span>: <span>string (optional) - The ID of an agent or entity related to the goal, if applicable.</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="interface-Trauma">
+                <h4>Interface: Trauma</h4>
+                <p>Represents a traumatic event experienced by an agent.</p>
+                <span class="signature"><code>interface Trauma { event: string; timestamp: number; intensity: number; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>event</code></span>: <span>string - A description of the traumatic event.</span></li>
+                    <li><span><code>timestamp</code></span>: <span>number - The time (simulation step) when the trauma occurred.</span></li>
+                    <li><span><code>intensity</code></span>: <span>number (0-1) - The severity of the trauma.</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="type-RelationshipType">
+                <h4>Type: RelationshipType</h4>
+                <p>A union type defining the possible types of relationships between agents.</p>
+                <span class="signature"><code>type RelationshipType = 'stranger' | 'acquaintance' | 'friend' | 'rival' | 'partner' | 'spouse' | 'ex-partner';</code></span>
+            </div>
+
+            <div class="definition" id="interface-Relationship">
+                <h4>Interface: Relationship</h4>
+                <p>Defines the structure of a relationship an agent has with another agent.</p>
+                <span class="signature"><code>interface Relationship { type: RelationshipType; score: number; disposition: Emotions; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>type</code></span>: <span>RelationshipType - The category of the relationship.</span></li>
+                    <li><span><code>score</code></span>: <span>number - A numerical score representing the strength or quality of the relationship.</span></li>
+                    <li><span><code>disposition</code></span>: <span>Emotions - The emotional disposition towards the other agent.</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="interface-Resonance">
+                <h4>Interface: Resonance</h4>
+                <p>Represents the resonance an agent has with various concepts or other agents, typically a string key mapped to a numerical value.</p>
+                <span class="signature"><code>interface Resonance { [key: string]: number; }</code></span>
+            </div>
+
+            <div class="definition" id="interface-LogEntry">
+                <h4>Interface: LogEntry</h4>
+                <p>Defines the structure of an entry in the simulation log.</p>
+                <span class="signature"><code>interface LogEntry { key: string; params?: { [key: string]: any }; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>key</code></span>: <span>string - A key used for translation or identification of the log message.</span></li>
+                    <li><span><code>params</code></span>: <span>object (optional) - Parameters to be interpolated into the log message.</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="interface-SocialMemoryEntry">
+                <h4>Interface: SocialMemoryEntry</h4>
+                <p>Defines an entry in an agent's social memory, detailing interactions with other agents.</p>
+                <span class="signature"><code>interface SocialMemoryEntry { agentId: string; action: string; result: 'accepted' | 'rejected' | 'initiated' | 'reciprocated' | 'observed'; emotionalImpact: number; timestamp: number; info?: string; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>agentId</code></span>: <span>string - The ID of the agent involved in the interaction.</span></li>
+                    <li><span><code>action</code></span>: <span>string - The action performed.</span></li>
+                    <li><span><code>result</code></span>: <span>'accepted' | 'rejected' | 'initiated' | 'reciprocated' | 'observed' - The outcome of the interaction.</span></li>
+                    <li><span><code>emotionalImpact</code></span>: <span>number (-1 to 1) - The emotional impact of the interaction on the remembering agent.</span></li>
+                    <li><span><code>timestamp</code></span>: <span>number - The time (simulation step) when the interaction occurred.</span></li>
+                    <li><span><code>info</code></span>: <span>string (optional) - Additional information about the interaction.</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="type-ResourceType">
+                <h4>Type: ResourceType</h4>
+                <p>A union type defining the basic resource types available in the simulation.</p>
+                <span class="signature"><code>type ResourceType = 'food' | 'water' | 'wood' | 'medicine' | 'iron';</code></span>
+            </div>
+
+            <div class="definition" id="type-CraftedItemType">
+                <h4>Type: CraftedItemType</h4>
+                <p>A union type defining items that can be crafted in the simulation.</p>
+                <span class="signature"><code>type CraftedItemType = 'sword' | 'plow' | 'advanced_medicine' | 'iron_ingot';</code></span>
+            </div>
+
+            <div class="definition" id="type-ItemType">
+                <h4>Type: ItemType</h4>
+                <p>A union type combining all resource and crafted item types.</p>
+                <span class="signature"><code>type ItemType = ResourceType | CraftedItemType;</code></span>
+            </div>
+
+            <div class="definition" id="interface-Inventory">
+                <h4>Interface: Inventory</h4>
+                <p>Represents an agent's inventory, mapping item names to their quantities.</p>
+                <span class="signature"><code>interface Inventory { [item: string]: number; }</code></span>
+            </div>
+
+            <div class="definition" id="interface-Recipe">
+                <h4>Interface: Recipe</h4>
+                <p>Defines the structure of a crafting recipe.</p>
+                <span class="signature"><code>interface Recipe { name: string; output: { item: CraftedItemType, quantity: number }; ingredients: { [key in ItemType]?: number }; requiredSkill?: { skill: keyof Skills, level: number }; requiredTech?: string; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>name</code></span>: <span>string - The name of the recipe.</span></li>
+                    <li><span><code>output</code></span>: <span>object - The item and quantity produced by the recipe.</span></li>
+                    <li><span><code>ingredients</code></span>: <span>object - A map of required ingredients and their quantities.</span></li>
+                    <li><span><code>requiredSkill</code></span>: <span>object (optional) - A specific skill and level required to craft.</span></li>
+                    <li><span><code>requiredTech</code></span>: <span>string (optional) - The ID of a technology required to craft.</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="interface-TradeOffer">
+                <h4>Interface: TradeOffer</h4>
+                <p>Defines the structure of a trade offer in the market.</p>
+                <span class="signature"><code>interface TradeOffer { offerId: string; fromAgentId: string; item: ItemType; quantity: number; price: number; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>offerId</code></span>: <span>string - Unique identifier for the offer.</span></li>
+                    <li><span><code>fromAgentId</code></span>: <span>string - The ID of the agent making the offer.</span></li>
+                    <li><span><code>item</code></span>: <span>ItemType - The type of item being offered.</span></li>
+                    <li><span><code>quantity</code></span>: <span>number - The quantity of the item.</span></li>
+                    <li><span><code>price</code></span>: <span>number - The price per unit of the item.</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="interface-Market">
+                <h4>Interface: Market</h4>
+                <p>Defines the structure of a market entity in the world.</p>
+                <span class="signature"><code>interface Market { id: string; name: string; listings: TradeOffer[]; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>id</code></span>: <span>string - Unique identifier for the market.</span></li>
+                    <li><span><code>name</code></span>: <span>string - The name of the market.</span></li>
+                    <li><span><code>listings</code></span>: <span>TradeOffer[] - An array of active trade offers in this market.</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="interface-Law">
+                <h4>Interface: Law</h4>
+                <p>Defines the structure of a law within the simulation's government.</p>
+                <span class="signature"><code>interface Law { id: string; name: string; description: string; violatingAction: string; punishment: { type: 'fine' | 'arrest'; amount: number; }; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>id</code></span>: <span>string - Unique identifier for the law.</span></li>
+                    <li><span><code>name</code></span>: <span>string - The name of the law.</span></li>
+                    <li><span><code>description</code></span>: <span>string - A description of what the law entails.</span></li>
+                    <li><span><code>violatingAction</code></span>: <span>string - The name of the action that violates this law.</span></li>
+                    <li><span><code>punishment</code></span>: <span>object - Details of the punishment for violating the law (type and amount/duration).</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="interface-Government">
+                <h4>Interface: Government</h4>
+                <p>Defines the structure of the governing body in the simulation.</p>
+                <span class="signature"><code>interface Government { type: 'monarchy' | 'democracy'; leaderId: string | null; laws: Law[]; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>type</code></span>: <span>'monarchy' | 'democracy' - The type of government.</span></li>
+                    <li><span><code>leaderId</code></span>: <span>string | null - The ID of the current leader, or null if none.</span></li>
+                    <li><span><code>laws</code></span>: <span>Law[] - An array of laws enacted by the government.</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="interface-Election">
+                <h4>Interface: Election</h4>
+                <p>Defines the state of an ongoing or past election.</p>
+                <span class="signature"><code>interface Election { isActive: boolean; candidates: string[]; votes: { [candidateId: string]: number }; termEndDate: number; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>isActive</code></span>: <span>boolean - Indicates if an election is currently active.</span></li>
+                    <li><span><code>candidates</code></span>: <span>string[] - An array of agent IDs who are candidates.</span></li>
+                    <li><span><code>votes</code></span>: <span>object - A map of candidate IDs to their vote counts.</span></li>
+                    <li><span><code>termEndDate</code></span>: <span>number - The simulation step when the current leader's term ends.</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="interface-Technology">
+                <h4>Interface: Technology</h4>
+                <p>Defines the structure of a technology that can be researched by cultures.</p>
+                <span class="signature"><code>interface Technology { id: string; name: string; description: string; researchCost: number; unlocks: { actions?: string[]; recipes?: string[]; }; requiredTech?: string[]; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>id</code></span>: <span>string - Unique identifier for the technology.</span></li>
+                    <li><span><code>name</code></span>: <span>string - The name of the technology.</span></li>
+                    <li><span><code>description</code></span>: <span>string - A description of the technology.</span></li>
+                    <li><span><code>researchCost</code></span>: <span>number - The cost in research points to unlock this technology.</span></li>
+                    <li><span><code>unlocks</code></span>: <span>object - Specifies what actions or recipes this technology unlocks.</span></li>
+                    <li><span><code>requiredTech</code></span>: <span>string[] (optional) - An array of technology IDs that must be unlocked first.</span></li>
+                </ul>
+            </div>
+
+            <div class="definition" id="interface-Agent">
+                <h4>Interface: Agent</h4>
+                <p>The core interface representing an AI agent in the simulation, including its physical, cognitive, social, and economic attributes.</p>
+                <span class="signature"><code>interface Agent { id: string; name: string; description: string; x: number; y: number; beliefNetwork: Beliefs; emotions: Emotions; resonance: Resonance; socialMemory: SocialMemoryEntry[]; lastActions: Action[]; adminAgent: boolean; health: number; isAlive: boolean; sickness?: string | null; conversationHistory: { speakerName: string; message: string; }[]; age: number; genome: string[]; relationships: { [agentId: string]: Relationship }; cultureId: string | null; religionId: string | null; role: string | null; offspringCount: number; hunger: number; thirst: number; fatigue: number; inventory: Inventory; personality: Personality; goals: Goal[]; stress: number; socialStatus: number; skills: Skills; trauma: Trauma[]; unconsciousState?: { [key: string]: number }; currency: number; imprisonedUntil?: number; }</code></span>
+                <p class="params"><strong>Properties:</strong></p>
+                <ul>
+                    <li><span><code>id</code></span>: <span>string - Unique identifier for the agent.</span></li>
+                    <li><span><code>name</code></span>: <span>string - The agent's name.</span></li>
+                    <li><span><code>description</code></span>: <span>string - A brief description of the agent.</span></li>
+                    <li><span><code>x</code></span>: <span>number - X-coordinate of the agent's position.</span></li>
+                    <li><span><code>y</code></span>: <span>number - Y-coordinate of the agent's position.</span></li>
+                    <li><span><code>beliefNetwork</code></span>: <span>Beliefs - The agent's internal belief system.</span></li>
+                    <li><span><code>emotions</code></span>: <span>Emotions - The agent's current emotional state.</span></li>
+                    <li><span><code>resonance</code></span>: <span>Resonance - How much the agent resonates with certain concepts/agents.</span></li>
+                    <li><span><code>socialMemory</code></span>: <span>SocialMemoryEntry[] - A history of social interactions.</span></li>
+                    <li><span><code>lastActions</code></span>: <span>Action[] - A list of the agent's most recent actions.</span></li>
+                    <li><span><code>adminAgent</code></span>: <span>boolean - True if this is an administrative agent.</span></li>
+                    <li><span><code>health</code></span>: <span>number - The agent's current health points.</span></li>
