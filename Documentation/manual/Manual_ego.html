@@ -1,0 +1,180 @@
+
+              <!DOCTYPE html>
+              <html lang="de" class="dark">
+              <head>
+                <meta charset="UTF-8">
+                <title>ver.-20-realitysim-ai - Narrative Analyse</title>
+                <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #111827; color: #d1d5db; line-height: 1.6; padding: 2rem; max-width: 80ch; margin: 0 auto; }
+                  h1, h2, h3 { color: #60a5fa; }
+                  a { color: #60a5fa; }
+                  code { background-color: #374151; padding: 0.2em 0.4em; border-radius: 0.25rem; }
+                  pre { background-color: #1f2937; padding: 1em; border-radius: 0.5rem; overflow-x: auto; border: 1px solid #374151; }
+                </style>
+              </head>
+              <body>
+                <p>Hallo zusammen, ich bin euer Software-Entwickler-Guide für das Projekt &quot;ver.-20-realitysim-ai&quot;! Lasst uns gemeinsam in diese faszinierende Simulationswelt eintauchen. Wir werden nicht nur die einzelnen Code-Bausteine betrachten, sondern auch verstehen, wie alles zusammenspielt. Schnallt euch an, es wird eine spannende Reise!</p>
+<h2>1. Der erste Kontakt (Die Benutzeroberfläche)</h2>
+<p>Stellt euch vor, ihr startet die Anwendung. Das erste, was euch ins Auge sticht, ist die übersichtliche Benutzeroberfläche. Der Großteil des Screens ist in ein <em>Haupt-Panel</em> aufgeteilt, in dem sich die eigentliche Simulation abspielt. Links seht ihr ein <em>Control Panel</em> und rechts ein <em>Log Panel</em>. Oben befindet sich die <em>Header Leiste</em> mit einigen weiteren Elementen, die wir uns gleich genauer ansehen.</p>
+<h3>Header Leiste</h3>
+<p>In der <em>Header Leiste</em> findet ihr:</p>
+<ul>
+<li>Ein <em>Logo</em> mit dem Namen der Anwendung.</li>
+<li>Einen <em>Sprachwechsler</em> (<code>LanguageSwitcher</code>), mit dem ihr die Sprache der Benutzeroberfläche zwischen Deutsch und Englisch umschalten könnt.</li>
+<li>Eine <em>View Toggle Panel</em> (<code>ViewTogglePanel</code>), mit der ihr verschiedene Panels (z.B. das Agenten-Panel links und das Admin-Panel rechts) ein- und ausblenden könnt.</li>
+<li>Knöpfe, um die <em>Einstellungen</em> (<code>SettingsModal</code>) und die <em>Analytics</em> (<code>AnalyticsDashboard</code>) zu öffnen.</li>
+</ul>
+<h3>Control Panel</h3>
+<p>Hier findet ihr die Steuerelemente für die Simulation. Ihr könnt damit:</p>
+<ul>
+<li>Die Simulation &quot;Schritt für Schritt&quot; vorantreiben (<code>onStep</code>).</li>
+<li>Die Simulation für eine bestimmte Anzahl von Schritten laufen lassen (<code>onRunSteps</code>).</li>
+<li>Die Simulation zurücksetzen (<code>onReset</code>).</li>
+<li>Die Welterzeugung starten (<code>onGenerateWorld</code>).</li>
+<li>Dem Spiel neue Agenten und Objekte hinzufügen (<code>onGenerateContent</code>).</li>
+</ul>
+<h3>Log Panel</h3>
+<p>Im <code>LogPanel</code> (<code>LogPanel.tsx</code>) werden alle Ereignisse und Aktionen der Simulation protokolliert. Das ist extrem nützlich, um zu verfolgen, was in der simulierten Welt vor sich geht.</p>
+<h2>2. Installation &amp; Konfiguration</h2>
+<p>Zuerst müssen wir sicherstellen, dass die Simulation richtig eingerichtet ist.</p>
+<ol>
+<li><strong>Abhängigkeiten installieren:</strong> Mit <code>npm install</code> (oder Yarn, oder pnpm) werden alle notwendigen Pakete heruntergeladen, die in der <code>package.json</code>-Datei aufgelistet sind.</li>
+<li><strong>API-Schlüssel:</strong> In der Datei <code>.env.local</code> (im Root-Verzeichnis) muss eine Umgebungsvariable namens <code>GEMINI_API_KEY</code> mit eurem Google AI API-Schlüssel gesetzt werden. Ohne diesen Schlüssel kann die Simulation die KI-Funktionen (Generierung von Agenten, Inhalten usw.) nicht nutzen.</li>
+<li><strong>Ausführen:</strong> Mit <code>npm run dev</code> (oder dem entsprechenden Befehl für euer Paketverwaltungssystem) startet ihr die Entwicklungsumgebung. Euer Browser öffnet die Anwendung automatisch unter <code>http://localhost:5173/</code>.</li>
+</ol>
+<h2>3. Die Simulationswelt</h2>
+<h3>Umgebung</h3>
+<p>Die <code>EnvironmentState</code> (definiert in <code>types.ts</code>) beschreibt die grundlegenden Parameter der Simulationswelt, z.B. die Größe des Gitters (<code>width</code>, <code>height</code>), die aktuelle Zeit (<code>time</code>) und eventuell das Wetter.</p>
+<h3>Entitäten</h3>
+<p>Die <code>Entity</code>-Objekte (definiert in <code>types.ts</code>) repräsentieren die Objekte in der Welt. Jede Entität hat eine eindeutige ID, einen Namen, eine Beschreibung und eine Position (x, y). Sie können auch als Ressourcen (z.B. &quot;food&quot;, &quot;water&quot;, &quot;wood&quot;) markiert sein.</p>
+<h2>4. Die Anatomie eines Agenten</h2>
+<p>Die Agenten sind das Herzstück der Simulation.</p>
+<h3>Grundlagen &amp; Überleben</h3>
+<p>Agenten haben grundlegende Werte:</p>
+<ul>
+<li><code>id</code>: Eindeutige Identifikationsnummer.</li>
+<li><code>name</code>: Der Name des Agenten.</li>
+<li><code>description</code>: Eine kurze Beschreibung.</li>
+<li><code>x, y</code>: Die Position auf dem Gitter.</li>
+<li><code>health</code>: Die Gesundheit des Agenten (0-100). Sinkt durch Hunger, Durst, Krankheit und Alter.</li>
+<li><code>isAlive</code>: Ein boolescher Wert, der angibt, ob der Agent noch lebt.</li>
+<li><code>sickness</code>: Eine optionale Zeichenkette, die eine Krankheit beschreibt.</li>
+<li><code>hunger, thirst, fatigue</code>: Hunger, Durst und Müdigkeit des Agenten (0-100).</li>
+<li><code>inventory</code>: Ein Inventar, das Ressourcen und Gegenstände speichert.</li>
+</ul>
+<h3>Geist &amp; Psyche</h3>
+<ul>
+<li><code>Beliefs</code>: Das <code>beliefNetwork</code> ist ein Schlüssel-Wert-Paar, das die Weltanschauung des Agenten repräsentiert.</li>
+<li><code>Emotions</code>: Die <code>emotions</code> repräsentieren die Gefühle des Agenten (z.B. Freude, Trauer, Wut).</li>
+<li><code>Psyche</code>: Hier findet ihr psychologische Eigenschaften, wie z.B. Empathie oder Todesangst.</li>
+<li><code>Personality</code>: Die <code>personality</code> bestimmt die Charaktereigenschaften des Agenten (z.B. Offenheit, Gewissenhaftigkeit).</li>
+<li><code>Skills</code>: Die <code>skills</code> geben an, wie gut ein Agent eine bestimmte Fähigkeit beherrscht.</li>
+<li><code>Goals</code>: Agenten haben Ziele, die ihr Verhalten steuern.</li>
+</ul>
+<h3>Gefängnistagebuch: Die innere Welt der Inhaftierten</h3>
+<p>Ein Agent, der inhaftiert ist, erhält das Attribut <code>jailJournal</code>. Dieses Attribut enthält eine Liste von <code>JailJournalEntry</code>-Objekten. Diese werden in <code>services/geminiService.ts</code> durch einen Aufruf an die Gemini KI generiert.</p>
+<h3>Soziales Gefüge</h3>
+<ul>
+<li><code>Relationships</code>: Das <code>relationships</code>-Objekt speichert die Beziehungen des Agenten zu anderen Agenten. Jede Beziehung hat einen Typ (<code>stranger</code>, <code>friend</code>, <code>rival</code> usw.) und einen Wert, der die Stärke der Beziehung repräsentiert.</li>
+</ul>
+<h2>5. Langzeitgedächtnis: Die Vektor-Datenbank</h2>
+<p>Das Langzeitgedächtnis ist das Geheimnis, das die Agenten wirklich intelligent macht.</p>
+<h3>Das Konzept des &quot;Echten&quot; Gedächtnisses</h3>
+<p>Anstatt einfach nur Ereignisse in chronologischer Reihenfolge zu speichern, speichert die Simulation semantisch verwandte Informationen.</p>
+<h3>Der Prozess: Von der Handlung zur Erinnerung</h3>
+<ol>
+<li><strong>Aktion &amp; Ergebnis:</strong> Ein Agent führt eine Aktion aus.</li>
+<li><strong>Embedding-Erstellung:</strong> Der Beschreibungstext der Aktion wird mithilfe der Gemini API in einen numerischen Vektor umgewandelt.</li>
+<li><strong>Speicherung:</strong> Der Text, der Zeitstempel und das Embedding werden in der <code>VectorDB</code> des Agenten gespeichert.</li>
+</ol>
+<h3>Intelligenter Abruf durch Ähnlichkeitssuche</h3>
+<p>Wenn ein Agent Informationen benötigt, geht er wie folgt vor:</p>
+<ol>
+<li><strong>Anfrage-Vektor:</strong> Der Befehl wird in einen Anfrage-Vektor umgewandelt.</li>
+<li><strong>Ähnlichkeitssuche:</strong> Die Vektor-Datenbank des Agenten wird durchsucht, und es werden die Erinnerungen gefunden, deren Vektoren dem Anfrage-Vektor am ähnlichsten sind.</li>
+<li><strong>Relevanz-Ranking:</strong> Erinnerungen werden nach Ähnlichkeit sortiert und als Kontext dem Haupt-KI-Modell bereitgestellt.</li>
+</ol>
+<h3>Auswirkungen auf das Agentenverhalten</h3>
+<p>Dieser Ansatz ermöglicht es den Agenten, aus ihren Erfahrungen zu lernen und sich kontextbezogen zu verhalten.</p>
+<h2>6. Der Simulationszyklus &amp; KI-Entscheidungsfindung</h2>
+<p>Der <code>useSimulation</code>-Hook (<code>hooks/useSimulation.ts</code>) steuert den Kern der Simulation.</p>
+<p>Jeder Schritt der Simulation durchläuft einen festen Zyklus in der <code>step</code> Funktion (<code>services/simulation.ts</code>):</p>
+<ol>
+<li><strong>Globale Updates:</strong> Die Zeit wird erhöht, und eventuelle Wahlen finden statt.</li>
+<li><strong>Agenten-Zyklus (für jeden Agenten):</strong>
+a.  <strong>Passive Updates:</strong> Bedürfnisse steigen, Gesundheit verändert sich.
+b.  <strong>Aktionsauswahl:</strong> Hier wählt der Agent mithilfe der <code>chooseAction</code> Funktion (<code>services/simulation.ts</code>) eine Aktion aus. Die Logik ist komplex und berücksichtigt:
+*   Überlebensbedürfnisse (Hunger, Durst, Gesundheit).
+*   Psychologische Triebe.
+*   Ziele.
+*   Q-Learning, um aus vergangenen Erfolgen und Misserfolgen zu lernen.
+c.  <strong>Aktionsausführung:</strong> Die ausgewählte Aktion wird ausgeführt.
+d.  <strong>Gedächtnisbildung:</strong> Das Ergebnis der Aktion wird im Langzeitgedächtnis gespeichert.</li>
+</ol>
+<h2>7. Benutzerinteraktion</h2>
+<h3>Steuerungspanel</h3>
+<p>Mit dem <code>ControlPanel</code> (<code>components/ControlPanel.tsx</code>) können Benutzer die Simulation steuern.</p>
+<h3>Agentensteuerung &amp; KI-Interaktion</h3>
+<p>Die Interaktion mit den Agenten erfolgt über die <code>AgentCard</code> (<code>components/AgentCard.tsx</code>).</p>
+<h3>Welterschaffung &amp; Psychoanalyse</h3>
+<ul>
+<li><strong><code>GenerateWorldModal</code></strong>:  Ermöglicht die Erstellung einer neuen Welt.</li>
+<li><strong><code>GenerateContentModal</code></strong>: Ermöglicht das Hinzufügen von Agenten und Entitäten.</li>
+<li><strong>Psychoanalyse:</strong> Mithilfe der <code>PsychoanalysisModal</code> können Sie einen detaillierten psychologischen Bericht von einem Agenten erstellen lassen. Dieser Bericht wird mithilfe der Gemini API generiert und analysiert die Persönlichkeit, Emotionen und Beziehungen des Agenten.</li>
+</ul>
+<h3>Zustand, Gespräche &amp; Statistiken verwalten</h3>
+<p>Über das Menü (<code>ExporterPanel</code>) kann der aktuelle Zustand der Simulation gespeichert und geladen werden, um den Fortschritt zu erhalten. Sie können auch Konversationen als Markdown-Dateien exportieren und Statistiken über Ereignisse wie Eheschließungen und Kämpfe anzeigen.</p>
+<h3>Manuelle Erstellung (Create New Panel)</h3>
+<p>Das <code>CreateObjectPanel</code> (<code>components/CreateObjectPanel.tsx</code>) ermöglicht die manuelle Erstellung von Agenten, Entitäten und Aktionen.</p>
+<h3>Das Admin-Panel (Gott-Modus)</h3>
+<p>Das <code>AdminPanel</code> (<code>components/AdminPanel.tsx</code>) bietet administrative Funktionen:</p>
+<ul>
+<li>Politische Verwaltung: Anführer festlegen, Gesetze erlassen/aufheben.</li>
+<li>Technologie-Management: Forschungspunkte vergeben, Technologien freischalten.</li>
+<li>Agenten-Management: Gesundheit, Position, Währung ändern, Krankheiten zufügen, wiederbeleben.</li>
+</ul>
+<h2>8. Analyse &amp; Beobachtung: Das Analytics Dashboard</h2>
+<p>Das <code>AnalyticsDashboard</code> (<code>components/AnalyticsDashboard.tsx</code>) bietet verschiedene Visualisierungen, um das Verhalten der Simulation zu analysieren.</p>
+<h3>Soziales Netzwerk</h3>
+<p>Das soziale Netzwerk visualisiert Beziehungen zwischen Agenten.</p>
+<h3>Wirtschaftsflüsse</h3>
+<p>Ein Sankey-Diagramm visualisiert den Fluss von Währung.</p>
+<h3>Kulturelle Ausbreitung</h3>
+<p>Eine Heatmap zeigt die kulturelle Verteilung in der Welt an.</p>
+<h3>Technologie</h3>
+<p>Ein Diagramm zeigt den Forschungsfortschritt jeder Kultur.</p>
+<h2>9. Erweiterbarkeit</h2>
+<h3>9.1 Neue Aktionen hinzufügen</h3>
+<ol>
+<li>Definiert die Action in <code>services/actions.ts</code></li>
+<li>Fügen Sie die neue Aktion zur <code>availableActions</code>-Liste hinzu.</li>
+<li>Sie können eine neue Aktion auch über das <code>CreateObjectPanel</code> erstellen.</li>
+</ol>
+<h3>9.2 Neue Agenten-Attribute (Psyche, Bedürfnisse etc)</h3>
+<ol>
+<li>Fügen Sie das neue Attribut zur <code>Agent</code>-Schnittstelle in <code>types.ts</code> hinzu.</li>
+<li>Initialisieren Sie das Attribut in <code>constants.ts</code>.</li>
+<li>Implementieren Sie die Logik in <code>services/simulation.ts</code>, um das Attribut zu aktualisieren.</li>
+<li>Aktualisieren Sie die Prompts in <code>services/geminiService.ts</code>, um die KI über das neue Attribut zu informieren.</li>
+</ol>
+<h3>9.3 Neue Technologien oder Rezepte</h3>
+<ol>
+<li>Fügen Sie einen neuen Eintrag zum <code>TECH_TREE</code> in <code>constants.ts</code> hinzu.</li>
+<li>Fügen Sie einen neuen Eintrag zur <code>RECIPES</code>-Liste in <code>constants.ts</code> hinzu.</li>
+</ol>
+<h3>9.4 Erweiterung der Benutzeroberfläche</h3>
+<p>Neue Informationen können durch das Erstellen neuer Komponenten oder durch das Ändern bestehender Komponenten in <code>components/</code> visualisiert werden.</p>
+<h2>10. Kerntechnologien &amp; Architektur</h2>
+<ul>
+<li><strong>Frontend:</strong> React, TypeScript, TailwindCSS</li>
+<li><strong>KI:</strong> Google Gemini API (Chat-Modell und Embeddings)</li>
+<li><strong>Gedächtnis:</strong> Benutzerdefinierte, im Arbeitsspeicher laufende Vektor-Datenbank.</li>
+<li><strong>Zustandsverwaltung:</strong> React Hooks.</li>
+<li><strong>Modul-System:</strong> Natives ES-Modul.</li>
+<li><strong>Datenpersistenz:</strong> <code>localStorage</code> (Einstellungen), File API (Zustand speichern/laden).</li>
+</ul>
+<p>Das Projekt ist modular aufgebaut und ermöglicht so eine einfache Erweiterung und Anpassung. Viel Spaß beim Experimentieren!</p>
+
+              </body>
+              </html>
+          
