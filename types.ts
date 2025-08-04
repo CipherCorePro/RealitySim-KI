@@ -1,247 +1,122 @@
 
 
-
-export interface Beliefs {
-  [key: string]: number;
+export interface FileNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: FileNode[];
 }
 
-export interface Emotions {
-    [key: string]: number; 
+export interface FileContents {
+  [path:string]: string;
 }
 
-export interface Personality {
-    openness: number; // 0-1
-    conscientiousness: number; // 0-1
-    extraversion: number; // 0-1
-    agreeableness: number; // 0-1
-    neuroticism: number; // 0-1
+export type Language = 'en' | 'de';
+
+export interface Translations {
+    [key: string]: string;
 }
 
-export interface Skills {
-    [key: string]: number; // e.g. { healing: 15, woodcutting: 22, rhetoric: 5 }
+export interface ThemeSettings {
+    background: string;
+    primaryColor: string;
+    secondaryColor: string;
+    primaryTextColor: string;
+    lineColor: string;
+    fontSize: number;
 }
 
-export type GoalType = 'becomeLeader' | 'buildLargeHouse' | 'masterSkill' | 'avengeRival' | 'achieveWealth';
-export interface Goal {
-    type: GoalType;
-    status: 'active' | 'completed' | 'failed';
-    progress: number; // 0-100
-    description: string;
-    targetId?: string;
+export type DiagramType = 'classDiagram' | 'flowchart TD' | 'sequenceDiagram' | 'stateDiagram-v2';
+
+export type DiagrammingLanguage = 'mermaid' | 'plantuml';
+
+export interface ManualSection {
+  title: string;
+  content: string;
 }
 
-export interface Trauma {
-    event: string;
-    timestamp: number;
-    intensity: number; // 0-1
+export interface Manual {
+  title: string;
+  introduction: string;
+  sections: ManualSection[];
 }
 
-export type RelationshipType = 'stranger' | 'acquaintance' | 'friend' | 'rival' | 'partner' | 'spouse' | 'ex-partner';
+// Types for the new Agent System
+export type AppMode = 'analyze' | 'generate' | 'agentSystem' | 'businessPlan' | 'pitchDeck' | 'startupPlanner';
 
-export interface Relationship {
-    type: RelationshipType;
-    score: number;
-    disposition: Emotions;
+export interface AgentLogEntry {
+  agent: string;
+  message: string;
+  timestamp: string;
+  replacements?: {[key: string]: string | number}; // Added for dynamic translation
 }
 
-export interface Resonance {
-  [key:string]: number;
-}
-
-export interface LogEntry {
-  key: string;
-  params?: { [key: string]: any };
-}
-
-export interface SocialMemoryEntry {
-  agentId: string;
-  action: string;
-  result: 'accepted' | 'rejected' | 'initiated' | 'reciprocated' | 'observed';
-  emotionalImpact: number; // -1 to 1
-  timestamp: number;
-  info?: string;
-}
-
-// --- NEW & EXPANDED TYPES ---
-
-export type ResourceType = 'food' | 'water' | 'wood' | 'medicine' | 'iron';
-export type CraftedItemType = 'sword' | 'plow' | 'advanced_medicine' | 'iron_ingot';
-export type ItemType = ResourceType | CraftedItemType;
-
-export interface Inventory {
-  [item: string]: number;
-}
-
-export interface Recipe {
-    name: string;
-    output: { item: CraftedItemType, quantity: number };
-    ingredients: { [key in ItemType]?: number };
-    requiredSkill?: { skill: keyof Skills, level: number };
-    requiredTech?: string;
-}
-
-export interface TradeOffer {
-    offerId: string;
-    fromAgentId: string;
-    item: ItemType;
-    quantity: number;
-    price: number; // price per unit
-}
-
-export interface Market {
-    id: string;
-    name: string;
-    listings: TradeOffer[];
-}
-
-export interface Law {
-    id: string;
-    name: string;
-    description: string;
-    violatingAction: string; // The action name that this law prohibits
-    punishment: {
-        type: 'fine' | 'arrest';
-        amount: number; // For fine: amount, for arrest: duration in steps
-    };
-}
-
-export interface Government {
-    type: 'monarchy' | 'democracy';
-    leaderId: string | null;
-    laws: Law[];
-}
-
-export interface Election {
-    isActive: boolean;
-    candidates: string[];
-    votes: { [candidateId: string]: number };
-    termEndDate: number;
-}
-
-export interface Technology {
-    id: string;
-    name: string;
-    description: string;
-    researchCost: number;
-    unlocks: {
-        actions?: string[];
-        recipes?: string[];
-    };
-    requiredTech?: string[];
-}
-
-
-export interface Agent {
+export interface AgentJob {
   id: string;
-  name: string;
-  description: string;
-  x: number;
-  y: number;
-  beliefNetwork: Beliefs;
-  emotions: Emotions;
-  resonance: Resonance;
-  socialMemory: SocialMemoryEntry[];
-  lastActions: Action[];
-  adminAgent: boolean;
-  health: number;
-  isAlive: boolean;
-  sickness?: string | null;
-  conversationHistory: { speakerName: string; message: string; }[];
-  age: number;
-  genome: string[];
-  relationships: { [agentId: string]: Relationship };
-  cultureId: string | null;
-  religionId: string | null;
-  role: string | null;
-  offspringCount: number;
-  hunger: number;
-  thirst: number;
-  fatigue: number;
-  inventory: Inventory;
-  personality: Personality;
-  goals: Goal[];
-  stress: number;
-  socialStatus: number;
-  skills: Skills;
-  trauma: Trauma[];
-  // --- NEW ECONOMIC PROPERTIES ---
-  currency: number;
-  imprisonedUntil?: number;
+  status: 'idle' | 'running' | 'completed' | 'failed';
+  logs: AgentLogEntry[];
+  progress: number;
+  currentTask: string;
+  fileContents: FileContents | null;
+  error?: string | null;
+  type?: 'generate' | 'debug';
 }
 
-export interface Entity {
-  id: string;
-  name: string;
-  description: string;
-  x: number;
-  y: number;
-  isResource?: boolean;
-  resourceType?: ResourceType;
-  quantity?: number;
-  ownerId?: string | null;
-  // --- NEW PROPERTIES ---
-  isMarketplace?: boolean;
-  isJail?: boolean;
-  inmates?: string[];
+// Types for Business Plan Generator
+export interface BusinessPlanSection {
+    title: string;
+    content: string;
+    estimated_data?: string[];
 }
 
-export interface EnvironmentState {
-  [key: string]: any;
-  width: number;
-  height: number;
-  time: number;
-  // --- NEW POLITICAL PROPERTIES ---
-  election: Election | null;
+export interface BusinessPlan {
+    executive_summary: BusinessPlanSection;
+    company_description: BusinessPlanSection;
+    products_services: BusinessPlanSection;
+    market_analysis: BusinessPlanSection;
+    marketing_sales_strategy: BusinessPlanSection;
+    management_team: BusinessPlanSection;
+    financial_plan: BusinessPlanSection;
+    roadmap: BusinessPlanSection;
+    risks_and_mitigation: BusinessPlanSection;
+    appendix?: BusinessPlanSection;
 }
 
-export interface Religion {
-  id: string;
-  name: string;
-  dogma: Beliefs;
-  memberIds: string[];
+export interface BusinessPlanJob {
+    status: 'idle' | 'parsing' | 'generating' | 'completed' | 'failed';
+    progress: number;
+    logs: { agent: string; message: string; data?: any }[];
+    error: string | null;
+    result: BusinessPlan | null;
 }
 
-export interface Culture {
-  id:string;
-  name: string;
-  sharedBeliefs: Beliefs;
-  memberIds: string[];
-  // --- NEW TECH/LEARNING PROPERTIES ---
-  researchPoints: number;
-  knownTechnologies: string[];
+// Types for Pitch Deck Generator
+export interface PitchDeck {
+    markdown: string;
+    html: string;
 }
 
-export interface Action {
-  name: string;
-  description: string;
-  beliefKey?: string;
-  isIllegal?: boolean; // Dynamically set by simulation based on laws
-  // @ts-ignore
-  execute?: (agent: Agent, allAgents: Map<string, Agent>, allEntities: Map<string, Entity>, worldState: WorldState, engine: any) => Promise<ActionExecutionResult>;
+export interface PitchDeckJob {
+    status: 'idle' | 'parsing' | 'generating' | 'completed' | 'failed';
+    progress: number;
+    logs: { agent: string; message: string; data?: any }[];
+    error: string | null;
+    result: PitchDeck | null;
 }
 
-export interface WorldState {
-  environment: EnvironmentState;
-  agents: Agent[];
-  entities: Entity[];
-  actions: Action[];
-  cultures: Culture[];
-  religions: Religion[];
-  // --- NEW WORLD-LEVEL STATES ---
-  government: Government;
-  markets: Market[];
-  techTree: Technology[];
-  marketPrices?: { [item: string]: number };
+// Types for Startup Planner
+export interface StartupPlanJob {
+    status: 'idle' | 'parsing' | 'generating' | 'completed' | 'failed';
+    progress: number;
+    error: string | null;
+    result: string | null; // The markdown plan
 }
 
-
-// Data returned from an action's execution
-export interface ActionExecutionResult {
-    log: LogEntry;
-    sideEffects?: {
-        createAgent?: Partial<Agent> & { name: string, description: string, parents: [Agent, Agent] };
-        updateReligion?: { agentId: string, newReligionId: string | null };
-        createEntity?: Partial<Entity> & { ownerId?: string };
-        addTrauma?: { agentId: string, trauma: Trauma };
-    }
+// Types for Idea Architect Scaffolding
+export interface ScaffoldingJob {
+    status: 'idle' | 'running' | 'completed' | 'failed';
+    progress: number;
+    currentTask: string;
+    error: string | null;
+    fileContents?: FileContents | null;
 }
