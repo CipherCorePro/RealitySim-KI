@@ -4,7 +4,25 @@
 
 RealitySim AI is a simulation platform designed to model, visualize, and analyze the complex behavior of AI agents in a dynamic world. Agents are endowed with unique psychological profiles, beliefs, goals, and memories. They interact with each other and their environment, leading to the emergence of complex social, economic, and political systems.
 
-![Screenshot of the Agent Card in RealitySim AI](https://raw.githubusercontent.com/CipherCorePro/RealitySim-KI/main/New%20Version%203/RealitySimAI-Documentation/profil.png)
+****<img width="1883" height="891" alt="image" src="https://github.com/user-attachments/assets/70b8cd62-67c9-4890-84c3-e140c12f118e" />
+<img width="1915" height="989" alt="image" src="https://github.com/user-attachments/assets/aa90ceca-59a8-48c7-93da-61a8e6054e83" />
+<img width="1917" height="968" alt="image" src="https://github.com/user-attachments/assets/032e8e48-82fe-43b8-a9fa-c2befe5887f9" />
+<img width="1909" height="800" alt="image" src="https://github.com/user-attachments/assets/b1ba6a29-6939-48c7-abe9-09de6c9a383e" />
+<img width="707" height="766" alt="image" src="https://github.com/user-attachments/assets/06b70024-f57a-44d4-bf37-16fd7fba89bd" />
+<img width="1914" height="887" alt="image" src="https://github.com/user-attachments/assets/cf62bfd4-3cbe-4e63-b334-5f464c5f2ab5" />
+
+<img width="1889" height="980" alt="image" src="https://github.com/user-attachments/assets/9b1b55a9-3293-469c-a486-dd6dff6f4913" />
+
+<img width="549" height="556" alt="image" src="https://github.com/user-attachments/assets/12c4c5c5-b24a-4235-b0e3-88736dd95246" />
+<img width="1437" height="907" alt="image" src="https://github.com/user-attachments/assets/0e1caf6a-e224-40c0-9c3d-e07c3272f40e" />
+<img width="1424" height="912" alt="image" src="https://github.com/user-attachments/assets/ac80772a-5d75-4149-80b0-015a0596f4ef" />
+
+<img width="755" height="910" alt="image" src="https://github.com/user-attachments/assets/089d1e22-b3df-46e0-b8d3-7d3b3b0da45f" />
+<img width="763" height="896" alt="image" src="https://github.com/user-attachments/assets/f93872f0-a0fc-42c6-91e9-0c637b612a2d" />
+
+
+
+
 
 ---
 
