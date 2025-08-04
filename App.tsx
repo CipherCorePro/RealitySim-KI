@@ -1,978 +1,723 @@
 
+import React, { useMemo, useState, useEffect } from 'react';
+import type { Agent, PsychoReport } from './types';
+import { AgentCard } from './components/AgentCard';
+import { ControlPanel } from './components/ControlPanel';
+import { LogPanel } from './components/LogPanel';
+import { WorldGraph } from './components/WorldGraph';
+import { CreateObjectPanel } from './components/CreateObjectPanel';
+import { ExporterPanel } from './components/ExporterPanel';
+import { AdminPanel } from './components/AdminPanel';
+import { AnalyticsDashboard } from './components/AnalyticsDashboard';
+import { BrainCircuit, Cpu, Zap, Microscope, Boxes, Trash2, Settings, X, Globe, Users, PlusSquare, Apple, Droplet, Log, Hammer, Home, Vote, PanelLeft, PanelRight, Map, BarChart2 } from './components/IconComponents';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { useSettings } from './contexts/SettingsContext';
+import { useTranslations } from './hooks/useTranslations';
+import { useSimulation } from './hooks/useSimulation';
+import { ProcessingIndicator } from './components/ProcessingIndicator';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { FileNode, FileContents, Language, ThemeSettings, DiagramType, DiagrammingLanguage, Manual, AppMode, AgentJob, BusinessPlanJob, PitchDeckJob, ScaffoldingJob } from './types';
-import Header from './components/Header';
-import FileExplorer from './components/FileExplorer';
-import DiagramEditor from './components/MermaidEditor';
-import CodeEditor from './components/CodeEditor';
-import DiagramViewer from './components/DiagramViewer';
-import SettingsModal from './components/SettingsModal';
-import IdeaArchitect from './components/IdeaArchitect';
-import AgentSystem from './components/AgentSystem';
-import BusinessPlanGenerator from './components/BusinessPlanGenerator';
-import PitchDeckGenerator from './components/PitchDeckGenerator';
-import StartupPlanner from './components/StartupPlanner';
-import Icon from './components/Icon';
-import { 
-    analyzeProject, 
-    correctDiagramCode, 
-    generateProjectDocumentation, 
-    generateWhitepaper, 
-    generateProjectManual, 
-    generateIdeaManual, 
-    runScaffoldingGeneration,
-    generateDiagramFromIdea,
-    generateSuperpromptFromIdea,
-    generateDiagramFromSuperprompt,
-    generateDocumentationFromSuperprompt,
-    generateWhitepaperFromSuperprompt,
-    generateMockupFromSuperprompt
-} from './services/geminiService';
-import { I18nProvider, useTranslation } from './hooks/useTranslation';
-
-declare const JSZip: any;
-const MAX_CORRECTION_ATTEMPTS = 3;
-
-const defaultTheme: ThemeSettings = {
-    background: '#1e293b', // slate-800
-    primaryColor: '#0ea5e9', // sky-500
-    secondaryColor: '#334155', // slate-700
-    primaryTextColor: '#f1f5f9', // slate-100
-    lineColor: '#64748b', // slate-500
-    fontSize: 14,
-};
-
-const ManualViewer: React.FC<{manual: Manual, onDownload: (content: string | Blob, fileName: string, mimeType: string) => void}> = ({ manual, onDownload }) => {
-    const { t } = useTranslation();
-    
-    const generateMarkdown = (): string => {
-        let md = `# ${manual.title}\n\n`;
-        md += `_${manual.introduction}_\n\n`;
-        manual.sections.forEach(section => {
-            md += `## ${section.title}\n\n`;
-            md += `${section.content}\n\n`;
-        });
-        return md;
+// --- View Toggle Panel ---
+interface ViewTogglePanelProps {
+    visibility: {
+        left: boolean;
+        agentCard: boolean;
+        worldMap: boolean;
+        right: boolean;
     };
-
-    const generateHtml = (): string => {
-        let html = `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<title>${manual.title}</title>\n`;
-        html += `<script src="https://cdn.tailwindcss.com?plugins=typography"></script>\n`
-        html += `<body class="bg-slate-900 text-slate-200 p-8">\n<article class="prose prose-invert prose-slate max-w-4xl mx-auto prose-h1:text-cyan-400 prose-h2:text-teal-400 prose-a:text-cyan-400 hover:prose-a:text-cyan-300">\n`;
-        html += `<h1>${manual.title}</h1>\n`;
-        html += `<p class="lead">${manual.introduction}</p>\n`;
-        manual.sections.forEach(section => {
-            html += `<h2>${section.title}</h2>\n<div>${section.content.replace(/\n/g, '<br />')}</div>\n`;
-        });
-        html += '</article>\n</body>\n</html>';
-        return html;
-    };
-    
-    return (
-        <div className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-            <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
-                <h2 className="text-xl font-bold text-slate-100">{manual.title}</h2>
-                 <div className="flex items-center space-x-2">
-                    <button onClick={() => onDownload(generateHtml(), 'manual.html', 'text/html')} className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 text-slate-200 rounded-lg hover:bg-slate-600 transition-colors duration-300">
-                        <Icon type="html" className="w-5 h-5" />
-                        <span>{t('downloadHTML')}</span>
-                    </button>
-                    <button onClick={() => onDownload(generateMarkdown(), 'manual.md', 'text/markdown')} className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 text-slate-200 rounded-lg hover:bg-slate-600 transition-colors duration-300">
-                        <Icon type="md" className="w-5 h-5" />
-                        <span>{t('downloadMD')}</span>
-                    </button>
-                </div>
-            </header>
-            <main className="p-6 overflow-y-auto prose prose-invert prose-slate max-w-none prose-h1:text-cyan-400 prose-h2:text-teal-400 prose-a:text-cyan-400 hover:prose-a:text-cyan-300">
-                <p className="lead !my-2 !text-lg !text-slate-400">{manual.introduction}</p>
-                {manual.sections.map((section, index) => (
-                    <div key={index} className="mt-6">
-                        <h2>{section.title}</h2>
-                        <div className="text-slate-300" dangerouslySetInnerHTML={{ __html: section.content.replace(/\n/g, '<br />') }} />
-                    </div>
-                ))}
-            </main>
-        </div>
-    );
+    onToggle: (panel: keyof ViewTogglePanelProps['visibility']) => void;
 }
 
-const createFileTreeFromContents = (projectName: string, contents: FileContents): FileNode => {
-    const rootName = projectName.replace('.zip', '').replace(/[\s_]+/g, '-').toLowerCase() || 'project';
-    const root: FileNode = { name: rootName, path: '', type: 'directory', children: [] };
-    
-    const sortedPaths = Object.keys(contents).sort();
+const ViewTogglePanel: React.FC<ViewTogglePanelProps> = ({ visibility, onToggle }) => {
+    const t = useTranslations();
+    const baseClass = "p-2 rounded-md transition-colors";
+    const activeClass = "bg-sky-600 hover:bg-sky-500 text-white";
+    const inactiveClass = "bg-slate-700 hover:bg-slate-600 text-slate-300";
 
-    sortedPaths.forEach((path) => {
-        // Ignore .keep files when building the tree for display
-        if (path.endsWith('/.keep')) return;
-
-        const pathParts = path.split('/').filter(p => p);
-        let currentNode = root;
-
-        pathParts.forEach((part, index) => {
-            if (!currentNode.children) {
-                currentNode.children = [];
-            }
-            let childNode = currentNode.children.find(child => child.name === part);
-
-            if (!childNode) {
-                const currentPath = pathParts.slice(0, index + 1).join('/');
-                const isDir = index < pathParts.length - 1 || sortedPaths.some(p => p.startsWith(currentPath + '/') && p !== currentPath);
-                const type = isDir ? 'directory' : 'file';
-
-                childNode = { 
-                    name: part, 
-                    path: currentPath, 
-                    type, 
-                    children: type === 'directory' ? [] : undefined
-                };
-                currentNode.children.push(childNode);
-            }
-            
-            if (childNode.type === 'directory') {
-               currentNode = childNode;
-            }
-        });
-    });
-    return root;
+    return (
+        <div className="flex items-center gap-1 p-1 bg-slate-800 rounded-lg">
+            <button onClick={() => onToggle('left')} title={t('viewtoggle_left')} className={`${baseClass} ${visibility.left ? activeClass : inactiveClass}`}>
+                <PanelLeft className="w-5 h-5" />
+            </button>
+            <button onClick={() => onToggle('agentCard')} title={t('viewtoggle_agentcard')} className={`${baseClass} ${visibility.agentCard ? activeClass : inactiveClass}`}>
+                <Users className="w-5 h-5" />
+            </button>
+            <button onClick={() => onToggle('worldMap')} title={t('viewtoggle_map')} className={`${baseClass} ${visibility.worldMap ? activeClass : inactiveClass}`}>
+                <Map className="w-5 h-5" />
+            </button>
+            <button onClick={() => onToggle('right')} title={t('viewtoggle_right')} className={`${baseClass} ${visibility.right ? activeClass : inactiveClass}`}>
+                <PanelRight className="w-5 h-5" />
+            </button>
+        </div>
+    );
 };
+// --- End View Toggle Panel ---
 
+// --- Settings Modal Component ---
+interface SettingsModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
 
-const MainApp: React.FC = () => {
-  // Common state
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [themeSettings, setThemeSettings] = useState<ThemeSettings>(defaultTheme);
-  const [diagramType, setDiagramType] = useState<DiagramType>('classDiagram');
-  const [diagrammingLanguage, setDiagrammingLanguage] = useState<DiagrammingLanguage>('mermaid');
-  const [themeRevision, setThemeRevision] = useState(0);
-  const { t, language } = useTranslation();
-  const [appMode, setAppMode] = useState<AppMode>('analyze');
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+    const { settings, setSettings } = useSettings();
+    const t = useTranslations();
 
-  // State for 'analyze' mode
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [fileTree, setFileTree] = useState<FileNode | null>(null);
-  const [fileContents, setFileContents] = useState<FileContents | null>(null);
-  const [activeFileContents, setActiveFileContents] = useState<FileContents | null>(null);
-  const [renderedDiagramCode, setRenderedDiagramCode] = useState<string>('');
-  const [editableDiagramCode, setEditableDiagramCode] = useState<string>('');
-  const [diagramError, setDiagramError] = useState<string | null>(null);
-  const [analysisExplanation, setAnalysisExplanation] = useState<string>('');
-  const [correctionAttempts, setCorrectionAttempts] = useState<number>(0);
-  const [isGeneratingDocs, setIsGeneratingDocs] = useState<boolean>(false);
-  const [isGeneratingWhitepaper, setIsGeneratingWhitepaper] = useState<boolean>(false);
-  const [isGeneratingManual, setIsGeneratingManual] = useState<boolean>(false);
-  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [generatedManual, setGeneratedManual] = useState<Manual | null>(null);
-  const [analyzingPath, setAnalyzingPath] = useState<string | null>(null);
-  const [analysisScope, setAnalysisScope] = useState<string | null>(null);
-  const [isGeneratingIdeaDiagram, setIsGeneratingIdeaDiagram] = useState(false);
-  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
+    const [provider, setProvider] = useState(settings.provider);
+    const [url, setUrl] = useState(settings.lmStudioUrl);
+    const [model, setModel] = useState(settings.lmStudioModel);
+    const [embeddingModel, setEmbeddingModel] = useState(settings.lmStudioEmbeddingModel);
+    const [geminiModel, setGeminiModel] = useState(settings.geminiModel);
 
-  // State for 'generate' mode
-  const [ideaPrompt, setIdeaPrompt] = useState<string>('');
-  const [generatedDiagram, setGeneratedDiagram] = useState<string>('');
-  const [editableGeneratedDiagram, setEditableGeneratedDiagram] = useState<string>('');
-  const [generatedDocumentation, setGeneratedDocumentation] = useState<string>('');
-  const [generatedWhitepaperContent, setGeneratedWhitepaperContent] = useState<string>('');
-  const [generatedSuperprompt, setGeneratedSuperprompt] = useState<string>('');
-  const [generatedMockup, setGeneratedMockup] = useState<string>('');
-  const [scaffoldingJob, setScaffoldingJob] = useState<ScaffoldingJob>({ status: 'idle', progress: 0, currentTask: '', error: null, fileContents: null });
-  
-  // Loading states for 'generate' mode
-  const [isLoadingSuperprompt, setIsLoadingSuperprompt] = useState(false);
-  const [isLoadingGeneratedDiagram, setIsLoadingGeneratedDiagram] = useState(false);
-  const [isLoadingGeneratedDocumentation, setIsLoadingGeneratedDocumentation] = useState(false);
-  const [isLoadingGeneratedWhitepaper, setIsLoadingGeneratedWhitepaper] = useState(false);
-  const [isLoadingMockup, setIsLoadingMockup] = useState(false);
-  const [isLoadingIdeaManual, setIsLoadingIdeaManual] = useState(false);
-
-
-  useEffect(() => {
-    // @ts-ignore
-    window.mermaid.initialize({
-      startOnLoad: false,
-      securityLevel: 'loose',
-      theme: 'base',
-      themeVariables: {
-        background: themeSettings.background,
-        primaryColor: themeSettings.primaryColor,
-        secondaryColor: themeSettings.secondaryColor,
-        primaryTextColor: themeSettings.primaryTextColor,
-        lineColor: themeSettings.lineColor,
-        fontSize: `${themeSettings.fontSize}px`,
-        nodeBorder: themeSettings.primaryColor,
-        mainBkg: themeSettings.background,
-        textColor: themeSettings.primaryTextColor,
-      }
-    });
-    setThemeRevision(rev => rev + 1);
-  }, [themeSettings]);
-
-
-  const processZipFile = useCallback(async (file: File) => {
-    setIsLoading(true);
-    setFileTree(null);
-    setFileContents(null);
-    setActiveFileContents(null);
-    setRenderedDiagramCode('');
-    setEditableDiagramCode('');
-    setDiagramError(null);
-    setAnalysisExplanation('');
-    setCorrectionAttempts(0);
-    setAnalysisScope(null);
-    setSelectedFilePath(null);
-    
-    try {
-      const zip = await JSZip.loadAsync(file);
-      const contents: FileContents = {};
-      const filePromises: Promise<void>[] = [];
-
-      zip.forEach((relativePath: string, zipEntry: any) => {
-        if (!zipEntry.dir) {
-          const isBinary = !zipEntry.name.endsWith('.txt') && !zipEntry.name.endsWith('.md') && !zipEntry.name.endsWith('.json') && !zipEntry.name.endsWith('.html') && !zipEntry.name.endsWith('.css') && !zipEntry.name.endsWith('.js') && !zipEntry.name.endsWith('.ts') && !zipEntry.name.endsWith('.tsx') && !zipEntry.name.endsWith('.jsx');
-          
-          filePromises.push(
-            zipEntry.async(isBinary ? "base64" : "string").then((content: string) => {
-               contents[relativePath] = isBinary ? `[BINARY_FILE:${zipEntry.name}]` : content;
-            })
-          );
+    useEffect(() => {
+        if (isOpen) {
+            setProvider(settings.provider);
+            setUrl(settings.lmStudioUrl);
+            setModel(settings.lmStudioModel);
+            setEmbeddingModel(settings.lmStudioEmbeddingModel);
+            setGeminiModel(settings.geminiModel);
         }
-      });
+    }, [settings, isOpen]);
 
-      await Promise.all(filePromises);
-      const root = createFileTreeFromContents(file.name, contents);
-      setFileTree(root);
-      setFileContents(contents);
-      setActiveFileContents(contents);
-
-    } catch (e) {
-      console.error("Error processing ZIP file:", e);
-      alert(t('zipError'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [t]);
-
-  const handleZipUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      processZipFile(file);
-    }
-    event.target.value = '';
-  };
-
-  const handleRenderError = useCallback((errorMessage: string | null) => {
-    setDiagramError(errorMessage);
-  }, []);
-
-  const downloadFile = (content: string | Blob, fileName: string, mimeType: string) => {
-    const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-  
-  const handleAnalyze = useCallback(async (scopePath: string = '') => {
-    if (!fileContents) {
-        alert(t('noFilesToAnalyze'));
-        return;
+    if (!isOpen) {
+        return null;
     }
 
-    const scopedFileContents = Object.entries(fileContents)
-        .filter(([path]) => path.startsWith(scopePath))
-        .reduce((acc, [path, content]) => {
-            acc[path] = content;
-            return acc;
-        }, {} as FileContents);
-
-    if (Object.keys(scopedFileContents).length === 0) {
-        alert(t('directoryEmpty'));
-        return;
-    }
-    
-    setActiveFileContents(scopedFileContents);
-    setIsLoading(true);
-    setAnalyzingPath(scopePath);
-    setDiagramError(null);
-    setCorrectionAttempts(0);
-    setAnalysisScope(scopePath);
-    setSelectedFilePath(null); // Close code editor when running analysis
-
-    const existingDiagram = editableDiagramCode.trim() ? editableDiagramCode : undefined;
-
-    try {
-        const result = await analyzeProject(scopedFileContents, diagramType, language, diagrammingLanguage, scopePath, existingDiagram);
-        setAnalysisExplanation(result.explanation);
-        setRenderedDiagramCode(result.diagram);
-        setEditableDiagramCode(result.diagram);
-    } catch (e: any) {
-        console.error("Failed to analyze project:", e);
-        setDiagramError(`${t('aiAnalysisFailed')}: ${e.message}`);
-    } finally {
-        setIsLoading(false);
-        setAnalyzingPath(null);
-    }
-}, [fileContents, diagramType, language, diagrammingLanguage, t, editableDiagramCode]);
-
-
-  const handleCorrectError = useCallback(async () => {
-      if (!renderedDiagramCode || !diagramError || correctionAttempts >= MAX_CORRECTION_ATTEMPTS) return;
-
-      setIsLoading(true);
-      const attemptNumber = correctionAttempts + 1;
-      setCorrectionAttempts(attemptNumber);
-      
-      try {
-        const correctedCode = await correctDiagramCode(renderedDiagramCode, diagramError, diagrammingLanguage);
-        setRenderedDiagramCode(correctedCode);
-        setEditableDiagramCode(correctedCode);
-        setAnalysisExplanation(t('aiCorrectionAttempt', { attempt: attemptNumber }));
-        setDiagramError(null);
-      } catch (e: any) {
-        console.error(e);
-        alert(`${t('aiCorrectionFailedAttempt', { attempt: attemptNumber })}: ${e.message}`);
-      } finally {
-        setIsLoading(false);
-      }
-  }, [renderedDiagramCode, diagramError, correctionAttempts, t, diagrammingLanguage]);
-  
-  const handleManualRender = () => {
-    setDiagramError(null);
-    setCorrectionAttempts(0);
-    setAnalysisExplanation(t('manualRenderExplanation'));
-    setRenderedDiagramCode(editableDiagramCode);
-    setAnalysisScope(''); // Reset scope for manual render
-  };
-
-  const handleGenerateDocs = async () => {
-    if (!activeFileContents) return;
-    setIsGeneratingDocs(true);
-    try {
-        const htmlContent = await generateProjectDocumentation(activeFileContents, language);
-        downloadFile(htmlContent, 'api-documentation.html', 'text/html;charset=utf-8');
-    } catch (e: any) {
-        console.error("Failed to generate documentation:", e);
-        alert(`${t('aiAnalysisFailed')}: ${e.message}`);
-    } finally {
-        setIsGeneratingDocs(false);
-    }
-  };
-
-  const handleGenerateWhitepaper = async () => {
-      if (!activeFileContents || !renderedDiagramCode) return;
-      setIsGeneratingWhitepaper(true);
-      try {
-          const htmlContent = await generateWhitepaper(activeFileContents, renderedDiagramCode, analysisExplanation, language, diagrammingLanguage);
-          downloadFile(htmlContent, 'project-whitepaper.html', 'text/html;charset=utf-8');
-      } catch (e: any) {
-          console.error("Failed to generate whitepaper:", e);
-          alert(`${t('aiAnalysisFailed')}: ${e.message}`);
-      } finally {
-          setIsGeneratingWhitepaper(false);
-      }
-  };
-
-  const handleGenerateProjectManual = async () => {
-    if (!activeFileContents) return;
-    setIsGeneratingManual(true);
-    setGeneratedManual(null);
-    try {
-        const manual = await generateProjectManual(activeFileContents, language);
-        setGeneratedManual(manual);
-        setIsManualModalOpen(true);
-    } catch (e: any) {
-        console.error("Failed to generate project manual:", e);
-        alert(`${t('manualGenerationFailed')}: ${e.message}`);
-    } finally {
-        setIsGeneratingManual(false);
-    }
-  };
-
-  const handleGenerateProjectMarkdown = () => {
-    if (!activeFileContents) return;
-
-    const generateProjectMarkdownContent = (files: FileContents): string => {
-      let markdownContent = `# Project Code Dump\n\nThis document contains a dump of all the files from the uploaded project.\n\n---\n\n`;
-      const getLanguageIdentifier = (fileName: string): string => {
-        const extension = fileName.split('.').pop()?.toLowerCase();
-        switch (extension) {
-          case 'js': case 'jsx': return 'javascript';
-          case 'ts': case 'tsx': return 'typescript';
-          case 'py': return 'python';
-          case 'java': return 'java';
-          case 'cs': return 'csharp';
-          case 'go': return 'go';
-          case 'rb': return 'ruby';
-          case 'php': return 'php';
-          case 'html': return 'html';
-          case 'css': return 'css';
-          case 'scss': return 'scss';
-          case 'less': return 'less';
-          case 'json': return 'json';
-          case 'xml': return 'xml';
-          case 'sql': return 'sql';
-          case 'sh': return 'shell';
-          case 'md': return 'markdown';
-          default: return '';
-        }
-      };
-
-      Object.entries(files).forEach(([path, content]) => {
-        const lang = getLanguageIdentifier(path);
-        markdownContent += `## \`${path}\`\n\n`;
-        markdownContent += `\`\`\`${lang}\n`;
-        markdownContent += `${content}\n`;
-        markdownContent += `\`\`\`\n\n---\n\n`;
-      });
-      return markdownContent;
+    const handleSave = () => {
+        setSettings({ provider, lmStudioUrl: url, lmStudioModel: model, lmStudioEmbeddingModel: embeddingModel, geminiModel });
+        onClose();
     };
 
-    const markdown = generateProjectMarkdownContent(activeFileContents);
-    downloadFile(markdown, 'project-contents.md', 'text/markdown;charset=utf-8');
-  };
-  
-  const handleGenerateIdeaManual = async () => {
-    if (!generatedSuperprompt) return;
-    setIsLoadingIdeaManual(true);
-    setGeneratedManual(null);
-     try {
-        const manual = await generateIdeaManual(generatedSuperprompt, language);
-        setGeneratedManual(manual);
-    } catch (e: any) {
-        console.error("Failed to generate idea manual:", e);
-        alert(`${t('manualGenerationFailed')}: ${e.message}`);
-    } finally {
-        setIsLoadingIdeaManual(false);
-    }
-  }
-
-  const handleGenerateSuperprompt = async () => {
-    if (!ideaPrompt) {
-      alert(t('noIdeaToAnalyze'));
-      return;
-    }
-    setIsLoadingSuperprompt(true);
-    // Reset all generated content
-    setGeneratedDiagram('');
-    setEditableGeneratedDiagram('');
-    setGeneratedDocumentation('');
-    setGeneratedWhitepaperContent('');
-    setGeneratedSuperprompt('');
-    setGeneratedMockup('');
-    setGeneratedManual(null);
-    setScaffoldingJob({ status: 'idle', progress: 0, currentTask: '', error: null, fileContents: null });
-
-    try {
-      const superprompt = await generateSuperpromptFromIdea(ideaPrompt, language);
-      setGeneratedSuperprompt(superprompt);
-    } catch (e: any) {
-      console.error("Failed to generate Superprompt from idea:", e);
-      alert(`${t('ideaGenerationFailed')}: ${e.message}`);
-    } finally {
-      setIsLoadingSuperprompt(false);
-    }
-  };
-  
-  const handleGenerateGeneratedDiagram = async () => {
-      if (!generatedSuperprompt) return;
-      setIsLoadingGeneratedDiagram(true);
-      try {
-          const diagram = await generateDiagramFromSuperprompt(generatedSuperprompt, diagramType, language, diagrammingLanguage);
-          setGeneratedDiagram(diagram);
-          setEditableGeneratedDiagram(diagram);
-      } catch (e: any) {
-          console.error("Failed to generate diagram from superprompt:", e);
-          alert(`${t('ideaGenerationFailed')}: ${e.message}`);
-      } finally {
-          setIsLoadingGeneratedDiagram(false);
-      }
-  };
-
-  const handleGenerateGeneratedDocumentation = async () => {
-    if (!generatedSuperprompt || !generatedDiagram) return;
-    setIsLoadingGeneratedDocumentation(true);
-    try {
-        const docHtml = await generateDocumentationFromSuperprompt(generatedSuperprompt, generatedDiagram, diagrammingLanguage, language);
-        setGeneratedDocumentation(docHtml);
-    } catch (e: any) {
-        console.error("Failed to generate documentation from superprompt:", e);
-        alert(`${t('ideaGenerationFailed')}: ${e.message}`);
-    } finally {
-        setIsLoadingGeneratedDocumentation(false);
-    }
-  };
-  
-  const handleGenerateGeneratedWhitepaper = async () => {
-    if (!generatedSuperprompt || !generatedDiagram) return;
-    setIsLoadingGeneratedWhitepaper(true);
-    try {
-        const wpHtml = await generateWhitepaperFromSuperprompt(generatedSuperprompt, generatedDiagram, diagrammingLanguage, language);
-        setGeneratedWhitepaperContent(wpHtml);
-    } catch (e: any) {
-        console.error("Failed to generate whitepaper from superprompt:", e);
-        alert(`${t('ideaGenerationFailed')}: ${e.message}`);
-    } finally {
-        setIsLoadingGeneratedWhitepaper(false);
-    }
-  };
-
-  const handleGenerateMockup = async () => {
-    if (!generatedSuperprompt) return;
-    setIsLoadingMockup(true);
-    try {
-        const mockupHtml = await generateMockupFromSuperprompt(generatedSuperprompt, language);
-        setGeneratedMockup(mockupHtml);
-    } catch (e: any) {
-        console.error("Failed to generate mockup:", e);
-        alert(`${t('mockupGenerationFailed')}: ${e.message}`);
-    } finally {
-        setIsLoadingMockup(false);
-    }
-  };
-  
-  const handleGenerateScaffolding = async () => {
-    if (!generatedSuperprompt) return;
-
-    setScaffoldingJob({
-        status: 'running',
-        progress: 0,
-        currentTask: t('initializing'),
-        error: null,
-        fileContents: null
-    });
-
-    try {
-        for await (const update of runScaffoldingGeneration(generatedSuperprompt, language)) {
-            setScaffoldingJob(prevJob => ({ ...prevJob!, ...update }));
-        }
-    } catch (e: any) {
-        console.error("Failed to generate scaffolding:", e);
-        setScaffoldingJob(prevJob => ({
-            ...prevJob!,
-            status: 'failed',
-            error: `${t('scaffoldingGenerationFailed')}: ${e.message}`,
-            currentTask: 'Failed'
-        }));
-    }
-  };
-
-  const handleGenerateRender = () => {
-    setGeneratedDiagram(editableGeneratedDiagram);
-  };
-  
-  const handleAppModeChange = (mode: AppMode) => {
-    const diagramToTransfer = appMode === 'generate' && mode === 'analyze' ? generatedDiagram : null;
-
-    if (mode !== 'analyze' && mode !== 'agentSystem') {
-        setFileTree(null);
-        setFileContents(null);
-        setActiveFileContents(null);
-    }
-    
-    // Reset analyze mode state
-    setRenderedDiagramCode('');
-    setEditableDiagramCode('');
-    setDiagramError(null);
-    setAnalysisExplanation('');
-    setCorrectionAttempts(0);
-    setAnalysisScope(null);
-    setAnalyzingPath(null);
-    setIsGeneratingDocs(false);
-    setIsGeneratingWhitepaper(false);
-    setIsGeneratingManual(false);
-    setIsGeneratingIdeaDiagram(false);
-    setSelectedFilePath(null);
-    
-    // Reset generate mode state
-    setIdeaPrompt('');
-    setGeneratedDiagram('');
-    setEditableGeneratedDiagram('');
-    setGeneratedDocumentation('');
-    setGeneratedWhitepaperContent('');
-    setGeneratedSuperprompt('');
-    setGeneratedMockup('');
-    setGeneratedManual(null);
-    setScaffoldingJob({ status: 'idle', progress: 0, currentTask: '', error: null, fileContents: null });
-    
-    // Reset generate mode loading states
-    setIsLoadingSuperprompt(false);
-    setIsLoadingGeneratedDiagram(false);
-    setIsLoadingGeneratedDocumentation(false);
-    setIsLoadingGeneratedWhitepaper(false);
-    setIsLoadingMockup(false);
-    setIsLoadingIdeaManual(false);
-
-
-    if (diagramToTransfer) {
-        setRenderedDiagramCode(diagramToTransfer);
-        setEditableDiagramCode(diagramToTransfer);
-        setAnalysisExplanation(t('diagramImportedFromIdea'));
-        setAnalysisScope('');
-    }
-    
-    setAppMode(mode);
-  }
-
-  const handleProjectUpdate = useCallback((contents: FileContents, projectName: string, isNewProject: boolean) => {
-    if (isNewProject) {
-        handleAppModeChange('analyze');
-        setTimeout(() => {
-            const tree = createFileTreeFromContents(projectName, contents);
-            setFileTree(tree);
-            setFileContents(contents);
-            setActiveFileContents(contents);
-        }, 100);
-    } else {
-        const tree = createFileTreeFromContents(projectName, contents);
-        setFileTree(tree);
-        setFileContents(contents);
-        setActiveFileContents(contents);
-    }
-  }, []);
-
-  // --- File Management Handlers ---
-  const updateProjectState = (newFileContents: FileContents) => {
-    setFileContents(newFileContents);
-    // When a file is modified, the active content for analysis should also be updated.
-    // This keeps the context fresh if the user decides to re-analyze.
-    setActiveFileContents(newFileContents);
-    if (fileTree) {
-      const newFileTree = createFileTreeFromContents(fileTree.name, newFileContents);
-      setFileTree(newFileTree);
-    }
-  };
-
-  const handleFileClick = (path: string) => {
-    setSelectedFilePath(path);
-  };
-
-  const handleCloseCodeEditor = () => {
-    setSelectedFilePath(null);
-  };
-
-  const handleFileContentChange = (path: string, newContent: string) => {
-    if (fileContents === null) return;
-    const newFileContents = { ...fileContents, [path]: newContent };
-    updateProjectState(newFileContents);
-  };
-
-  const handleCreateItem = (path: string, type: 'file' | 'directory') => {
-    const name = prompt(t('enterNameFor', { type }));
-    if (!name || !fileContents) return;
-    if (name.includes('/') || name.includes('..')) {
-      alert(t('invalidName'));
-      return;
-    }
-    const newPath = path ? `${path}/${name}` : name;
-    if (Object.keys(fileContents).some(p => p === newPath || p.startsWith(newPath + '/'))) {
-      alert(t('itemExists'));
-      return;
-    }
-    const newFileContents = { ...fileContents };
-    if (type === 'file') {
-      newFileContents[newPath] = '';
-    } else {
-      newFileContents[`${newPath}/.keep`] = '';
-    }
-    updateProjectState(newFileContents);
-  };
-
-  const handleRenameItem = (oldPath: string, type: 'file' | 'directory') => {
-    const oldName = oldPath.split('/').pop() || '';
-    const newName = prompt(t('enterNewNameFor', { name: oldName }), oldName);
-    if (!newName || newName === oldName || !fileContents) return;
-    if (newName.includes('/') || newName.includes('..')) {
-      alert(t('invalidName'));
-      return;
-    }
-    const parentPath = oldPath.substring(0, oldPath.lastIndexOf('/'));
-    const newPath = parentPath ? `${parentPath}/${newName}` : newName;
-    if (Object.keys(fileContents).some(p => p === newPath || p.startsWith(newPath + '/'))) {
-      alert(t('itemExists'));
-      return;
-    }
-    const newFileContents = { ...fileContents };
-    if (type === 'file') {
-      newFileContents[newPath] = newFileContents[oldPath];
-      delete newFileContents[oldPath];
-    } else {
-      const prefix = oldPath + '/';
-      Object.keys(newFileContents)
-        .filter(p => p.startsWith(prefix))
-        .forEach(p => {
-          const newSubPath = p.replace(prefix, newPath + '/');
-          newFileContents[newSubPath] = newFileContents[p];
-          delete newFileContents[p];
-        });
-    }
-    updateProjectState(newFileContents);
-    if (analysisScope === oldPath) setAnalysisScope(newPath);
-  };
-
-  const handleDeleteItem = (path: string, type: 'file' | 'directory') => {
-    const name = path.split('/').pop() || '';
-    if (!confirm(t('confirmDelete', { name }))) return;
-    if (!fileContents) return;
-    const newFileContents = { ...fileContents };
-    if (type === 'file') {
-      delete newFileContents[path];
-    } else {
-      const prefix = path + '/';
-      Object.keys(newFileContents)
-        .filter(p => p.startsWith(prefix))
-        .forEach(p => delete newFileContents[p]);
-    }
-    updateProjectState(newFileContents);
-    if (analysisScope === path) setAnalysisScope('');
-  };
-    
-  const handleDownloadProject = async () => {
-    if (!fileContents || !fileTree) return;
-    const zip = new JSZip();
-    Object.entries(fileContents).forEach(([path, content]) => {
-      if (!path.endsWith('/.keep')) {
-        zip.file(path, content);
-      }
-    });
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    downloadFile(zipBlob, `${fileTree.name}.zip`, 'application/zip');
-  };
-
-  const handleGenerateDiagramFromIdea = async (ideaPrompt: string) => {
-      setIsGeneratingIdeaDiagram(true);
-      setDiagramError(null);
-      setAnalysisExplanation('');
-      try {
-          const diagramCode = await generateDiagramFromIdea(ideaPrompt, diagramType, language, diagrammingLanguage);
-          setEditableDiagramCode(diagramCode);
-          setRenderedDiagramCode(diagramCode);
-          setAnalysisExplanation(t('diagramGeneratedFromIdea'));
-          setAnalysisScope('');
-      } catch (e: any) {
-          console.error("Failed to generate diagram from idea:", e);
-          setDiagramError(`${t('ideaGenerationFailed')}: ${e.message}`);
-      } finally {
-          setIsGeneratingIdeaDiagram(false);
-      }
-  };
-
-  const handleClearDiagram = () => {
-      setEditableDiagramCode('');
-      setRenderedDiagramCode('');
-      setAnalysisExplanation('');
-      setDiagramError(null);
-      setAnalysisScope(null);
-      setSelectedFilePath(null);
-  }
-
-  const handleDiagramRegeneration = async (newType: DiagramType) => {
-    if (!activeFileContents || analysisScope === null) {
-        setDiagramType(newType);
-        return;
-    }
-
-    setIsLoading(true);
-    setDiagramError(null);
-    setCorrectionAttempts(0);
-    setDiagramType(newType);
-    setSelectedFilePath(null);
-
-    try {
-        const result = await analyzeProject(activeFileContents, newType, language, diagrammingLanguage, analysisScope);
-        setAnalysisExplanation(result.explanation);
-        setRenderedDiagramCode(result.diagram);
-        setEditableDiagramCode(result.diagram);
-    } catch (e: any) {
-        console.error("Failed to regenerate diagram:", e);
-        setDiagramError(`${t('aiAnalysisFailed')}: ${e.message}`);
-    } finally {
-        setIsLoading(false);
-    }
-  };
-
-
-  const renderContent = () => {
-    switch (appMode) {
-        case 'generate':
-            return (
-                <IdeaArchitect 
-                    ideaPrompt={ideaPrompt}
-                    onIdeaPromptChange={setIdeaPrompt}
-                    onGenerateSuperprompt={handleGenerateSuperprompt}
-                    isLoadingSuperprompt={isLoadingSuperprompt}
-                    generatedSuperprompt={generatedSuperprompt}
-                    
-                    generatedDiagram={generatedDiagram}
-                    editableGeneratedDiagram={editableGeneratedDiagram}
-                    onEditableGeneratedDiagramChange={setEditableGeneratedDiagram}
-                    onRenderGeneratedDiagram={handleGenerateRender}
-                    onGenerateDiagram={handleGenerateGeneratedDiagram}
-                    isLoadingDiagram={isLoadingGeneratedDiagram}
-
-                    generatedDocumentation={generatedDocumentation}
-                    onGenerateDocumentation={handleGenerateGeneratedDocumentation}
-                    isLoadingDocumentation={isLoadingGeneratedDocumentation}
-                    
-                    generatedWhitepaper={generatedWhitepaperContent}
-                    onGenerateWhitepaper={handleGenerateGeneratedWhitepaper}
-                    isLoadingWhitepaper={isLoadingGeneratedWhitepaper}
-                    
-                    themeRevision={themeRevision}
-                    downloadFile={downloadFile}
-                    diagrammingLanguage={diagrammingLanguage}
-                    
-                    generatedMockup={generatedMockup}
-                    isLoadingMockup={isLoadingMockup}
-                    onGenerateMockup={handleGenerateMockup}
-                    
-                    generatedManual={generatedManual}
-                    isLoadingManual={isLoadingIdeaManual}
-                    onGenerateManual={handleGenerateIdeaManual}
-
-                    scaffoldingJob={scaffoldingJob}
-                    onGenerateScaffolding={handleGenerateScaffolding}
-                />
-            );
-        case 'agentSystem':
-            return (
-                <AgentSystem 
-                    onProjectUpdate={handleProjectUpdate} 
-                    isProjectLoaded={!!fileTree}
-                    fileContents={fileContents}
-                    projectName={fileTree?.name ?? ''}
-                    setAppMode={setAppMode}
-                />
-            );
-        case 'businessPlan':
-            return <BusinessPlanGenerator downloadFile={downloadFile} />;
-
-        case 'pitchDeck':
-            return <PitchDeckGenerator downloadFile={downloadFile} />;
-
-        case 'startupPlanner':
-            return <StartupPlanner downloadFile={downloadFile} />;
-
-        case 'analyze':
-        default:
-            return (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
-                    <div className="lg:col-span-3 h-full min-h-0">
-                      <FileExplorer 
-                        fileTree={fileTree} 
-                        onFileClick={handleFileClick} 
-                        onAnalyzeDirectory={handleAnalyze}
-                        analyzingPath={analyzingPath}
-                        onCreateItem={handleCreateItem}
-                        onRenameItem={handleRenameItem}
-                        onDeleteItem={handleDeleteItem}
-                       />
+    return (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
+            <div className="bg-slate-850 p-6 rounded-lg border border-slate-700 w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
+                        <Settings className="w-6 h-6 text-sky-400"/>
+                        {t('settings_title')}
+                    </h2>
+                    <button onClick={onClose} className="text-slate-500 hover:text-slate-200 p-1">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">{t('settings_aiProvider_label')}</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => setProvider('lm_studio')}
+                                className={`p-3 rounded-md border text-center transition-colors ${provider === 'lm_studio' ? 'bg-sky-600 border-sky-500' : 'bg-slate-700 border-slate-600 hover:bg-slate-600'}`}
+                            >
+                                LM Studio
+                            </button>
+                             <button
+                                onClick={() => setProvider('gemini')}
+                                className={`p-3 rounded-md border text-center transition-colors ${provider === 'gemini' ? 'bg-sky-600 border-sky-500' : 'bg-slate-700 border-slate-600 hover:bg-slate-600'}`}
+                            >
+                                Google Gemini
+                            </button>
+                        </div>
                     </div>
-                    <div className="lg:col-span-4 h-full min-h-0">
-                      {selectedFilePath && fileContents ? (
-                        <CodeEditor
-                          filePath={selectedFilePath}
-                          content={fileContents[selectedFilePath] ?? ''}
-                          onContentChange={(newContent) => handleFileContentChange(selectedFilePath, newContent)}
-                          onClose={handleCloseCodeEditor}
-                        />
-                      ) : (
-                        <DiagramEditor
-                          code={editableDiagramCode}
-                          onCodeChange={setEditableDiagramCode}
-                          onRender={handleManualRender}
-                          isLoading={isLoading || isGeneratingIdeaDiagram}
-                          onGenerateFromIdea={handleGenerateDiagramFromIdea}
-                          isGeneratingIdea={isGeneratingIdeaDiagram}
-                          onClear={handleClearDiagram}
-                        />
-                      )}
-                    </div>
-                    <div className="lg:col-span-5 h-full min-h-0">
-                      <DiagramViewer
-                        key={`${themeRevision}-${diagrammingLanguage}`}
-                        diagramCode={renderedDiagramCode}
-                        diagrammingLanguage={diagrammingLanguage}
-                        isLoading={isLoading || isGeneratingIdeaDiagram}
-                        error={diagramError}
-                        onFixError={handleCorrectError}
-                        analysisExplanation={analysisExplanation}
-                        analysisScope={analysisScope}
-                        onRenderError={handleRenderError}
-                        isCorrectionAllowed={correctionAttempts < MAX_CORRECTION_ATTEMPTS}
-                        onGenerateDocs={handleGenerateDocs}
-                        onGenerateWhitepaper={handleGenerateWhitepaper}
-                        onGenerateManual={handleGenerateProjectManual}
-                        isGeneratingDocs={isGeneratingDocs}
-                        isGeneratingWhitepaper={isGeneratingWhitepaper}
-                        isGeneratingManual={isGeneratingManual}
-                        onGenerateProjectMarkdown={handleGenerateProjectMarkdown}
-                        isProjectLoaded={!!fileTree}
-                        onRegenerateDiagram={handleDiagramRegeneration}
-                        currentDiagramType={diagramType}
-                      />
+
+                    {provider === 'lm_studio' && (
+                        <div className="space-y-4">
+                             <div>
+                                <label htmlFor="lm-studio-url" className="block text-sm font-medium text-slate-300 mb-1">{t('settings_lmStudioUrl_label')}</label>
+                                <input id="lm-studio-url" type="text" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://localhost:1234" className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none transition"/>
+                                <p className="text-xs text-slate-500 mt-2">{t('settings_lmStudioUrl_description')}</p>
+                            </div>
+                            <div>
+                                <label htmlFor="lm-studio-model" className="block text-sm font-medium text-slate-300 mb-1">{t('settings_lmStudioModel_label')}</label>
+                                <input id="lm-studio-model" type="text" value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. google/gemma-2b-it" className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none transition"/>
+                                <p className="text-xs text-slate-500 mt-2">{t('settings_lmStudioModel_description')}</p>
+                            </div>
+                             <div>
+                                <label htmlFor="lm-studio-embedding-model" className="block text-sm font-medium text-slate-300 mb-1">{t('settings_lmStudioEmbeddingModel_label')}</label>
+                                <input id="lm-studio-embedding-model" type="text" value={embeddingModel} onChange={(e) => setEmbeddingModel(e.target.value)} placeholder="e.g. text-embedding-granite-embedding-278m-multilingual" className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none transition"/>
+                                <p className="text-xs text-slate-500 mt-2">{t('settings_lmStudioEmbeddingModel_description')}</p>
+                            </div>
+                        </div>
+                    )}
+                    
+                     {provider === 'gemini' && (
+                        <div className="space-y-4">
+                             <div>
+                                <label htmlFor="gemini-model" className="block text-sm font-medium text-slate-300 mb-1">{t('settings_geminiModel_label')}</label>
+                                <select id="gemini-model" value={geminiModel} onChange={e => setGeminiModel(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+                                    <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                                    <option value="gemini-1.5-flash-latest">gemini-1.5-flash-latest</option>
+                                    <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
+                                    <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                                    <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+                                </select>
+                                 <p className="text-xs text-slate-500 mt-2">{t('settings_geminiModel_description')}</p>
+                            </div>
+                            <div>
+                                 <label htmlFor="gemini-api-key" className="block text-sm font-medium text-slate-300 mb-1">{t('settings_geminiApiKey_label')}</label>
+                                 <div className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-400">
+                                     {t('settings_geminiApiKey_value')}
+                                 </div>
+                                 <p className="text-xs text-slate-500 mt-2">{t('settings_geminiApiKey_description')}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-4">
+                        <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-md transition-colors">{t('settings_cancel')}</button>
+                        <button onClick={handleSave} className="bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 px-4 rounded-md transition-colors">{t('settings_save')}</button>
                     </div>
                 </div>
-            );
-    }
-  };
-
-  return (
-    <div className="flex flex-col h-screen p-4 gap-4">
-      <Header 
-        onZipUpload={handleZipUpload} 
-        onAnalyze={() => handleAnalyze()}
-        onSettingsToggle={() => setIsSettingsOpen(true)}
-        isProjectLoaded={!!fileTree}
-        isLoading={isLoading && appMode === 'analyze'}
-        appMode={appMode}
-        onAppModeChange={handleAppModeChange}
-        onDownloadProject={handleDownloadProject}
-      />
-      <main className="flex-grow min-h-0">
-        {renderContent()}
-      </main>
-      <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)}
-        themeSettings={themeSettings}
-        onThemeChange={setThemeSettings}
-        diagramType={diagramType}
-        onDiagramTypeChange={setDiagramType}
-        diagrammingLanguage={diagrammingLanguage}
-        onDiagrammingLanguageChange={setDiagrammingLanguage}
-      />
-      {isManualModalOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => setIsManualModalOpen(false)}
-        >
-          <div onClick={(e) => e.stopPropagation()}>
-            {isGeneratingManual && (
-                 <div className="flex flex-col items-center justify-center text-slate-400 bg-slate-800 p-12 rounded-lg">
-                    <Icon type="spinner" className="w-12 h-12 text-sky-400" />
-                    <p className="mt-4 text-lg">{t('generatingManual')}</p>
-                </div>
-            )}
-            {generatedManual && !isGeneratingManual && (
-                <ManualViewer manual={generatedManual} onDownload={downloadFile} />
-            )}
-          </div>
+            </div>
         </div>
-      )}
-    </div>
-  );
+    );
 };
+// --- End Settings Modal ---
 
-const App: React.FC = () => (
-    <I18nProvider>
-        <MainApp />
-    </I18nProvider>
+// --- Generate World Modal ---
+interface GenerateWorldModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onGenerate: (agentCount: number, entityCounts: { [key: string]: number }) => void;
+    isGenerating: boolean;
+}
+
+const GenerateWorldModal: React.FC<GenerateWorldModalProps> = ({ isOpen, onClose, onGenerate, isGenerating }) => {
+    const [agentCount, setAgentCount] = useState(20);
+    const [entityCounts, setEntityCounts] = useState({ food: 5, water: 3, wood: 5, iron: 4, buildings: 3 });
+    const t = useTranslations();
+
+    if (!isOpen) {
+        return null;
+    }
+    
+    const handleEntityCountChange = (type: string, value: string) => {
+        const count = Math.max(0, parseInt(value, 10) || 0);
+        setEntityCounts(prev => ({...prev, [type]: count}));
+    }
+
+    const handleGenerateClick = () => {
+        onGenerate(agentCount, entityCounts);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
+            <div className="bg-slate-850 p-6 rounded-lg border border-slate-700 w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
+                        <Globe className="w-6 h-6 text-purple-400"/>
+                        {t('generateWorldModal_title')}
+                    </h2>
+                    <button onClick={onClose} className="text-slate-500 hover:text-slate-200 p-1">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <div className="space-y-6">
+                    <div>
+                        <label htmlFor="agent-count" className="block text-sm font-medium text-slate-300 mb-1 flex items-center gap-2"><Users className="w-4 h-4" />{t('generateWorldModal_agentsLabel')}</label>
+                        <input
+                            id="agent-count"
+                            type="number"
+                            value={agentCount}
+                            onChange={(e) => setAgentCount(Math.max(1, parseInt(e.target.value, 10)))}
+                            min="1"
+                            max="100"
+                            disabled={isGenerating}
+                            className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"
+                        />
+                         <p className="text-xs text-slate-500 mt-2">{t('generateWorldModal_agentsDescription')}</p>
+                    </div>
+
+                     <div>
+                        <h3 className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2"><Boxes className="w-4 h-4"/>{t('generateWorldModal_entitiesLabel')}</h3>
+                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-food-world" className="text-xs text-slate-400 flex items-center gap-1"><Apple className="w-3 h-3"/>{t('generateContent_foodSources')}</label>
+                                <input id="entity-count-food-world" type="number" value={entityCounts.food} onChange={e => handleEntityCountChange('food', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-water-world" className="text-xs text-slate-400 flex items-center gap-1"><Droplet className="w-3 h-3"/>{t('generateContent_waterSources')}</label>
+                                <input id="entity-count-water-world" type="number" value={entityCounts.water} onChange={e => handleEntityCountChange('water', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-wood-world" className="text-xs text-slate-400 flex items-center gap-1"><Log className="w-3 h-3"/>{t('generateContent_woodSources')}</label>
+                                <input id="entity-count-wood-world" type="number" value={entityCounts.wood} onChange={e => handleEntityCountChange('wood', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-iron-world" className="text-xs text-slate-400 flex items-center gap-1"><Hammer className="w-3 h-3"/>{t('generateContent_ironSources')}</label>
+                                <input id="entity-count-iron-world" type="number" value={entityCounts.iron} onChange={e => handleEntityCountChange('iron', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="flex flex-col gap-1 col-span-2 lg:col-span-1">
+                                <label htmlFor="entity-count-buildings-world" className="text-xs text-slate-400 flex items-center gap-1"><Home className="w-3 h-3"/>{t('generateContent_buildings')}</label>
+                                <input id="entity-count-buildings-world" type="number" value={entityCounts.buildings} onChange={e => handleEntityCountChange('buildings', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                         </div>
+                        <p className="text-xs text-slate-500 mt-2">{t('generateWorldModal_entitiesDescription')}</p>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4">
+                        <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-md transition-colors">{t('settings_cancel')}</button>
+                        <button onClick={handleGenerateClick} disabled={isGenerating} className="bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:bg-slate-600 disabled:cursor-wait">{isGenerating ? t('log_generating') : t('generateWorldModal_generate')}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+// --- End Generate World Modal ---
+
+// --- Generate Content Modal ---
+interface GenerateContentModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onGenerateAgents: (count: number) => void;
+    onGenerateEntities: (counts: { [key: string]: number }) => void;
+    isGenerating: boolean;
+}
+
+const GenerateContentModal: React.FC<GenerateContentModalProps> = ({ isOpen, onClose, onGenerateAgents, onGenerateEntities, isGenerating }) => {
+    const [agentCount, setAgentCount] = useState(5);
+    const [entityCounts, setEntityCounts] = useState({ food: 2, water: 2, wood: 2, iron: 2, buildings: 2 });
+    const t = useTranslations();
+
+    if (!isOpen) {
+        return null;
+    }
+
+    const handleEntityCountChange = (type: string, value: string) => {
+        const count = Math.max(0, parseInt(value, 10) || 0);
+        setEntityCounts(prev => ({...prev, [type]: count}));
+    }
+
+    const handleGenerateAgentsClick = () => {
+        onGenerateAgents(agentCount);
+    };
+    
+    const handleGenerateEntitiesClick = () => {
+        onGenerateEntities(entityCounts);
+    };
+
+    const generatingText = t('log_generating');
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
+            <div className="bg-slate-850 p-6 rounded-lg border border-slate-700 w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
+                        <PlusSquare className="w-6 h-6 text-purple-400"/>
+                        {t('generateContent_title')}
+                    </h2>
+                    <button onClick={onClose} className="text-slate-500 hover:text-slate-200 p-1">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <div className="space-y-8">
+                    {/* Agent Generation */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2"><Users className="w-5 h-5"/>{t('generateContent_addAgents')}</h3>
+                        <div>
+                            <label htmlFor="agent-count-add" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_agentsLabel')}</label>
+                            <input
+                                id="agent-count-add"
+                                type="number"
+                                value={agentCount}
+                                onChange={(e) => setAgentCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                min="1"
+                                max="50"
+                                disabled={isGenerating}
+                                className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"
+                            />
+                            <p className="text-xs text-slate-500 mt-2">{t('generateContent_agentsDescription')}</p>
+                        </div>
+                        <button 
+                            onClick={handleGenerateAgentsClick}
+                            disabled={isGenerating}
+                            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:bg-slate-600 disabled:cursor-wait flex items-center justify-center gap-2"
+                        >
+                            <Globe className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+                            {isGenerating ? generatingText : t('generateContent_generateAgentsBtn')}
+                        </button>
+                    </div>
+
+                    {/* Entity Generation */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2"><Boxes className="w-5 h-5"/>{t('generateContent_addEntities')}</h3>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="entity-count-food" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_foodSources')}</label>
+                                <input id="entity-count-food" type="number" value={entityCounts.food} onChange={(e) => handleEntityCountChange('food', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                            <div>
+                                <label htmlFor="entity-count-water" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_waterSources')}</label>
+                                <input id="entity-count-water" type="number" value={entityCounts.water} onChange={(e) => handleEntityCountChange('water', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                            <div>
+                                <label htmlFor="entity-count-wood" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_woodSources')}</label>
+                                <input id="entity-count-wood" type="number" value={entityCounts.wood} onChange={(e) => handleEntityCountChange('wood', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                            <div>
+                                <label htmlFor="entity-count-iron" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_ironSources')}</label>
+                                <input id="entity-count-iron" type="number" value={entityCounts.iron} onChange={(e) => handleEntityCountChange('iron', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="col-span-2">
+                                <label htmlFor="entity-count-buildings" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_buildings')}</label>
+                                <input id="entity-count-buildings" type="number" value={entityCounts.buildings} onChange={(e) => handleEntityCountChange('buildings', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">{t('generateContent_entitiesDescriptionCategorized')}</p>
+                         <button 
+                            onClick={handleGenerateEntitiesClick}
+                            disabled={isGenerating}
+                            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:bg-slate-600 disabled:cursor-wait flex items-center justify-center gap-2"
+                         >
+                            <Globe className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+                            {isGenerating ? generatingText : t('generateContent_generateEntitiesBtn')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+// --- End Generate Content Modal ---
+
+// --- Psychoanalysis Modal ---
+interface PsychoanalysisModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    report: PsychoReport | null;
+    isGenerating: boolean;
+    agentName: string | null;
+}
+
+const ReportSection: React.FC<{ title: string; content: string | undefined }> = ({ title, content }) => (
+    <div className="space-y-1">
+        <h3 className="text-md font-semibold text-sky-300">{title}</h3>
+        <p className="text-sm text-slate-300 whitespace-pre-wrap">{content || '...'}</p>
+    </div>
 );
 
-export default App;
+const PsychoanalysisModal: React.FC<PsychoanalysisModalProps> = ({ isOpen, onClose, report, isGenerating, agentName }) => {
+    const t = useTranslations();
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
+            <div className="bg-slate-850 p-6 rounded-lg border border-slate-700 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-6 sticky top-0 bg-slate-850 py-2 -mt-6 -mx-6 px-6 z-10 border-b border-slate-800">
+                    <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
+                        <BrainCircuit className="w-6 h-6 text-sky-400"/>
+                        {t('psychoanalysis_title')} {agentName && `- ${agentName}`}
+                    </h2>
+                    <button onClick={onClose} className="text-slate-500 hover:text-slate-200 p-1">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                {isGenerating && (
+                    <div className="flex flex-col items-center justify-center h-64">
+                        <BrainCircuit className="w-16 h-16 text-sky-400 animate-pulse" />
+                        <p className="text-lg text-slate-300 mt-4 animate-pulse">{t('psychoanalysis_generating')}</p>
+                    </div>
+                )}
+                
+                {report && !isGenerating && (
+                    <div className="space-y-6">
+                        <ReportSection title={t('report_psychodynamik')} content={report.Psychodynamik} />
+                        <ReportSection title={t('report_persoenlichkeitsbild')} content={report.Persönlichkeitsbild} />
+                        <ReportSection title={t('report_beziehungsdynamik')} content={report.Beziehungsdynamik} />
+                        <ReportSection title={t('report_trauma')} content={report['Traumatische Spuren oder psychische Belastung']} />
+                        <ReportSection title={t('report_kultur')} content={report['Kulturelle & spirituelle Verarbeitung']} />
+                        <ReportSection title={t('report_projektionen')} content={report['Projektionen oder Verschiebungen']} />
+                        <ReportSection title={t('report_empfehlung')} content={report['Therapeutische Empfehlung']} />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+// --- End Psychoanalysis Modal ---
+
+export default function App() {
+    const t = useTranslations();
+    const {
+        worldState,
+        logs,
+        selectedAgent,
+        isGenerating,
+        isProcessingSteps,
+        isSettingsOpen,
+        isGenerateWorldModalOpen,
+        isGenerateContentModalOpen,
+        isAnalyticsOpen,
+        isPsychoanalysisModalOpen,
+        psychoanalysisReport,
+        isGeneratingAnalysis,
+        analyzedAgent,
+        panelVisibility,
+        setSelectedAgent,
+        setIsSettingsOpen,
+        setIsGenerateWorldModalOpen,
+        setIsGenerateContentModalOpen,
+        setIsAnalyticsOpen,
+        setIsPsychoanalysisModalOpen,
+        togglePanel,
+        handlers,
+    } = useSimulation();
+
+    const cultureName = useMemo(() => {
+        if (!selectedAgent?.cultureId || !worldState.cultures) return t('culture_none');
+        return worldState.cultures.find(c => c.id === selectedAgent.cultureId)?.name || t('culture_none');
+    }, [selectedAgent?.cultureId, worldState.cultures, t]);
+
+    const religionName = useMemo(() => {
+        if (!selectedAgent?.religionId || !worldState.religions) return t('religion_none');
+        return worldState.religions.find(r => r.id === selectedAgent.religionId)?.name || t('religion_none');
+    }, [selectedAgent?.religionId, worldState.religions, t]);
+
+    const leaderName = useMemo(() => {
+        if (!worldState.government?.leaderId) return t('role_none');
+        return worldState.agents.find(a => a.id === worldState.government.leaderId)?.name || t('role_none');
+    }, [worldState.government?.leaderId, worldState.agents, t]);
+    
+    const middleIsVisible = panelVisibility.agentCard || panelVisibility.worldMap;
+
+    const gridClasses = useMemo(() => {
+        const { left, right } = panelVisibility;
+        
+        if (left && middleIsVisible && right) return { left: 'lg:col-span-3', middle: 'lg:col-span-6', right: 'lg:col-span-3' };
+        if (left && middleIsVisible && !right) return { left: 'lg:col-span-4', middle: 'lg:col-span-8', right: 'hidden' };
+        if (!left && middleIsVisible && right) return { left: 'hidden', middle: 'lg:col-span-8', right: 'lg:col-span-4' };
+        if (left && !middleIsVisible && right) return { left: 'lg:col-span-6', middle: 'hidden', right: 'lg:col-span-6' };
+        if (!left && !middleIsVisible && right) return { left: 'hidden', middle: 'hidden', right: 'lg:col-span-12' };
+        if (left && !middleIsVisible && !right) return { left: 'lg:col-span-12', middle: 'hidden', right: 'hidden' };
+        if (!left && middleIsVisible && !right) return { left: 'hidden', middle: 'lg:col-span-12', right: 'hidden' };
+        
+        return { left: 'hidden', middle: 'hidden', right: 'hidden' };
+    }, [panelVisibility, middleIsVisible]);
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-slate-300 font-sans">
+      <ProcessingIndicator isOpen={isProcessingSteps} />
+      <header className="bg-slate-950/70 backdrop-blur-sm p-4 border-b border-slate-700/50 flex items-center justify-between sticky top-0 z-20">
+        <div className="flex items-center gap-3">
+            <BrainCircuit className="h-8 w-8 text-sky-400" />
+            <h1 className="text-2xl font-bold text-slate-100 tracking-wider">{t('realitySimAI')}</h1>
+            <LanguageSwitcher />
+        </div>
+        <div className="flex items-center gap-2">
+            <ViewTogglePanel visibility={panelVisibility} onToggle={togglePanel} />
+            <div className="h-8 w-px bg-slate-700 mx-2"></div>
+            <ControlPanel 
+                onStep={handlers.handleStep} 
+                onRunSteps={handlers.handleRunSteps} 
+                onReset={handlers.handleReset} 
+                onGenerateWorld={() => setIsGenerateWorldModalOpen(true)} 
+                onGenerateContent={() => setIsGenerateContentModalOpen(true)} 
+                isGenerating={isGenerating} 
+                isProcessing={isProcessingSteps} 
+            />
+             <button
+                onClick={() => setIsAnalyticsOpen(true)}
+                className="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold p-2.5 rounded-md transition-colors"
+                aria-label={t('analytics_title')}
+            >
+                <BarChart2 className="w-5 h-5" />
+            </button>
+            <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold p-2.5 rounded-md transition-colors"
+                aria-label={t('settings_title')}
+            >
+                <Settings className="w-5 h-5" />
+            </button>
+        </div>
+      </header>
+
+      <main className="grid grid-cols-12 gap-4 p-4">
+        {panelVisibility.left && (
+            <div className={`col-span-12 ${gridClasses.left} space-y-4`}>
+                <div className="bg-slate-850 p-4 rounded-lg border border-slate-700">
+                    <h2 className="text-lg font-semibold text-slate-100 mb-3 flex items-center gap-2">
+                        <Cpu className="w-5 h-5 text-sky-400"/>
+                        {t('agents')}
+                    </h2>
+                    <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                    {worldState.agents.map(agent => (
+                        <div key={agent.id} className="flex items-center gap-1">
+                            <button onClick={() => setSelectedAgent(agent)} className={`flex-grow text-left p-2 rounded-l-md transition-colors ${selectedAgent?.id === agent.id ? 'bg-sky-500/20 text-sky-300' : 'bg-slate-700/50 hover:bg-slate-700'} ${!agent.isAlive ? 'text-slate-500' : ''}`}>
+                                {agent.name} {!agent.isAlive && ` (${t('deceased')})`}
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); handlers.handleDelete('agent', agent.id)}} className={`p-2 text-slate-500 hover:text-red-400 rounded-r-md transition-colors ${selectedAgent?.id === agent.id ? 'bg-sky-500/20' : 'bg-slate-700/50 hover:bg-slate-700'}`}>
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
+                    </div>
+                </div>
+                <div className="bg-slate-850 p-4 rounded-lg border border-slate-700">
+                    <h2 className="text-lg font-semibold text-slate-100 mb-3 flex items-center gap-2">
+                        <Boxes className="w-5 h-5 text-sky-400"/>
+                        {t('entities')}
+                    </h2>
+                    <ul className="space-y-1 max-h-[20vh] overflow-y-auto pr-2">
+                        {worldState.entities.map((entity) => (
+                            <li key={entity.id} className="flex items-center justify-between text-sm p-2 bg-slate-700/50 rounded-md">
+                                <span>{entity.name}</span>
+                                <button onClick={() => handlers.handleDelete('entity', entity.id)} className="p-1 -mr-1 text-slate-500 hover:text-red-400 rounded-md transition-colors">
+                                     <Trash2 className="w-3 h-3" />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+        )}
+
+        {middleIsVisible && (
+            <div className={`col-span-12 ${gridClasses.middle} space-y-4`}>
+              {panelVisibility.agentCard && (
+                selectedAgent ? (
+                    <AgentCard 
+                        agent={selectedAgent} 
+                        allAgents={worldState.agents} 
+                        entities={worldState.entities} 
+                        cultureName={cultureName}
+                        religionName={religionName}
+                        leaderName={leaderName}
+                        onPrompt={handlers.handlePrompt} 
+                        onGeneratePsychoanalysis={handlers.handleGeneratePsychoanalysis} 
+                    />
+                ) : (
+                    <div className="bg-slate-850 p-4 rounded-lg border border-slate-700 h-full flex items-center justify-center">
+                        <p className="text-slate-400">{t('agentCard_selectAgent')}</p>
+                    </div>
+                )
+              )}
+              {panelVisibility.worldMap && (
+                <WorldGraph agents={worldState.agents} entities={worldState.entities} environment={worldState.environment} cultures={worldState.cultures || []}/>
+              )}
+            </div>
+        )}
+
+        {panelVisibility.right && (
+            <div className={`col-span-12 ${gridClasses.right} space-y-4`}>
+                {selectedAgent?.adminAgent ? (
+                    <AdminPanel
+                        environment={worldState.environment}
+                        actions={worldState.actions}
+                        agents={worldState.agents}
+                        government={worldState.government}
+                        cultures={worldState.cultures || []}
+                        techTree={worldState.techTree || []}
+                        onUpdateEnvironment={handlers.handleUpdateEnvironment}
+                        onCreateAction={(data) => handlers.handleCreate('action', data)}
+                        onDeleteAction={(name) => handlers.handleDelete('action', name)}
+                        onSetAgentHealth={handlers.handleSetAgentHealth}
+                        onInflictSickness={handlers.handleInflictSickness}
+                        onResurrectAgent={handlers.handleResurrectAgent}
+                        onSetAgentPosition={handlers.handleSetAgentPosition}
+                        onSetAgentCurrency={handlers.handleSetAgentCurrency}
+                        onImprisonAgent={handlers.handleImprisonAgent}
+                        onEnactLaw={handlers.handleEnactLaw}
+                        onRepealLaw={handlers.handleRepealLaw}
+                        onStartElection={handlers.handleStartElection}
+                        onSetLeader={handlers.handleSetLeader}
+                        onUnlockTech={handlers.handleUnlockTech}
+                    />
+                ) : (
+                    <>
+                        <div className="bg-slate-850 p-4 rounded-lg border border-slate-700">
+                            <h2 className="text-lg font-semibold text-slate-100 mb-3 flex items-center gap-2">
+                                <Microscope className="w-5 h-5 text-emerald-400"/>
+                                {t('environment')}
+                            </h2>
+                            <ul className="space-y-2 text-sm">
+                                {Object.entries(worldState.environment).map(([key, value]) => {
+                                    if (key === 'election') {
+                                        const election = value as any | null;
+                                        let displayValue = t('election_status_none');
+                                        if (election) {
+                                            displayValue = election.isActive 
+                                                ? t('election_status_active', { endDate: election.termEndDate }) 
+                                                : t('election_status_inactive');
+                                        }
+                                        
+                                        return (
+                                             <li key={key} className="flex justify-between items-center">
+                                                <div className="flex items-center gap-2">
+                                                    <Vote className="w-4 h-4 text-slate-400"/>
+                                                    <span className="capitalize text-slate-400">{t('election_title')}:</span>
+                                                </div>
+                                                <span className="font-mono bg-slate-700 px-2 py-0.5 rounded text-xs">{displayValue}</span>
+                                            </li>
+                                        );
+                                    }
+                                    return (
+                                        <li key={key} className="flex justify-between items-center">
+                                            <span className="capitalize text-slate-400">{key}:</span>
+                                            <span className="font-mono bg-slate-700 px-2 py-0.5 rounded">{String(value)}</span>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
+
+                        <div className="bg-slate-850 p-4 rounded-lg border border-slate-700">
+                            <h2 className="text-lg font-semibold text-slate-100 mb-3 flex items-center gap-2">
+                                <Zap className="w-5 h-5 text-emerald-400"/>
+                                {t('availableActions')}
+                            </h2>
+                            <ul className="space-y-1 max-h-[25vh] overflow-y-auto pr-2">
+                                {worldState.actions.map(action => (
+                                    <li key={action.name} className="flex items-center justify-between text-xs p-2 bg-slate-700/50 rounded-md">
+                                        <span className="truncate pr-2">{action.name}</span>
+                                         <button onClick={() => handlers.handleDelete('action', action.name)} className="p-1 -mr-1 text-slate-500 hover:text-red-400 rounded-md transition-colors flex-shrink-0">
+                                             <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <CreateObjectPanel onCreate={handlers.handleCreate} />
+                    </>
+                )}
+
+                <LogPanel logs={logs} />
+                <ExporterPanel onExport={handlers.handleExport} onLoad={handlers.handleLoadState} onExportConversations={handlers.handleExportConversations} onExportStatistics={handlers.handleExportStatistics} />
+            </div>
+        )}
+      </main>
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <GenerateWorldModal 
+        isOpen={isGenerateWorldModalOpen}
+        onClose={() => setIsGenerateWorldModalOpen(false)}
+        isGenerating={isGenerating}
+        onGenerate={async (agentCount, entityCounts) => {
+            await handlers.handleGenerateWorld(agentCount, entityCounts);
+        }}
+       />
+       <GenerateContentModal
+        isOpen={isGenerateContentModalOpen}
+        onClose={() => setIsGenerateContentModalOpen(false)}
+        onGenerateAgents={handlers.handleGenerateAgents}
+        onGenerateEntities={handlers.handleGenerateEntities}
+        isGenerating={isGenerating}
+       />
+       <PsychoanalysisModal 
+        isOpen={isPsychoanalysisModalOpen}
+        onClose={() => setIsPsychoanalysisModalOpen(false)}
+        report={psychoanalysisReport}
+        isGenerating={isGeneratingAnalysis}
+        agentName={analyzedAgent?.name || null}
+       />
+       <AnalyticsDashboard 
+        isOpen={isAnalyticsOpen}
+        onClose={() => setIsAnalyticsOpen(false)}
+        worldState={worldState}
+       />
+    </div>
+  );
+}

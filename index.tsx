@@ -1,6 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
+import App from './App';
+import { LanguageProvider } from './contexts/LanguageContext';
+import { SettingsProvider } from './contexts/SettingsContext';
+
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -8,12 +11,12 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-
-// Mermaid.js initialization is now handled inside the App component
-// to allow for dynamic theme updates.
-
 root.render(
   <React.StrictMode>
-    <App />
+    <LanguageProvider>
+      <SettingsProvider>
+        <App />
+      </SettingsProvider>
+    </LanguageProvider>
   </React.StrictMode>
 );
