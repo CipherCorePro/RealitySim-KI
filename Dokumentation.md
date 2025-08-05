@@ -34,6 +34,7 @@
     - [Neue Agenten-Attribute (Psyche, Bedürfnisse etc)](#92-neue-agenten-attribute-psyche-bedürfnisse-etc)
     - [Neue Technologien oder Rezepte](#93-neue-technologien-oder-rezepte)
     - [Erweiterung der Benutzeroberfläche](#94-erweiterung-der-benutzeroberfläche)
+    - [Agenten-erfundene Technologien (NEU)](#95-agenten-erfundene-technologien-neu)
 10. [Kerntechnologien & Architektur](#10-kerntechnologien--architektur)
 
 ---
@@ -100,7 +101,7 @@ Jeder Agent ist weit mehr als nur eine Figur auf der Karte. Sein Verhalten wird 
 Ein einzigartiges Feature, das die psychologische Tiefe der Simulation erweitert, ist das Gefängnistagebuch. Wenn ein Agent inhaftiert wird, beginnt er, ein Tagebuch zu führen.
 - **Automatische Generierung:** Für jeden Simulationsschritt (der einer Woche im Gefängnis entspricht), generiert die KI einen detaillierten, persönlichen Tagebucheintrag aus der Perspektive des Agenten.
 - **Kontextbezogene Inhalte:** Diese Einträge sind nicht zufällig. Sie spiegeln die `Persönlichkeit`, die `Psyche`, die aktuellen `Emotionen` und die `Erinnerungen` des Agenten an die Tat wider, die zu seiner Verhaftung führte. Ein optimistischer Agent schreibt vielleicht hoffnungsvoll, während ein zynischer Agent verbittert oder wütend klingen wird.
-- **Beobachtung:** Das Tagebuch kann direkt auf der **Agentenkarte** eingesehen werden (erkennbar am Notizbuch-Icon) und bietet einen faszinierenden Einblick in die Gedanken und Gefühle eines Agenten während seiner Zeit im Gefängnis.
+- **Beobachtung & Export:** Das Tagebuch kann direkt auf der **Agentenkarte** eingesehen werden. Es bleibt auch nach der Freilassung des Agenten als permanenter Teil seiner Geschichte erhalten und kann jederzeit als formatierte Markdown-Datei **heruntergeladen** werden, um die vollständige Geschichte zu bewahren.
 
 ### Soziales Gefüge
 - **Beziehungen:** Agenten bauen Beziehungen zu anderen auf, die von `Fremder` über `Freund` bis hin zu `Rivale` oder `Ehepartner` reichen. Jede Beziehung hat einen numerischen Wert, der durch Interaktionen und Nähe beeinflusst wird.
@@ -147,7 +148,7 @@ Jeder "Schritt" der Simulation durchläuft einen festen Zyklus:
         - **Psychologische Triebe:** Starke Antriebe (z.B. hohe Trauer, hohe Rachsucht) geben bestimmten Aktionen einen hohen Bonus.
         - **Ziele:** Aktive Ziele werden stark gewichtet.
         - **Gesetze & Persönlichkeit:** Illegale Handlungen erhalten einen Malus, besonders bei gewissenhaften Agenten.
-        - **Q-Learning:** Ein einfaches Verstärkungslernen-System (`qTable`) merkt sich, welche Aktionen in bestimmten Zuständen zu positiven Ergebnissen geführt haben.
+        - **Q-Learning:** Ein einfaches Verstärkungslernen-System (`qTable`) merkt sich, welche Aktionen in bestimmten Zuständen zu positiven Ergebnissen geführt haben, und bevorzugt diese in Zukunft.
     c. **Aktionsausführung:** Die gewählte Aktion wird ausgeführt.
     d. **Gedächtnisbildung:** Das Ergebnis wird, wie oben beschrieben, in eine Erinnerung umgewandelt und im Vektor-Gedächtnis gespeichert.
 
@@ -164,7 +165,7 @@ Jeder "Schritt" der Simulation durchläuft einen festen Zyklus:
 - **Natürliche Sprache (Use AI):** Geben Sie einen Befehl in natürlicher Sprache ein (z.B. "Geh etwas essen" oder "Räche dich an deinem Rivalen"). Dies aktiviert den intelligenten Entscheidungsprozess, einschließlich des Abrufs von Erinnerungen aus der Vektor-Datenbank.
 
 ### Welterschaffung & Psychoanalyse
-- **Generate World:** Erstellt eine komplett neue Weltbevölkerung basierend auf Ihren Vorgaben (Anzahl der Agenten/Entitäten). Die KI sorgt für einzigartige Namen, Persönlichkeiten und Hintergrundgeschichten.
+- **Generate World:** Erstellt eine komplett neue Weltbevölkerung basierend auf Ihren Vorgaben (Anzahl der Agenten/Entitäten). Die KI sorgt für einzigartige **vollständige Namen**, Persönlichkeiten und Hintergrundgeschichten. Wichtig hierbei ist, dass Vor- und Nachname als eine einzige Zeichenkette im `name`-Feld des Agenten gespeichert werden. Die KI ist angewiesen, diesen vollständigen Namen in einem Feld zu liefern und keine separaten Felder für Vor- und Nachname zu erstellen.
 - **Psychoanalyse:** Sie können eine tiefenpsychologische Analyse eines Agenten anfordern. Die KI analysiert den gesamten Zustand des Agenten (Persönlichkeit, Traumata, Beziehungen, Überzeugungen) und erstellt einen detaillierten Bericht, der sogar unbewusste Konflikte und therapeutische Empfehlungen enthält. Diese Ergebnisse können dann direkt in die Psyche des Agenten integriert werden, um z.B. neue Ziele zu schaffen.
 
 ### Zustand, Gespräche & Statistiken verwalten
@@ -230,6 +231,12 @@ Die Simulation kann durch neue interne Zustände für Agenten erweitert werden.
 
 ### 9.4 Erweiterung der Benutzeroberfläche
 Neue Informationen können in den Komponenten in `components/` visualisiert werden, z.B. durch Hinzufügen eines neuen Diagramms in `AgentCard.tsx` oder einer neuen Visualisierung im `AnalyticsDashboard.tsx`.
+
+### 9.5 Agenten-erfundene Technologien (NEU)
+Dies ist ein zentrales Feature für emergentes Gameplay. Die Simulation ist nicht mehr auf den vordefinierten Technologiebaum beschränkt.
+- **Die Aktion "Technologie erfinden":** Agenten (insbesondere Wissenschaftler mit hoher Inspiration) können versuchen, neue Technologien zu erfinden.
+- **KI als Erfinder:** Wenn diese Aktion ausgelöst wird, wird die Gemini-API aufgerufen. Sie erhält den Kontext der aktuellen Welt, der bereits bekannten Technologien und der Fähigkeiten des Agenten. Basierend darauf generiert die KI eine plausible neue Technologie, einschließlich Name, Beschreibung, Forschungskosten, Voraussetzungen und was sie freischaltet (z.B. eine neue, benutzerdefinierte Aktion).
+- **Dynamischer Technologiebaum:** Diese neu erfundene Technologie wird dem globalen `techTree` der Simulation hinzugefügt. Die Kultur des erfindenden Agenten erhält einen Forschungsbonus darauf. Von diesem Moment an können alle Kulturen diese neue Technologie erforschen. Dies führt zu einzigartigen und unvorhersehbaren technologischen Entwicklungen in jeder Simulation.
 
 ## 10. Kerntechnologien & Architektur
 

@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useEffect } from 'react';
 import type { Agent, PsychoReport } from './types';
 import { AgentCard } from './components/AgentCard';
@@ -672,7 +673,7 @@ export default function App() {
                             </h2>
                             <ul className="space-y-1 max-h-[25vh] overflow-y-auto pr-2">
                                 {worldState.actions.map(action => (
-                                    <li key={action.name} className="flex items-center justify-between text-xs p-2 bg-slate-700/50 rounded-md">
+                                    <li key={action.name} title={action.description} className="flex items-center justify-between text-xs p-2 bg-slate-700/50 rounded-md">
                                         <span className="truncate pr-2">{action.name}</span>
                                          <button onClick={() => handlers.handleDelete('action', action.name)} className="p-1 -mr-1 text-slate-500 hover:text-red-400 rounded-md transition-colors flex-shrink-0">
                                              <Trash2 className="w-3 h-3" />

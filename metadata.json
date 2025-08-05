@@ -1,5 +1,5 @@
 {
-  "name": "Ver. 20 RealitySim AI",
+  "name": "Ver. 24 RealitySim AI",
   "description": "An interactive web-based simulation environment where AI agents with unique beliefs and memories interact with a dynamic world. Control agents with natural language, run simulation steps, and visualize the emergent cognitive behavior of the system.",
   "requestFramePermissions": [],
   "prompt": ""

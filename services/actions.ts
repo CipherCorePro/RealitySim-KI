@@ -1,6 +1,4 @@
-
-
-import type { Action, Agent, Entity, WorldState, ActionContext, Law } from '../types';
+import type { Action, Agent, Entity, WorldState, ActionContext, Law, Technology } from '../types';
 import { findNearestEntity, findNearestAgent, moveTowards, wander } from './simulationUtils';
 import { 
     EAT_HUNGER_REDUCTION, DRINK_THIRST_REDUCTION, GATHER_AMOUNT, FATIGUE_RECOVERY_RATE, 
@@ -8,7 +6,7 @@ import {
     RESOURCE_PURCHASE_COST, RECIPES, RESEARCH_PER_ACTION, MIN_REPRODUCTION_AGE,
     MAX_REPRODUCTION_AGE, MAX_OFFSPRING, ADOLESCENCE_MAX_AGE
 } from '../constants';
-import { generateAgentConversation } from '../services/geminiService';
+import { generateAgentConversation, generateNewTechnology } from '../services/geminiService';
 
 const moveAction = (direction: 'North' | 'South' | 'East' | 'West'): Action => ({
     name: `Move ${direction}`,
@@ -387,6 +385,38 @@ export const availableActions: Action[] = [
         }
     },
     {
+        name: 'Invent Technology',
+        description: 'Attempt to invent a new technology based on current knowledge.',
+        execute: async (agent, allAgents, allEntities, worldState, context) => {
+            if (agent.role !== 'Scientist' || (agent.psyche.inspiration || 0) < 0.6) {
+                return { log: { key: 'log_action_invent_fail_role', params: { agentName: agent.name } }, status: 'failure', reward: -2 };
+            }
+            const culture = worldState.cultures.find(c => c.id === agent.cultureId);
+            if (!culture || culture.knownTechnologies.length === 0) {
+                return { log: { key: 'log_action_invent_fail_no_basis', params: { agentName: agent.name } }, status: 'failure', reward: -1 };
+            }
+            try {
+                const newTech = await generateNewTechnology(agent, worldState, context.language);
+                if (newTech) {
+                    agent.psyche.inspiration = 0; // The spark of genius is spent
+                    // The simulation engine will handle adding the tech to the tree
+                    return {
+                        log: { key: 'log_action_invent_success', params: { agentName: agent.name, techName: newTech.name } },
+                        status: 'success',
+                        reward: 100,
+                        sideEffects: {
+                            inventTechnology: newTech
+                        }
+                    };
+                }
+                 return { log: { key: 'log_action_invent_fail_ai', params: { agentName: agent.name } }, status: 'failure', reward: -5 };
+            } catch (error) {
+                console.error("AI technology invention failed:", error);
+                return { log: { key: 'log_action_invent_fail_ai', params: { agentName: agent.name } }, status: 'failure', reward: -5 };
+            }
+        }
+    },
+    {
         name: 'Share Knowledge',
         description: 'Collaborate with another scientist to boost research.',
         execute: async (agent, allAgents, allEntities, worldState, context) => {
@@ -462,7 +492,7 @@ export const availableActions: Action[] = [
     },
     {
         name: 'Artificial Insemination',
-        description: 'Use advanced technology to conceive a child.',
+        description: 'Use advanced technology to conceive a child. Requires Bioengineering tech. Cost: 500 Currency.',
         execute: async (agent, allAgents, allEntities, worldState, context) => {
             const agentCulture = worldState.cultures.find(c => c.id === agent.cultureId);
             if (!agentCulture || !agentCulture.knownTechnologies.includes('bioengineering')) {

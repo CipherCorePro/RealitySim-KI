@@ -1,5 +1,3 @@
-
-
 export const translations = {
   en: {
     // App.tsx
@@ -272,6 +270,7 @@ export const translations = {
     export_entities: 'Export Entities Only',
     export_conversations: 'Export All Conversations (.md)',
     export_statistics: 'Export Statistics',
+    export_journal_button: 'Download Journal',
     // AdminPanel.tsx
     admin_title: 'Admin Control Panel',
     admin_politicalManagement: 'Political Management',
@@ -437,6 +436,10 @@ export const translations = {
     log_action_forgive_success: '🕊️ {agentName} forgave {rivalName}, ending their rivalry.',
     log_action_confront_no_partner: '{agentName} feels jealous but has no partner to confront.',
     log_action_confront_success: '😠 {agentName} confronts {partnerName} out of jealousy, increasing tension.',
+    log_action_invent_success: '🔬 Eureka! {agentName} has invented a new technology: {techName}!',
+    log_action_invent_fail_role: '{agentName} tried to invent, but lacks the scientific mindset.',
+    log_action_invent_fail_no_basis: '{agentName} lacks a foundational technology to build upon for new inventions.',
+    log_action_invent_fail_ai: '{agentName} tried to invent, but inspiration failed them.',
     personality_title: 'Personality Traits',
     personality_openness: 'Openness',
     personality_conscientiousness: 'Conscientiousness',
@@ -754,6 +757,7 @@ export const translations = {
     export_entities: 'Nur Entitäten exportieren',
     export_conversations: 'Alle Gespräche exportieren (.md)',
     export_statistics: 'Statistiken exportieren',
+    export_journal_button: 'Tagebuch herunterladen',
     // AdminPanel.tsx
     admin_title: 'Admin-Kontrollpanel',
     admin_politicalManagement: 'Politische Verwaltung',
@@ -841,7 +845,7 @@ export const translations = {
     log_execution_actionNotFound: '{agentName} konnte keine passende Aktion für den Befehl finden: "{prompt}"',
     log_execution_imprisoned: '{agentName} kann im Gefängnis keine Aktionen ausführen.',
     log_action_fail_role: '{agentName} kann diese Aktion nicht ausführen, benötigt Rolle: {requiredRole}.',
-    log_action_work_for_money: '������ {agentName} arbeitet einen Tag und verdient {amount}$.',
+    log_action_work_for_money: '💰 {agentName} arbeitet einen Tag und verdient {amount}$.',
     log_action_found_company_success: '🏢 {agentName} hat eine Firma gegründet, indem er das Grundstück "{resourceName}" für {cost}$ gekauft hat und wurde zum Unternehmer!',
     log_action_found_company_fail_funds: '{agentName} möchte eine Firma gründen, kann sich aber den Preis von {cost}$ nicht leisten.',
     log_action_found_company_fail_none: '{agentName} suchte nach einem Grundstück zum Kauf, um eine Firma zu gründen, aber es war keines verfügbar.',
@@ -919,6 +923,10 @@ export const translations = {
     log_action_forgive_success: '🕊️ {agentName} hat {rivalName} vergeben und ihre Rivalität beendet.',
     log_action_confront_no_partner: '{agentName} fühlt sich eifersüchtig, hat aber keinen Partner zum Konfrontieren.',
     log_action_confront_success: '😠 {agentName} konfrontiert {partnerName} aus Eifersucht, was die Spannung erhöht.',
+    log_action_invent_success: '🔬 Eureka! {agentName} hat eine neue Technologie erfunden: {techName}!',
+    log_action_invent_fail_role: '{agentName} versuchte zu erfinden, aber ihm fehlt die wissenschaftliche Denkweise.',
+    log_action_invent_fail_no_basis: '{agentName} fehlt eine grundlegende Technologie, auf der neue Erfindungen aufbauen könnten.',
+    log_action_invent_fail_ai: '{agentName} versuchte zu erfinden, aber die Inspiration verließ ihn.',
     personality_title: 'Persönlichkeitsmerkmale',
     personality_openness: 'Offenheit',
     personality_conscientiousness: 'Gewissenhaftigkeit',

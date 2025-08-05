@@ -318,6 +318,8 @@ export interface ActionExecutionResult {
         updateReligion?: { agentId: string, newReligionId: string | null };
         createEntity?: Partial<Entity> & { ownerId?: string };
         addTrauma?: { agentId: string, trauma: Trauma };
+        inventTechnology?: Technology;
+        createAction?: Partial<Action> & { name: string, description: string };
     }
 }
 

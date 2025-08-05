@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Agent, Goal, Trauma, Entity, Relationship, Psyche, JailJournalEntry } from '../types';
 import { BeliefsChart } from './BeliefsChart';
-import { BrainCircuit, MessageSquare, Sparkles, Send, HeartPulse, Skull, MapPin, Dna, User, Users, Heart, BookText, Globe, Award, Church, PersonStanding, Baby, CookingPot, GlassWater, Bed, Apple, Droplet, Log, PlusSquare, Boxes, CircleDollarSign, BookOpenCheck, Gavel, Hammer, ClipboardList, TrendingUp, ShieldAlert, Smile, Activity, Home, Briefcase, History, Notebook } from './IconComponents';
+import { BrainCircuit, MessageSquare, Sparkles, Send, HeartPulse, Skull, MapPin, Dna, User, Users, Heart, BookText, Globe, Award, Church, PersonStanding, Baby, CookingPot, GlassWater, Bed, Apple, Droplet, Log, PlusSquare, Boxes, CircleDollarSign, BookOpenCheck, Gavel, Hammer, ClipboardList, TrendingUp, ShieldAlert, Smile, Activity, Home, Briefcase, History, Notebook, Download } from './IconComponents';
 import { useTranslations } from '../hooks/useTranslations';
 import { CHILDHOOD_MAX_AGE, ADOLESCENCE_MAX_AGE, ADULTHOOD_MAX_AGE } from '../constants';
 
@@ -54,6 +54,28 @@ const AgentCardComponent: React.FC<AgentCardProps> = ({ agent, allAgents, entiti
         setPrompt('');
     };
     
+    const handleDownloadJournal = () => {
+        if (!agent.jailJournal || agent.jailJournal.length === 0) return;
+
+        let markdownContent = `# ${t('agentCard_jailJournal')} - ${agent.name}\n\n`;
+
+        [...agent.jailJournal].forEach(entry => {
+            markdownContent += `## ${t('controlPanel_step')} ${entry.timestamp}\n\n`;
+            markdownContent += `${entry.entry}\n\n`;
+            markdownContent += `---\n\n`;
+        });
+        
+        const blob = new Blob([markdownContent], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `jail_journal_${agent.name.replace(/\s+/g, '_')}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     const getLifeStage = (age: number) => {
         if (age <= CHILDHOOD_MAX_AGE) return t('lifeStage_child');
         if (age <= ADOLESCENCE_MAX_AGE) return t('lifeStage_adolescent');
@@ -258,21 +280,29 @@ const AgentCardComponent: React.FC<AgentCardProps> = ({ agent, allAgents, entiti
                             </ul>
                         ) : <p className="text-sm text-slate-400">{t('agentCard_noMemories')}</p>}
                     </div>
-                    {agent.imprisonedUntil && (
+                    {(agent.jailJournal && agent.jailJournal.length > 0) && (
                         <div className="bg-slate-900/50 p-3 rounded-lg">
-                            <h3 className="text-md font-semibold text-slate-100 mb-3 flex items-center gap-2"><Notebook className="w-5 h-5 text-yellow-400"/>{t('agentCard_jailJournal')}</h3>
-                            {(agent.jailJournal && agent.jailJournal.length > 0) ? (
-                                <div className="space-y-3 max-h-32 overflow-y-auto pr-2 text-xs">
-                                    {[...agent.jailJournal].reverse().map((entry, i) => (
-                                        <div key={i}>
-                                            <p className="text-slate-500 font-mono mb-1">[{t('controlPanel_step')} {entry.timestamp}]</p>
-                                            <p className="text-slate-300 whitespace-pre-wrap">{entry.entry}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-slate-400">{t('agentCard_noJournalEntries')}</p>
-                            )}
+                            <div className="flex justify-between items-center mb-3">
+                                <h3 className="text-md font-semibold text-slate-100 flex items-center gap-2">
+                                    <Notebook className="w-5 h-5 text-yellow-400"/>
+                                    {t('agentCard_jailJournal')}
+                                </h3>
+                                <button 
+                                    onClick={handleDownloadJournal}
+                                    className="p-1.5 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors"
+                                    title={t('export_journal_button')}
+                                >
+                                    <Download className="w-4 h-4 text-slate-300" />
+                                </button>
+                            </div>
+                            <div className="space-y-3 max-h-32 overflow-y-auto pr-2 text-xs">
+                                {[...agent.jailJournal].reverse().map((entry, i) => (
+                                    <div key={i}>
+                                        <p className="text-slate-500 font-mono mb-1">[{t('controlPanel_step')} {entry.timestamp}]</p>
+                                        <p className="text-slate-300 whitespace-pre-wrap">{entry.entry}</p>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>

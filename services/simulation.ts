@@ -1,6 +1,4 @@
-
-
-import type { WorldState, Agent, Entity, Action, EnvironmentState, Beliefs, Resonance, LogEntry, Relationship, Culture, ActionExecutionResult, Religion, Personality, Skills, Trauma, Goal, Law, TradeOffer, ItemType, SocialMemoryEntry, PsychoReport, Psyche, ActionContext, Transaction, ActionEffect } from '../types';
+import type { WorldState, Agent, Entity, Action, EnvironmentState, Beliefs, Resonance, LogEntry, Relationship, Culture, ActionExecutionResult, Religion, Personality, Skills, Trauma, Goal, Law, TradeOffer, ItemType, SocialMemoryEntry, PsychoReport, Psyche, ActionContext, Transaction, ActionEffect, Technology } from '../types';
 import { 
     RESONANCE_DECAY_RATE, RESONANCE_THRESHOLD, RESONANCE_UPDATE_AMOUNT, MAX_LAST_ACTIONS,
     AGE_INCREMENT, MAX_AGE, AGE_RELATED_HEALTH_DECLINE,
@@ -868,7 +866,7 @@ export class RealityEngine {
         const availableActions = this.getAvailableActions().filter(a => {
             const agentCulture = this.cultures.get(agent.cultureId || '');
             if (!agentCulture) return true;
-            const techRequirement = TECH_TREE.find(t => t.unlocks.actions?.includes(a.name));
+            const techRequirement = this.worldState.techTree.find(t => t.unlocks.actions?.includes(a.name));
             if (techRequirement && !agentCulture.knownTechnologies.includes(techRequirement.id)) return false;
             return true;
         });
@@ -1091,6 +1089,17 @@ export class RealityEngine {
                 allLogs.push(...logs);
                 if (sideEffects?.createAgent) allLogs.push(...this.addNewbornAgent(sideEffects.createAgent as any));
                 if (sideEffects?.createEntity) this.addEntityToSimulation(sideEffects.createEntity as Entity);
+                if (sideEffects?.inventTechnology) {
+                    this.worldState.techTree.push(sideEffects.inventTechnology);
+                    // Give the inventing culture a head-start
+                    const culture = this.cultures.get(agent.cultureId || '');
+                    if(culture) {
+                        culture.researchPoints += sideEffects.inventTechnology.researchCost * 0.25;
+                    }
+                }
+                 if (sideEffects?.createAction) {
+                    this.addAction(sideEffects.createAction.name, sideEffects.createAction.description, sideEffects.createAction.beliefKey, sideEffects.createAction.effects);
+                }
             }
         }
         
@@ -1108,6 +1117,9 @@ export class RealityEngine {
             const { logs, sideEffects } = await this.executeAction(agentId, action);
             if (sideEffects?.createAgent) this.addNewbornAgent(sideEffects.createAgent as any);
             if (sideEffects?.createEntity) this.addEntityToSimulation(sideEffects.createEntity as Entity);
+            if (sideEffects?.inventTechnology) this.worldState.techTree.push(sideEffects.inventTechnology);
+            if (sideEffects?.createAction) this.addAction(sideEffects.createAction.name, sideEffects.createAction.description, sideEffects.createAction.beliefKey, sideEffects.createAction.effects);
+
             return { logs };
         }
         return { logs: [{ key: 'log_execution_actionNotFound', params: { agentName: agent.name, prompt } }] };

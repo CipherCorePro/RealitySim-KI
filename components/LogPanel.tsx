@@ -16,7 +16,7 @@ export const LogPanel: React.FC<LogPanelProps> = ({ logs }) => {
             <BookText className="w-5 h-5 text-emerald-400"/>
             {t('logPanel_eventLog')}
         </h2>
-        <div className="h-48 bg-slate-900/50 p-2 rounded-md overflow-y-auto flex flex-col-reverse">
+        <div className="h-96 bg-slate-900/50 p-2 rounded-md overflow-y-auto flex flex-col-reverse">
             <ul className="text-xs text-slate-400 font-mono space-y-1">
                 {logs.map((log, index) => {
                     const message = t(log.key as TranslationKey, log.params);

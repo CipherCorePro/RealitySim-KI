@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import type { Action, Agent, EnvironmentState, WorldState, Culture, PsychoReport, Goal } from '../types';
+import type { Action, Agent, EnvironmentState, WorldState, Culture, PsychoReport, Goal, Technology } from '../types';
 import { Language } from "../contexts/LanguageContext";
 import { GENOME_OPTIONS, CHILDHOOD_MAX_AGE, ADOLESCENCE_MAX_AGE, ADULTHOOD_MAX_AGE, ROLES } from "../constants";
 import { translations, TranslationKey } from '../translations';
@@ -137,6 +137,31 @@ Return a JSON object with the following fields. The first 7 fields are for human
         - Describe your life in jail this week. Did you talk to anyone? Did you get into a fight? What are the conditions like?
         - Express your feelings about your sentence. How much longer do you have? What are your hopes or fears for when you get out?
         - Keep the entry to a few paragraphs. Return ONLY the text of the journal entry, without any titles or formatting.`,
+        invent_technology_instruction: `You are a creative historian and technologist for a reality simulation. Your task is to invent a plausible new technology for a specific culture.
+**Context:**
+- Inventor: {agentName}, a {agentRole} with skills in {agentSkills}.
+- Culture: {cultureName}, which already knows these technologies: {knownTech}.
+- World Tech Tree (all existing techs): {techTree}.
+- Recent Memories of Inventor: {memories}
+
+**Instructions:**
+- Invent a NEW technology that logically follows from the culture's existing knowledge. It should not be something already in the World Tech Tree.
+- The new technology should be creative and fit the theme of the culture ('Utopian Technocrats' or 'Primitivist Collective').
+- Give it a name, a description, a research cost (between 200 and 800), and one or more prerequisite technologies from what the culture already knows.
+- Suggest one new unique action NAME or recipe NAME it could unlock. The name should be creative and fit the technology.
+- Return ONLY a JSON object with the following structure. Do not add any extra text.
+{
+  "id": "a-unique-lowercase-id-from-name",
+  "name": "The Technology Name",
+  "description": "What it does.",
+  "researchCost": 500,
+  "requiredTech": ["existing_tech_id"],
+  "unlocks": {
+    "actions": ["New Action Name"],
+    "recipes": []
+  }
+}
+If it unlocks a recipe, put it in the "recipes" array. If you cannot think of a new technology, return null.`,
     },
     de: {
         system_base: `Sie sind ein Assistent für eine Realitätssimulation. Ihre Aufgabe ist es, die Eingabe eines Benutzers zu interpretieren und die am besten geeignete Aktion für einen KI-Agenten auszuwählen.
@@ -263,6 +288,31 @@ Gib ein JSON-Objekt mit den folgenden Feldern zurück. Die ersten 7 Felder sind 
         - Beschreibe dein Leben im Gefängnis diese Woche. Hast du mit jemandem gesprochen? Hattest du einen Kampf? Wie sind die Bedingungen?
         - Drücke deine Gefühle bezüglich deiner Strafe aus. Wie lange hast du noch? Was sind deine Hoffnungen oder Ängste für die Zeit nach deiner Entlassung?
         - Halte den Eintrag auf wenige Absätze beschränkt. Gib NUR den Text des Tagebucheintrags zurück, ohne Titel oder Formatierungen.`,
+        invent_technology_instruction: `Sie sind ein kreativer Historiker und Technologe für eine Realitätssimulation. Ihre Aufgabe ist es, eine plausible neue Technologie für eine bestimmte Kultur zu erfinden.
+**Kontext:**
+- Erfinder: {agentName}, ein {agentRole} mit Fähigkeiten in {agentSkills}.
+- Kultur: {cultureName}, die bereits diese Technologien kennt: {knownTech}.
+- Welt-Technologiebaum (alle existierenden Technologien): {techTree}.
+- Jüngste Erinnerungen des Erfinders: {memories}
+
+**Anweisungen:**
+- Erfinden Sie eine NEUE Technologie, die logisch aus dem bestehenden Wissen der Kultur folgt. Sie sollte nicht bereits im Welt-Technologiebaum vorhanden sein.
+- Die neue Technologie sollte kreativ sein und zum Thema der Kultur ('Utopian Technocrats' oder 'Primitivist Collective') passen.
+- Geben Sie ihr einen Namen, eine Beschreibung, Forschungskosten (zwischen 200 und 800) und eine oder mehrere vorausgesetzte Technologien aus dem, was die Kultur bereits kennt.
+- Schlagen Sie einen neuen einzigartigen AKTIONsNAMEN oder REZEPTNAMEN vor, den sie freischalten könnte. Der Name sollte kreativ sein und zur Technologie passen.
+- Geben Sie NUR ein JSON-Objekt mit der folgenden Struktur zurück. Fügen Sie keinen zusätzlichen Text hinzu.
+{
+  "id": "eine-eindeutige-kleingeschriebene-id-vom-namen",
+  "name": "Der Technologiename",
+  "description": "Was sie bewirkt.",
+  "researchCost": 500,
+  "requiredTech": ["existierende_tech_id"],
+  "unlocks": {
+    "actions": ["Name der neuen Aktion"],
+    "recipes": []
+  }
+}
+Wenn es ein Rezept freischaltet, fügen Sie es in das "recipes"-Array ein. Wenn Ihnen keine neue Technologie einfällt, geben Sie null zurück.`,
     }
 };
 
@@ -621,7 +671,7 @@ const getWorldGenPrompts = (language: Language) => ({
         world_system_base: `You are a data generation bot. Your only task is to create a JSON object.
 Generate a world with EXACTLY {agentCount} unique human agents and EXACTLY {entityCount} unique entities.
 The world is a {width}x{height} grid.`,
-        agent_details: `For each agent, provide: **name (a unique, creative, human-sounding name like 'Elara' or 'Finnian', not 'Agent 1')**, description, age (1-80), x, y, cultureId ('culture-utopian' or 'culture-primitivist'), religionId ('religion-technotheism' or 'religion-gaianism'), role ('${ROLES.join("', '")}'), genome (an array of 1-3 strings from '${GENOME_OPTIONS.join("', '")}'), beliefs (an object mapping belief keys like 'progress_good' to a value between 0.0 and 1.0), emotions (an object with keys like 'happiness', 'sadness' with values 0.0-1.0), personality (an object with keys 'openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism' with values 0.0-1.0), skills (an object mapping skill names to a numeric level, e.g., {"healing": 15, "woodcutting": 5}), socialStatus (a numeric value between 30-70), stress (a numeric value between 5-30), hunger, thirst, fatigue (numeric values between 0-50), inventory (an object like {"wood": 10}), and currency (a numeric value between 20-100).`,
+        agent_details: `For each agent, provide: **name (Unique, human-sounding name. CRITICAL: The name MUST consist of a first and last name, e.g., 'Elara Meadowbrook' or 'Finnian Stonehand'. Single names like 'Bob' or identifiers like 'Agent1' are INVALID. Each full name in the entire list MUST be unique.)**, description, age (1-80), x, y, cultureId ('culture-utopian' or 'culture-primitivist'), religionId ('religion-technotheism' or 'religion-gaianism'), role ('${ROLES.join("', '")}'), genome (an array of 1-3 strings from '${GENOME_OPTIONS.join("', '")}'), beliefs (an object mapping belief keys like 'progress_good' to a value between 0.0 and 1.0), emotions (an object with keys like 'happiness', 'sadness' with values 0.0-1.0), personality (an object with keys 'openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism' with values 0.0-1.0), skills (an object mapping skill names to a numeric level, e.g., {"healing": 15, "woodcutting": 5}), socialStatus (a numeric value between 30-70), stress (a numeric value between 5-30), hunger, thirst, fatigue (numeric values between 0-50), inventory (an object like {"wood": 10}), and currency (a numeric value between 20-100).`,
         entity_base_details: `For each entity: **name (a unique, descriptive name like 'Whispering Falls' or 'Old Town Market', not 'Resource 1')**, description, x, y.`,
         world_response_instructions: `Your response MUST be a JSON object: { "agents": [ ... ], "entities": [ ... ] }. DO NOT add extra text. Ensure all numeric values are actually numbers, not strings.`,
         agents_response_instructions: `Your response MUST be a JSON object: { "agents": [ ... ] }. DO NOT add extra text or entity data. Ensure all numeric values are actually numbers, not strings.`,
@@ -630,7 +680,7 @@ The world is a {width}x{height} grid.`,
     de: {
         world_system_base: `Sie sind ein Datengenerierungs-Bot. Ihre einzige Aufgabe ist die Erstellung eines JSON-Objekts.
 Generieren Sie eine Welt mit EXAKT {agentCount} Agenten und EXAKT {entityCount} Entitäten auf einem {width}x{height} Raster.`,
-        agent_details: `Für jeden Agenten: **name (ein einzigartiger, kreativer, menschlich klingender Name wie 'Elara' oder 'Finnian', nicht 'Agent 1')**, description, age (1-80), x, y, cultureId ('culture-utopian' oder 'culture-primitivist'), religionId ('religion-technotheism' oder 'religion-gaianism'), role ('${ROLES.join("', '")}'), genome (ein Array mit 1-3 Strings aus '${GENOME_OPTIONS.join("', '")}'), beliefs (ein Objekt, das Belief-Schlüssel wie 'progress_good' auf einen Wert zwischen 0.0 und 1.0 abbildet), emotions (ein Objekt mit Schlüsseln wie 'happiness', 'sadness' mit Werten von 0.0-1.0), personality (ein Objekt mit den Schlüsseln 'openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism' mit Werten von 0.0-1.0), skills (ein Objekt, das Fähigkeitsnamen auf ein numerisches Level abbildet, z.B. {"healing": 15, "woodcutting": 5}), socialStatus (ein numerischer Wert zwischen 30-70), stress (ein numerischer Wert zwischen 5-30), hunger, thirst, fatigue (numerische Werte zwischen 0-50), inventory (ein Objekt wie {"wood": 10}), und currency (ein numerischer Wert zwischen 20-100).`,
+        agent_details: `Für jeden Agenten: **name (Einzigartiger, menschlich klingender Name. KRITISCH: Der Name MUSS aus einem Vor- und Nachnamen bestehen, z.B. 'Elara Meadowbrook' oder 'Finnian Steinfels'. Namen wie 'Bob' oder 'Agent1' sind UNGÜLTIG. Jeder vollständige Name in der gesamten Liste MUSS einzigartig sein.)**, description, age (1-80), x, y, cultureId ('culture-utopian' oder 'culture-primitivist'), religionId ('religion-technotheism' oder 'religion-gaianism'), role ('${ROLES.join("', '")}'), genome (ein Array mit 1-3 Strings aus '${GENOME_OPTIONS.join("', '")}'), beliefs (ein Objekt, das Belief-Schlüssel wie 'progress_good' auf einen Wert zwischen 0.0 und 1.0 abbildet), emotions (ein Objekt mit Schlüsseln wie 'happiness', 'sadness' mit Werten von 0.0-1.0), personality (ein Objekt mit den Schlüsseln 'openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism' mit Werten von 0.0-1.0), skills (ein Objekt, das Fähigkeitsnamen auf ein numerisches Level abbildet, z.B. {"healing": 15, "woodcutting": 5}), socialStatus (ein numerischer Wert zwischen 30-70), stress (ein numerischer Wert zwischen 5-30), hunger, thirst, fatigue (numerische Werte zwischen 0-50), inventory (ein Objekt wie {"wood": 10}), und currency (ein numerischer Wert zwischen 20-100).`,
         entity_base_details: `Für jede Entität: **name (ein einzigartiger, beschreibender Name wie 'Flüsterwasserfall' oder 'Alter Stadtmarkt', nicht 'Resource 1')**, description, x, y.`,
         world_response_instructions: `Ihre Antwort MUSS ein JSON-Objekt sein: { "agents": [ ... ], "entities": [ ... ] }. Fügen Sie KEINEN zusätzlichen Text hinzu. Stellen Sie sicher, dass alle numerischen Werte Zahlen sind, keine Strings.`,
         agents_response_instructions: `Ihre Antwort MUSS ein JSON-Objekt sein: { "agents": [ ... ] }. Fügen Sie KEINEN zusätzlichen Text oder Entitätsdaten hinzu. Stellen Sie sicher, dass alle numerischen Werte Zahlen sind, keine Strings.`,
@@ -760,6 +810,57 @@ ${t.entities_response_instructions}`;
         return { entities: result.entities || [] };
     } catch (error) {
         console.error("Error generating entities with AI:", error);
+        if (error instanceof LmStudioError) throw error;
+        throw new Error(`AI Error: ${(error as Error).message}`);
+    }
+}
+
+export async function generateNewTechnology(
+    agent: Agent,
+    worldState: WorldState,
+    language: Language
+): Promise<Technology | null> {
+    const t = prompts[language];
+    const culture = worldState.cultures.find(c => c.id === agent.cultureId);
+    if (!culture) return null;
+
+    const agentSkills = Object.entries(agent.skills).filter(([, level]) => level > 10).map(([skill]) => skill).join(', ') || 'basic skills';
+    const knownTech = culture.knownTechnologies.join(', ') || 'None';
+    const techTree = worldState.techTree.map(tech => tech.name).join(', ');
+    const memories = (agent.longTermMemory || []).slice(-3).map(m => m.content).join('\n') || 'None';
+
+    const systemPrompt = t.invent_technology_instruction
+        .replace('{agentName}', agent.name)
+        .replace('{agentRole}', agent.role || 'worker')
+        .replace('{agentSkills}', agentSkills)
+        .replace('{cultureName}', culture.name)
+        .replace('{knownTech}', knownTech)
+        .replace('{techTree}', techTree)
+        .replace('{memories}', memories);
+
+    try {
+        const jsonText = await callAi(systemPrompt, null, true);
+        if (!jsonText || jsonText.toLowerCase() === 'null') return null;
+
+        const result: Technology = JSON.parse(jsonText);
+
+        // Basic validation
+        if (typeof result.id !== 'string' || typeof result.name !== 'string' || typeof result.description !== 'string' || typeof result.researchCost !== 'number' || !result.unlocks) {
+            console.error("AI returned invalid technology structure:", result);
+            return null;
+        }
+        
+        // Ensure unlocks are arrays of strings
+        result.unlocks.actions = (result.unlocks.actions || []).filter(item => typeof item === 'string');
+        result.unlocks.recipes = (result.unlocks.recipes || []).filter(item => typeof item === 'string');
+
+        // Ensure requiredTech is an array of strings
+        result.requiredTech = (result.requiredTech || []).filter(item => typeof item === 'string');
+
+
+        return result;
+    } catch (error) {
+        console.error("Error generating technology with AI:", error);
         if (error instanceof LmStudioError) throw error;
         throw new Error(`AI Error: ${(error as Error).message}`);
     }
