@@ -1,4 +1,4 @@
-# RealitySim AI (Version 20)
+# RealitySim AI (Version 24)
 
 **An interactive, web-based simulation environment for exploring emergent AI societies.**
 
