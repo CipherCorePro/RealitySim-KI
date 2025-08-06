@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useMemo, useState, useEffect } from 'react';
 import type { Agent, PsychoReport } from './types';
 import { AgentCard } from './components/AgentCard';
@@ -10,7 +12,7 @@ import { CreateObjectPanel } from './components/CreateObjectPanel';
 import { ExporterPanel } from './components/ExporterPanel';
 import { AdminPanel } from './components/AdminPanel';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
-import { BrainCircuit, Cpu, Zap, Microscope, Boxes, Trash2, Settings, X, Globe, Users, PlusSquare, Apple, Droplet, Log, Hammer, Home, Vote, PanelLeft, PanelRight, Map, BarChart2 } from './components/IconComponents';
+import { BrainCircuit, Cpu, Zap, Microscope, Boxes, Trash2, Settings, X, Globe, Users, PlusSquare, Apple, Droplet, Log, Hammer, Home, Vote, PanelLeft, PanelRight, Map, BarChart2, Mountain, Waves, Palmtree } from './components/IconComponents';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { useSettings } from './contexts/SettingsContext';
 import { useTranslations } from './hooks/useTranslations';
@@ -184,7 +186,7 @@ interface GenerateWorldModalProps {
 
 const GenerateWorldModal: React.FC<GenerateWorldModalProps> = ({ isOpen, onClose, onGenerate, isGenerating }) => {
     const [agentCount, setAgentCount] = useState(20);
-    const [entityCounts, setEntityCounts] = useState({ food: 5, water: 3, wood: 5, iron: 4, buildings: 3 });
+    const [entityCounts, setEntityCounts] = useState({ food: 5, water: 3, wood: 5, iron: 4, stone: 4, coal: 3, sand: 2, clay: 2, buildings: 3 });
     const t = useTranslations();
 
     if (!isOpen) {
@@ -232,7 +234,7 @@ const GenerateWorldModal: React.FC<GenerateWorldModalProps> = ({ isOpen, onClose
 
                      <div>
                         <h3 className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2"><Boxes className="w-4 h-4"/>{t('generateWorldModal_entitiesLabel')}</h3>
-                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                             <div className="flex flex-col gap-1">
                                 <label htmlFor="entity-count-food-world" className="text-xs text-slate-400 flex items-center gap-1"><Apple className="w-3 h-3"/>{t('generateContent_foodSources')}</label>
                                 <input id="entity-count-food-world" type="number" value={entityCounts.food} onChange={e => handleEntityCountChange('food', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
@@ -249,7 +251,23 @@ const GenerateWorldModal: React.FC<GenerateWorldModalProps> = ({ isOpen, onClose
                                 <label htmlFor="entity-count-iron-world" className="text-xs text-slate-400 flex items-center gap-1"><Hammer className="w-3 h-3"/>{t('generateContent_ironSources')}</label>
                                 <input id="entity-count-iron-world" type="number" value={entityCounts.iron} onChange={e => handleEntityCountChange('iron', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
                             </div>
-                             <div className="flex flex-col gap-1 col-span-2 lg:col-span-1">
+                             <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-stone-world" className="text-xs text-slate-400 flex items-center gap-1"><Mountain className="w-3 h-3"/>{t('generateContent_stoneSources')}</label>
+                                <input id="entity-count-stone-world" type="number" value={entityCounts.stone} onChange={e => handleEntityCountChange('stone', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-coal-world" className="text-xs text-slate-400 flex items-center gap-1"><Mountain className="w-3 h-3"/>{t('generateContent_coalSources')}</label>
+                                <input id="entity-count-coal-world" type="number" value={entityCounts.coal} onChange={e => handleEntityCountChange('coal', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-sand-world" className="text-xs text-slate-400 flex items-center gap-1"><Waves className="w-3 h-3"/>{t('generateContent_sandSources')}</label>
+                                <input id="entity-count-sand-world" type="number" value={entityCounts.sand} onChange={e => handleEntityCountChange('sand', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-clay-world" className="text-xs text-slate-400 flex items-center gap-1"><Palmtree className="w-3 h-3"/>{t('generateContent_claySources')}</label>
+                                <input id="entity-count-clay-world" type="number" value={entityCounts.clay} onChange={e => handleEntityCountChange('clay', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="flex flex-col gap-1 col-span-full">
                                 <label htmlFor="entity-count-buildings-world" className="text-xs text-slate-400 flex items-center gap-1"><Home className="w-3 h-3"/>{t('generateContent_buildings')}</label>
                                 <input id="entity-count-buildings-world" type="number" value={entityCounts.buildings} onChange={e => handleEntityCountChange('buildings', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
                             </div>
@@ -588,6 +606,7 @@ export default function App() {
                         cultureName={cultureName}
                         religionName={religionName}
                         leaderName={leaderName}
+                        environment={worldState.environment}
                         onPrompt={handlers.handlePrompt} 
                         onGeneratePsychoanalysis={handlers.handleGeneratePsychoanalysis} 
                     />

@@ -1100,6 +1100,44 @@ export class RealityEngine {
                  if (sideEffects?.createAction) {
                     this.addAction(sideEffects.createAction.name, sideEffects.createAction.description, sideEffects.createAction.beliefKey, sideEffects.createAction.effects);
                 }
+                if (sideEffects?.createCulture) {
+                    const data = sideEffects.createCulture;
+                    const newCulture: Culture = {
+                        id: `culture-${Date.now()}`,
+                        name: data.name,
+                        sharedBeliefs: data.sharedBeliefs,
+                        memberIds: [data.founderId],
+                        researchPoints: 0,
+                        knownTechnologies: []
+                    };
+                    this.cultures.set(newCulture.id, newCulture);
+                    const founder = this.agents.get(data.founderId);
+                    if (founder) {
+                        founder.cultureId = newCulture.id;
+                    }
+                }
+                if (sideEffects?.updateAgentCulture) {
+                    const { agentId, newCultureId } = sideEffects.updateAgentCulture;
+                    const targetAgent = this.agents.get(agentId);
+                    if (targetAgent) {
+                        // Leave old culture
+                        if (targetAgent.cultureId) {
+                            const oldCulture = this.cultures.get(targetAgent.cultureId);
+                            if (oldCulture) {
+                                oldCulture.memberIds = oldCulture.memberIds.filter(id => id !== agentId);
+                            }
+                        }
+                        // Set new culture
+                        targetAgent.cultureId = newCultureId;
+                        // Join new culture
+                        if (newCultureId) {
+                            const newCulture = this.cultures.get(newCultureId);
+                            if (newCulture && !newCulture.memberIds.includes(agentId)) {
+                                newCulture.memberIds.push(agentId);
+                            }
+                        }
+                    }
+                }
             }
         }
         

@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import type { Action, Agent, EnvironmentState, WorldState, Culture, PsychoReport, Goal, Technology } from '../types';
+import type { Action, Agent, EnvironmentState, WorldState, Culture, PsychoReport, Goal, Technology, Law } from '../types';
 import { Language } from "../contexts/LanguageContext";
 import { GENOME_OPTIONS, CHILDHOOD_MAX_AGE, ADOLESCENCE_MAX_AGE, ADULTHOOD_MAX_AGE, ROLES } from "../constants";
 import { translations, TranslationKey } from '../translations';
@@ -162,6 +162,31 @@ Return a JSON object with the following fields. The first 7 fields are for human
   }
 }
 If it unlocks a recipe, put it in the "recipes" array. If you cannot think of a new technology, return null.`,
+        invent_law_instruction: `You are a legislator for a reality simulation. Your task is to invent a plausible new law based on the current state of society.
+**Context:**
+- Proposer: Leader {agentName}, a {agentRole}.
+- Culture: {cultureName}, with shared beliefs: {cultureBeliefs}.
+- Current Laws: {currentLaws}.
+- Recent Events (Leader's Memories): {memories}
+
+**Instructions:**
+- Analyze the recent events. Is there a recurring problem like theft, fighting, or resource hoarding?
+- Consider the culture's beliefs. A "progress_good" culture might want laws encouraging research. A "nature_good" culture might want conservation laws.
+- Invent a NEW law that is not already in the Current Laws list.
+- The law's "violatingAction" should ideally be one of the existing actions in the simulation: {availableActions}. This makes the law enforceable.
+- The punishment should be either a 'fine' (10-100 currency) or 'arrest' (10-50 steps duration).
+- Return ONLY a JSON object with the following structure. Do not add any extra text.
+{
+  "id": "law-a-unique-id-from-name",
+  "name": "The Law's Name (e.g., 'Resource Conservation Act')",
+  "description": "A brief, clear description of the law.",
+  "violatingAction": "An existing action name like 'Gather Wood' or 'Fight'",
+  "punishment": {
+    "type": "fine",
+    "amount": 50
+  }
+}
+If you cannot think of a new law, return null.`,
     },
     de: {
         system_base: `Sie sind ein Assistent für eine Realitätssimulation. Ihre Aufgabe ist es, die Eingabe eines Benutzers zu interpretieren und die am besten geeignete Aktion für einen KI-Agenten auszuwählen.
@@ -313,6 +338,31 @@ Gib ein JSON-Objekt mit den folgenden Feldern zurück. Die ersten 7 Felder sind 
   }
 }
 Wenn es ein Rezept freischaltet, fügen Sie es in das "recipes"-Array ein. Wenn Ihnen keine neue Technologie einfällt, geben Sie null zurück.`,
+        invent_law_instruction: `Sie sind ein Gesetzgeber für eine Realitätssimulation. Ihre Aufgabe ist es, ein plausibles neues Gesetz basierend auf dem aktuellen Zustand der Gesellschaft zu erfinden.
+**Kontext:**
+- Vorschlagender: Anführer {agentName}, ein {agentRole}.
+- Kultur: {cultureName}, mit geteilten Überzeugungen: {cultureBeliefs}.
+- Aktuelle Gesetze: {currentLaws}.
+- Jüngste Ereignisse (Erinnerungen des Anführers): {memories}
+
+**Anweisungen:**
+- Analysieren Sie die jüngsten Ereignisse. Gibt es ein wiederkehrendes Problem wie Diebstahl, Kämpfe oder das Horten von Ressourcen?
+- Berücksichtigen Sie die Überzeugungen der Kultur. Eine "progress_good"-Kultur könnte Gesetze zur Forschungsförderung wollen. Eine "nature_good"-Kultur könnte Naturschutzgesetze wollen.
+- Erfinden Sie ein NEUES Gesetz, das noch nicht in der Liste der aktuellen Gesetze enthalten ist.
+- Die "violatingAction" des Gesetzes sollte idealerweise eine der existierenden Aktionen in der Simulation sein: {availableActions}. Dies macht das Gesetz durchsetzbar.
+- Die Bestrafung sollte entweder eine 'fine' (Geldstrafe, 10-100 Währung) oder 'arrest' (Verhaftung, 10-50 Schritte Dauer) sein.
+- Geben Sie NUR ein JSON-Objekt mit der folgenden Struktur zurück. Fügen Sie keinen zusätzlichen Text hinzu.
+{
+  "id": "gesetz-eine-einzigartige-id-vom-namen",
+  "name": "Der Name des Gesetzes (z.B. 'Ressourcenschutzgesetz')",
+  "description": "Eine kurze, klare Beschreibung des Gesetzes.",
+  "violatingAction": "Ein existierender Aktionsname wie 'Gather Wood' oder 'Fight'",
+  "punishment": {
+    "type": "fine",
+    "amount": 50
+  }
+}
+Wenn Ihnen kein neues Gesetz einfällt, geben Sie null zurück.`,
     }
 };
 
@@ -861,6 +911,48 @@ export async function generateNewTechnology(
         return result;
     } catch (error) {
         console.error("Error generating technology with AI:", error);
+        if (error instanceof LmStudioError) throw error;
+        throw new Error(`AI Error: ${(error as Error).message}`);
+    }
+}
+
+export async function generateNewLaw(
+    agent: Agent,
+    worldState: WorldState,
+    language: Language
+): Promise<Law | null> {
+    const t = prompts[language];
+    const culture = worldState.cultures.find(c => c.id === agent.cultureId);
+    if (!culture) return null;
+
+    const memories = (agent.longTermMemory || []).slice(-5).map(m => m.content).join('\n') || 'None';
+    const currentLaws = worldState.government.laws.map(l => l.name).join(', ') || 'None';
+    const availableActions = worldState.actions.map(a => a.name).join(', ');
+
+    const systemPrompt = t.invent_law_instruction
+        .replace('{agentName}', agent.name)
+        .replace('{agentRole}', agent.role || 'worker')
+        .replace('{cultureName}', culture.name)
+        .replace('{cultureBeliefs}', JSON.stringify(culture.sharedBeliefs))
+        .replace('{currentLaws}', currentLaws)
+        .replace('{memories}', memories)
+        .replace('{availableActions}', availableActions);
+
+    try {
+        const jsonText = await callAi(systemPrompt, null, true);
+        if (!jsonText || jsonText.toLowerCase() === 'null') return null;
+
+        const result: Law = JSON.parse(jsonText);
+
+        // Basic validation
+        if (typeof result.id !== 'string' || typeof result.name !== 'string' || typeof result.description !== 'string' || typeof result.violatingAction !== 'string' || typeof result.punishment !== 'object') {
+            console.error("AI returned invalid law structure:", result);
+            return null;
+        }
+
+        return result;
+    } catch (error) {
+        console.error("Error generating law with AI:", error);
         if (error instanceof LmStudioError) throw error;
         throw new Error(`AI Error: ${(error as Error).message}`);
     }

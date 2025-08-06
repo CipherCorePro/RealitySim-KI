@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Agent, Entity, EnvironmentState, Culture } from '../types';
-import { Share2, Home, User, Skull, Award, HeartPulse, FlaskConical, Apple, Droplet, Log, PlusSquare, Hammer, Users, Gavel } from './IconComponents';
+import { Share2, Home, User, Skull, Award, HeartPulse, FlaskConical, Apple, Droplet, Log, PlusSquare, Hammer, Users, Gavel, Mountain, Waves, Palmtree, Factory } from './IconComponents';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface WorldGraphProps {
@@ -11,6 +11,9 @@ interface WorldGraphProps {
 }
 
 const getEntityIcon = (entity: Entity) => {
+    if (entity.isFactory) {
+        return Factory;
+    }
     if (entity.isJail) {
         return Gavel;
     }
@@ -24,6 +27,10 @@ const getEntityIcon = (entity: Entity) => {
             case 'wood': return Log;
             case 'medicine': return PlusSquare;
             case 'iron': return Hammer;
+            case 'stone': return Mountain;
+            case 'coal': return Mountain; // Using same icon for coal
+            case 'sand': return Waves;
+            case 'clay': return Palmtree; // Placeholder icon
             default: return Home;
         }
     }
@@ -179,6 +186,8 @@ const WorldGraphComponent: React.FC<WorldGraphProps> = ({ agents, entities, envi
                         let color = 'text-emerald-400';
                         if (entity.isMarketplace) color = 'text-yellow-400';
                         if (entity.isJail) color = 'text-red-400';
+                        if (entity.isFactory) color = 'text-orange-400';
+                        if (entity.resourceType === 'coal') color = 'text-slate-400';
                         const ownerCultureColor = owner && owner.cultureId ? cultureColors[owner.cultureId] : null;
 
                         return (

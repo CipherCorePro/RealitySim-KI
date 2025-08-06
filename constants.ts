@@ -29,7 +29,7 @@ export const ADOLESCENCE_MAX_AGE = 19;
 export const ADULTHOOD_MAX_AGE = 65;
 
 export const ROLES = ['Worker', 'Healer', 'Scientist', 'Leader', 'Trader', 'Crafter', 'Guard', 'Counselor', 'Entrepreneur'];
-export const RESOURCE_TYPES = ['food', 'water', 'wood', 'medicine', 'iron'];
+export const RESOURCE_TYPES = ['food', 'water', 'wood', 'medicine', 'iron', 'stone', 'coal', 'sand', 'clay'];
 export const SKILL_TYPES = ['healing', 'woodcutting', 'rhetoric', 'combat', 'construction', 'farming', 'mining', 'crafting', 'trading'];
 
 // --- NEW CONSTANTS ---
@@ -43,9 +43,12 @@ export const STRESS_THRESHOLD_FOR_PERSONALITY_SHIFT = 70;
 
 // Economy
 export const INITIAL_CURRENCY = 50;
+export const RESOURCE_PURCHASE_COST = 150;
 export const WORK_FOR_MONEY_AMOUNT = 10;
-export const RESOURCE_PURCHASE_COST = 250;
-export const WORK_FOR_OWNER_PAY_WORKER = 15;
+export const FOUND_FACTORY_COST = { currency: 300, wood: 20, stone: 20 };
+export const FACTORY_WAGE = 15;
+export const FACTORY_OWNER_PROFIT_PER_WORKER = 5;
+
 
 // Random Data for Generation
 export const RANDOM_FIRST_NAMES = ['Elara', 'Rhys', 'Silvana', 'Orion', 'Nadia', 'Marius', 'Lyra', 'Kai', 'Jasmine', 'Isaac', 'Helena', 'Gareth', 'Fiona', 'Elias', 'Dahlia', 'Caspian', 'Bram', 'Anya', 'Ralf', 'Garrus', 'Bob', 'Alice', 'Xavier', 'Willow', 'Vera', 'Ulysses', 'Thalia', 'Silas', 'Rhiannon', 'Quentin', 'Phoebe'];
@@ -57,10 +60,16 @@ export const RANDOM_BELIEF_KEYS = ['progress_good', 'nature_good', 'wealth_is_po
 
 
 export const RECIPES: Recipe[] = [
-    { name: 'Craft Iron Ingot', output: { item: 'iron_ingot', quantity: 1 }, ingredients: { iron: 2 }, requiredSkill: { skill: 'crafting', level: 5 }, requiredTech: 'metallurgy' },
-    { name: 'Craft Sword', output: { item: 'sword', quantity: 1 }, ingredients: { wood: 1, iron_ingot: 2 }, requiredSkill: { skill: 'crafting', level: 10 }, requiredTech: 'metallurgy' },
-    { name: 'Craft Plow', output: { item: 'plow', quantity: 1 }, ingredients: { wood: 8, iron: 2 }, requiredSkill: { skill: 'crafting', level: 5 }, requiredTech: 'agriculture' },
     { name: 'Craft Advanced Medicine', output: { item: 'advanced_medicine', quantity: 1 }, ingredients: { medicine: 5, water: 2 }, requiredSkill: { skill: 'healing', level: 15 }, requiredTech: 'chemistry' },
+    { name: 'Craft Charcoal', output: { item: 'charcoal', quantity: 2 }, ingredients: { wood: 5 }, requiredSkill: { skill: 'crafting', level: 3 } },
+    { name: 'Smelt Steel Ingot', output: { item: 'steel_ingot', quantity: 1 }, ingredients: { iron: 3, charcoal: 1 }, requiredSkill: { skill: 'crafting', level: 12 }, requiredTech: 'metallurgy' },
+    { name: 'Craft Sword', output: { item: 'sword', quantity: 1 }, ingredients: { wood: 1, steel_ingot: 2 }, requiredSkill: { skill: 'crafting', level: 10 }, requiredTech: 'metallurgy' },
+    { name: 'Craft Plow', output: { item: 'plow', quantity: 1 }, ingredients: { wood: 8, iron: 2 }, requiredSkill: { skill: 'crafting', level: 5 }, requiredTech: 'agriculture' },
+    { name: 'Craft Bricks', output: { item: 'bricks', quantity: 5 }, ingredients: { clay: 10 }, requiredSkill: { skill: 'construction', level: 5 }, requiredTech: 'advanced_construction' },
+    { name: 'Craft Glass', output: { item: 'glass', quantity: 1 }, ingredients: { sand: 5, charcoal: 2 }, requiredSkill: { skill: 'crafting', level: 8 }, requiredTech: 'manufacturing' },
+    { name: 'Craft Tools', output: { item: 'tools', quantity: 1 }, ingredients: { steel_ingot: 2, wood: 2 }, requiredSkill: { skill: 'crafting', level: 15 }, requiredTech: 'manufacturing' },
+    { name: 'Craft Furniture', output: { item: 'furniture', quantity: 1 }, ingredients: { wood: 10, tools: 1 }, requiredSkill: { skill: 'construction', level: 10 }, requiredTech: 'manufacturing' },
+    { name: 'Craft Pottery', output: { item: 'pottery', quantity: 1 }, ingredients: { clay: 5 }, requiredSkill: { skill: 'crafting', level: 6 } },
 ];
 
 // Politics
@@ -75,7 +84,9 @@ export const INITIAL_GOVERNMENT: Government = { type: 'democracy', leaderId: nul
 export const RESEARCH_PER_ACTION = 10;
 export const TECH_TREE: Technology[] = [
     { id: 'agriculture', name: 'Agriculture', description: 'Improves farming efficiency and unlocks the Plow.', researchCost: 100, unlocks: { recipes: ['Craft Plow'] } },
-    { id: 'metallurgy', name: 'Metallurgy', description: 'Allows the smelting of iron and crafting of metal tools.', researchCost: 150, requiredTech: ['agriculture'], unlocks: { actions: ['Mine Iron'], recipes: ['Craft Sword', 'Craft Iron Ingot'] } },
+    { id: 'advanced_construction', name: 'Advanced Construction', description: 'Allows for the creation of more durable building materials like bricks.', researchCost: 120, requiredTech: ['agriculture'], unlocks: { recipes: ['Craft Bricks'] } },
+    { id: 'metallurgy', name: 'Metallurgy', description: 'Allows the smelting of iron and crafting of metal tools.', researchCost: 150, requiredTech: ['agriculture'], unlocks: { actions: ['Mine Iron'], recipes: ['Craft Sword', 'Smelt Steel Ingot'] } },
+    { id: 'manufacturing', name: 'Manufacturing', description: 'Unlocks complex production processes for tools and goods.', researchCost: 250, requiredTech: ['metallurgy'], unlocks: { actions: ['Found Factory'], recipes: ['Craft Tools', 'Craft Furniture', 'Craft Glass'] } },
     { id: 'writing', name: 'Writing', description: 'Enables knowledge to be shared more effectively.', researchCost: 200, requiredTech: ['agriculture'], unlocks: { actions: ['Share Knowledge'] } },
     { id: 'chemistry', name: 'Chemistry', description: 'Unlocks advanced potions and medicines.', researchCost: 300, requiredTech: ['writing'], unlocks: { recipes: ['Craft Advanced Medicine'] } },
     { id: 'bioengineering', name: 'Bioengineering', description: 'Unlocks advanced biological manipulation techniques like artificial insemination.', researchCost: 500, requiredTech: ['chemistry'], unlocks: { actions: ['Artificial Insemination'] } },
@@ -224,12 +235,16 @@ export const initialWorldState: WorldState = {
     { id: 'entity-3', name: 'Berry Bush', description: 'A bush with edible berries.', x: 15, y: 5, isResource: true, resourceType: 'food', quantity: 25 },
     { id: 'entity-4', name: 'Forest', description: 'A dense patch of trees.', x: 17, y: 15, isResource: true, resourceType: 'wood', quantity: 100 },
     { id: 'entity-5', name: 'Iron Vein', description: 'A deposit of iron ore.', x: 2, y: 18, isResource: true, resourceType: 'iron', quantity: 50 },
+    { id: 'entity-stone-1', name: 'Rocky Outcrop', description: 'A source of stone.', x: 25, y: 25, isResource: true, resourceType: 'stone', quantity: 100 },
+    { id: 'entity-coal-1', name: 'Coal Deposit', description: 'A source of coal.', x: 2, y: 8, isResource: true, resourceType: 'coal', quantity: 80 },
+    { id: 'entity-sand-1', name: 'Sandy Patch', description: 'A source of sand.', x: 28, y: 5, isResource: true, resourceType: 'sand', quantity: 120 },
+    { id: 'entity-clay-1', name: 'Clay Pit', description: 'A source of clay.', x: 15, y: 28, isResource: true, resourceType: 'clay', quantity: 120 },
     { id: 'entity-marketplace', name: 'Marketplace', description: 'A central place for trade.', x: 10, y: 11, isMarketplace: true },
     { id: 'entity-jail', name: 'Jail', description: 'A place for lawbreakers.', x: 1, y: 19, isJail: true, inmates: [] },
   ],
   cultures: [
-    { id: 'culture-utopian', name: 'Utopian Technocrats', sharedBeliefs: { 'progress_good': 0.8, 'nature_good': 0.3 }, memberIds: [], researchPoints: 50, knownTechnologies: [] },
-    { id: 'culture-primitivist', name: 'Primitivist Collective', sharedBeliefs: { 'progress_good': 0.2, 'nature_good': 0.8 }, memberIds: [], researchPoints: 10, knownTechnologies: [] }
+    { id: 'culture-utopian', name: 'Utopian Technocrats', sharedBeliefs: { 'progress_good': 0.8, 'nature_good': 0.3 }, memberIds: [], researchPoints: 25, knownTechnologies: [] },
+    { id: 'culture-primitivist', name: 'Primitivist Collective', sharedBeliefs: { 'progress_good': 0.2, 'nature_good': 0.8 }, memberIds: [], researchPoints: 25, knownTechnologies: [] }
   ],
   religions: [
     { id: 'religion-technotheism', name: 'Technotheism', dogma: { 'progress_good': 0.95, 'nature_good': 0.5 }, memberIds: [] },
@@ -238,6 +253,7 @@ export const initialWorldState: WorldState = {
   government: INITIAL_GOVERNMENT,
   markets: [{ id: 'market-central', name: 'Central Market', listings: [] }],
   techTree: TECH_TREE,
+  recipes: RECIPES,
   actions: [],
   transactions: [],
 };

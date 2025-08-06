@@ -16,26 +16,31 @@
     - [Der Prozess: Von der Handlung zur Erinnerung](#der-prozess-von-der-handlung-zur-erinnerung)
     - [Intelligenter Abruf durch Ähnlichkeitssuche](#intelligenter-abruf-durch-ähnlichkeitssuche)
     - [Auswirkungen auf das Agentenverhalten](#auswirkungen-auf-das-agentenverhalten)
-6. [Der Simulationszyklus & KI-Entscheidungsfindung](#6-der-simulationszyklus--ki-entscheidungsfindung)
-7. [Benutzerinteraktion](#7-benutzerinteraktion)
+6. [Die Wirtschaftssimulation: Von Rohstoffen zu Produkten](#6-die-wirtschaftssimulation-von-rohstoffen-zu-produkten)
+    - [Erweiterte Rohstoffe und Waren](#erweiterte-rohstoffe-und-waren)
+    - [Fabriken und Produktionsketten](#fabriken-und-produktionsketten)
+    - [Die Rolle des Unternehmers: Produkterfindung](#die-rolle-des-unternehmers-produkterfindung)
+7. [Der Simulationszyklus & KI-Entscheidungsfindung](#7-der-simulationszyklus--ki-entscheidungsfindung)
+    - [Politische Autonomie: Wie Gesetze entstehen](#politische-autonomie-wie-gesetze-entstehen)
+8. [Benutzerinteraktion](#8-benutzerinteraktion)
     - [Steuerungspanel](#steuerungspanel)
     - [Agentensteuerung & KI-Interaktion](#agentensteuerung--ki-interaktion)
     - [Welterschaffung & Psychoanalyse](#welterschaffung--psychoanalyse)
     - [Zustand, Gespräche & Statistiken verwalten](#zustand-gespräche--statistiken-verwalten)
     - [Manuelle Erstellung (Create New Panel)](#manuelle-erstellung-create-new-panel)
     - [Das Admin-Panel (Gott-Modus)](#das-admin-panel-gott-modus)
-8. [Analyse & Beobachtung: Das Analytics Dashboard](#8-analyse--beobachtung-das-analytics-dashboard)
+9. [Analyse & Beobachtung: Das Analytics Dashboard](#9-analyse--beobachtung-das-analytics-dashboard)
     - [Soziales Netzwerk](#soziales-netzwerk)
     - [Wirtschaftsflüsse](#wirtschaftsflüsse)
     - [Kulturelle Ausbreitung](#kulturelle-ausbreitung)
     - [Technologie](#technologie)
-9. [Erweiterbarkeit](#9-erweiterbarkeit)
-    - [Neue Aktionen hinzufügen](#91-neue-aktionen-hinzufügen)
-    - [Neue Agenten-Attribute (Psyche, Bedürfnisse etc)](#92-neue-agenten-attribute-psyche-bedürfnisse-etc)
-    - [Neue Technologien oder Rezepte](#93-neue-technologien-oder-rezepte)
-    - [Erweiterung der Benutzeroberfläche](#94-erweiterung-der-benutzeroberfläche)
-    - [Agenten-erfundene Technologien (NEU)](#95-agenten-erfundene-technologien-neu)
-10. [Kerntechnologien & Architektur](#10-kerntechnologien--architektur)
+10. [Erweiterbarkeit](#10-erweiterbarkeit)
+    - [Neue Aktionen hinzufügen](#101-neue-aktionen-hinzufügen)
+    - [Neue Agenten-Attribute (Psyche, Bedürfnisse etc)](#102-neue-agenten-attribute-psyche-bedürfnisse-etc)
+    - [Neue Technologien oder Rezepte](#103-neue-technologien-oder-rezepte)
+    - [Erweiterung der Benutzeroberfläche](#104-erweiterung-der-benutzeroberfläche)
+    - [Agenten-erfundene Technologien & Produkte](#105-agenten-erfundene-technologien--produkte)
+11. [Kerntechnologien & Architektur](#11-kerntechnologien--architektur)
 
 ---
 
@@ -43,7 +48,7 @@
 
 **RealitySim AI** ist eine interaktive, webbasierte Simulationsumgebung, die das Leben einer kleinen Gesellschaft von KI-gesteuerten Agenten darstellt. Jeder Agent ist eine einzigartige Entität mit eigenen Überzeugungen, einer komplexen Persönlichkeit, psychologischen Trieben und einem dynamischen Gedächtnis.
 
-Das Kernziel der Simulation ist nicht, ein Spiel zu gewinnen, sondern emergentes Verhalten zu beobachten: Wie entwickeln sich Kulturen? Wie bilden sich soziale Strukturen? Wie beeinflussen individuelle Traumata und Ziele das Schicksal einer Gemeinschaft? Als Benutzer können Sie die Simulation beobachten, sie Schritt für Schritt vorantreiben, direkt mit den Agenten über natürliche Sprache interagieren, um deren Verhalten zu beeinflussen, oder sogar in die Gedanken inhaftierter Agenten durch ihre KI-generierten Tagebücher eintauchen.
+Das Kernziel der Simulation ist nicht, ein Spiel zu gewinnen, sondern emergentes Verhalten zu beobachten: Wie entwickeln sich Kulturen? Wie bilden sich soziale und wirtschaftliche Strukturen? Wie beeinflussen individuelle Traumata und Ziele das Schicksal einer Gemeinschaft? Als Benutzer können Sie die Simulation beobachten, sie Schritt für Schritt vorantreiben, direkt mit den Agenten über natürliche Sprache interagieren, um deren Verhalten zu beeinflussen, oder sogar in die Gedanken inhaftierter Agenten durch ihre KI-generierten Tagebücher eintauchen.
 
 ## 2. Installation & Konfiguration
 
@@ -71,8 +76,8 @@ Die Welt ist ein 2D-Gitter definierter Größe (`width` x `height`). Sie hat glo
 
 ### Entitäten
 Dies sind die statischen oder semi-statischen Objekte in der Welt:
-- **Ressourcen:** Nahrungsquellen, Wasserquellen, Wälder oder Erzvorkommen. Sie haben eine begrenzte Menge und können von Agenten abgebaut werden.
-- **Gebäude:** Von Agenten gebaute Unterkünfte oder spezielle Gebäude wie der **Marktplatz** (für Handel) und das **Gefängnis** (für Gesetzesbrecher).
+- **Ressourcen:** Nahrungsquellen, Wasserquellen, Wälder, Erzvorkommen sowie Vorkommen von **Stein, Kohle, Sand und Lehm**. Sie haben eine begrenzte Menge und können von Agenten abgebaut werden.
+- **Gebäude:** Von Agenten gebaute Unterkünfte oder spezielle Gebäude wie der **Marktplatz** (für Handel), das **Gefängnis** (für Gesetzesbrecher) und **Fabriken** (für die Produktion von Waren).
 - **Eigentum:** Entitäten können einem Agenten gehören, was andere daran hindert, sie frei zu nutzen.
 
 ## 4. Die Anatomie eines Agenten
@@ -82,7 +87,7 @@ Jeder Agent ist weit mehr als nur eine Figur auf der Karte. Sein Verhalten wird 
 ### Grundlagen & Überleben
 - **Attribute:** Jeder Agent hat grundlegende Werte wie `Position (x, y)`, `Alter`, `Gesundheit`, `Inventar` und `jailJournal` (eine Liste von Tagebucheinträgen, falls inhaftiert).
 - **Bedürfnisse:** Die primären Überlebenstriebe sind `Hunger`, `Durst` und `Müdigkeit`. Diese Werte steigen kontinuierlich an. Wenn sie einen kritischen Schwellenwert überschreiten, verursachen sie `Stress` und `Gesundheitsschaden`. Unbehandelt führen sie zum Tod des Agenten.
-- **Zustand:** Agenten können `inhaftiert` sein, was ihre Handlungsfähigkeit stark einschränkt. Ihr `imprisonedUntil`-Wert gibt an, wann sie wieder freikommen.
+- **Zustand:** Agenten können `inhaftiert` sein, was ihre Handlungsfähigkeit stark einschränkt. Ihr `imprisonedUntil`-Wert gibt an, wann sie wieder freikommen. Sie können auch einen `Job` in einer Fabrik haben.
 - **Genom:** Agenten besitzen genetische Merkmale (z.B. `G-AGILE` für schnellere Bewegung, `G-INTELLIGENT` für schnelleres Lernen), die ihre Fähigkeiten und ihr Überleben beeinflussen.
 
 ### Geist & Psyche
@@ -137,7 +142,28 @@ Dies ermöglicht ein unglaublich nuanciertes Verhalten:
 
 Das Vektor-Gedächtnis verwandelt die Agenten von rein reaktiven Wesen zu Wesen, die aus ihrer gesamten Lebenserfahrung lernen und reflektieren können.
 
-## 6. Der Simulationszyklus & KI-Entscheidungsfindung
+## 6. Die Wirtschaftssimulation: Von Rohstoffen zu Produkten
+
+Die Simulation verfügt über ein tiefgreifendes Wirtschaftssystem, das über einfaches Überleben hinausgeht. Es modelliert Produktionsketten, Unternehmertum und die Erfindung neuer Güter.
+
+### Erweiterte Rohstoffe und Waren
+Die Welt ist reich an Ressourcen. Neben den Grundbedürfnissen wie **Nahrung** und **Holz** gibt es eine Vielzahl von Rohstoffen, die die Grundlage für eine komplexe Wirtschaft bilden:
+- **Grundrohstoffe:** `Holz`, `Stein`, `Kohle`, `Eisen`, `Sand`, `Lehm`.
+- **Zwischenprodukte:** Durch Verarbeitung entstehen Waren wie `Holzkohle`, `Ziegel`, `Glas` oder `Stahlbarren`.
+- **Endprodukte:** Diese Zwischenprodukte werden zu wertvollen Endprodukten wie `Werkzeugen`, `Möbeln` oder `Schwertern` weiterverarbeitet.
+
+### Fabriken und Produktionsketten
+- **Gründung:** Agenten mit der Rolle `Unternehmer` können eine **Fabrik** gründen (`Found Factory`). Dies ist eine teure Investition, die Kapital und Baumaterialien erfordert. Bei der Gründung wird festgelegt, welches spezifische Produkt diese Fabrik herstellen soll (z.B. eine Werkzeugschmiede).
+- **Produktion:** Fabriken produzieren nicht von alleine. Ein Agent muss dort arbeiten (`Work in Factory`). Diese Aktion verbraucht Rohstoffe aus dem Inventar des Fabrikbesitzers und legt das fertige Produkt ebenfalls in dessen Inventar ab.
+- **Arbeitsmarkt:** Andere Agenten können in einer Fabrik arbeiten, um einen Lohn vom Besitzer zu erhalten. Dies schafft einen dynamischen Arbeitsmarkt, bei dem Unternehmer Arbeiter einstellen, um ihre Produktion zu steigern.
+
+### Die Rolle des Unternehmers: Produkterfindung
+Unternehmer sind der Motor der wirtschaftlichen Innovation. Sie haben die einzigartige Fähigkeit, neue Produkte zu erfinden:
+- **Aktion `Invent Product`:** Ein Unternehmer mit hoher `Inspiration` kann versuchen, ein neues Produkt zu erfinden.
+- **KI als Innovator:** Diese Aktion ruft die Gemini-KI auf. Basierend auf den Fähigkeiten des Agenten, den verfügbaren Technologien und den Rohstoffen in der Welt, **generiert die KI ein plausibles neues Rezept für ein Endprodukt**. Dies könnte alles sein, von "Verzierten Töpferwaren" bis hin zu "Komplexen mechanischen Teilen".
+- **Dynamische Wirtschaft:** Sobald ein Produkt erfunden wurde, sein Rezept der Simulation hinzugefügt. Es entsteht eine neue `Craft...`-Aktion, die von jedem Agenten mit den nötigen Fähigkeiten und Technologien ausgeführt werden kann. Dies ermöglicht eine sich ständig weiterentwickelnde Wirtschaft, die in jeder Simulation einzigartig ist.
+
+## 7. Der Simulationszyklus & KI-Entscheidungsfindung
 
 Jeder "Schritt" der Simulation durchläuft einen festen Zyklus:
 1.  **Globale Updates:** Die Zeit schreitet voran, politische Ereignisse wie Wahlen werden geprüft.
@@ -152,7 +178,25 @@ Jeder "Schritt" der Simulation durchläuft einen festen Zyklus:
     c. **Aktionsausführung:** Die gewählte Aktion wird ausgeführt.
     d. **Gedächtnisbildung:** Das Ergebnis wird, wie oben beschrieben, in eine Erinnerung umgewandelt und im Vektor-Gedächtnis gespeichert.
 
-## 7. Benutzerinteraktion
+### Politische Autonomie: Wie Gesetze entstehen
+
+Ein Schlüsselelement des emergenten Verhaltens ist die Fähigkeit des Systems, seine eigenen Regeln zu schaffen. Anstatt dass Gesetze nur vom Benutzer vordefiniert werden, kann der Anführer der Gemeinschaft autonom neue Gesetze vorschlagen.
+
+1.  **Der Auslöser:** Ein Anführer mit der Technologie "Regierungsführung" (`governance`) kann die Aktion **`Propose New Law`** (Neues Gesetz vorschlagen) in Betracht ziehen. Dies geschieht oft, wenn seine Psyche einen hohen `Entscheidungsdruck` anzeigt oder seine Erinnerungen auf wiederkehrende Probleme in der Gesellschaft hindeuten.
+
+2.  **KI als Gesetzgeber:** Anstatt eines festen Gesetzes ruft diese Aktion die Gemini-KI auf. Die KI analysiert den Zustand der Welt:
+    - **Jüngste Ereignisse:** Gibt es viele Kämpfe, Diebstähle oder soziale Unruhen (aus den Erinnerungen des Anführers)?
+    - **Kulturelle Werte:** Welche Überzeugungen hat die Kultur des Anführers? Eine naturverbundene Kultur könnte Gesetze zum Ressourcenschutz vorschlagen, eine fortschrittsorientierte Kultur Gesetze zur Forschungsförderung.
+    - **Bestehende Gesetze:** Die KI stellt sicher, dass sie kein bereits existierendes Gesetz vorschlägt.
+    Basierend auf dieser Analyse generiert die KI ein **völlig neues, kontextuell passendes Gesetz** als JSON-Objekt, komplett mit Beschreibung, der zu bestrafenden Aktion (`violatingAction`) und einer angemessenen Strafe.
+
+3.  **Kulturelle Beratung (Die Abstimmung):** Ein Anführer regiert nicht allein. Nachdem die KI ein Gesetz vorgeschlagen hat, wird eine **Abstimmung innerhalb des "Clans" (der Kultur des Anführers)** simuliert.
+    - Jedes Mitglied der Kultur stimmt ab. Die Wahrscheinlichkeit, dass ein Mitglied zustimmt, hängt von seiner **Beziehung zum Anführer** und seiner **Persönlichkeit** (insbesondere `Verträglichkeit`) ab.
+    - **Mehrheitsentscheid:** Nur wenn die Mehrheit der Kulturmitglieder zustimmt, wird das Gesetz offiziell erlassen und in der Simulation durchgesetzt.
+
+Dieser Prozess schafft eine dynamische und plausible politische Landschaft, in der die Regeln der Gesellschaft eine direkte Reaktion auf die internen Probleme und Werte dieser Gesellschaft sind.
+
+## 8. Benutzerinteraktion
 
 ### Steuerungspanel
 - **Step / Run:** Führt die Simulation für einen oder mehrere Schritte aus.
@@ -186,7 +230,7 @@ Wenn ein Agent mit dem Attribut `adminAgent: true` ausgewählt ist, wechselt die
 - **Technologie-Management:** Beobachten Sie den Forschungsfortschritt jeder Kultur und schalten Sie Technologien bei Bedarf manuell frei.
 - **Agenten-Management:** Passen Sie die Attribute jedes Agenten an – setzen Sie Gesundheit, Währung, Position oder infizieren Sie ihn mit einer Krankheit. Tote Agenten können wiederbelebt werden.
 
-## 8. Analyse & Beobachtung: Das Analytics Dashboard
+## 9. Analyse & Beobachtung: Das Analytics Dashboard
 
 Das Analytics Dashboard (erreichbar über das Balkendiagramm-Icon) bietet einen Makro-Blick auf die Simulation und hilft, emergente Muster zu erkennen, die im normalen Ereignisprotokoll untergehen würden.
 
@@ -211,34 +255,34 @@ Hier wird der technologische Fortschritt jeder Kultur visualisiert.
 - **Fortschrittsbalken:** Für jede Technologie im Technologiebaum (`techTree`) wird der Forschungsfortschritt jeder Kultur als Prozentbalken dargestellt.
 - **Abhängigkeiten:** Technologien, deren Voraussetzungen noch nicht erfüllt sind, werden ausgegraut dargestellt, was die Entwicklungswege der Kulturen verdeutlicht.
 
-## 9. Erweiterbarkeit
+## 10. Erweiterbarkeit
 
 Die Simulation ist modular aufgebaut, um leicht erweitert werden zu können. Hier sind die wichtigsten Ansatzpunkte für Erweiterungen:
 
-### 9.1 Neue Aktionen hinzufügen
+### 10.1 Neue Aktionen hinzufügen
 Dies ist die häufigste Art der Erweiterung. Wie bereits erwähnt, können neue Aktionen in `services/actions.ts` definiert und zur `availableActions`-Liste hinzugefügt werden. Dies ermöglicht neue Verhaltensweisen, die sofort in das KI-Entscheidungssystem integriert werden. Alternativ können Aktionen auch zur Laufzeit über das "Create New"-Panel hinzugefügt werden.
 
-### 9.2 Neue Agenten-Attribute (Psyche, Bedürfnisse etc.)
+### 10.2 Neue Agenten-Attribute (Psyche, Bedürfnisse etc.)
 Die Simulation kann durch neue interne Zustände für Agenten erweitert werden.
 1.  **Typdefinition:** Fügen Sie das neue Attribut zur `Agent`-Schnittstelle in `types.ts` hinzu (z.B. ein neuer Psyche-Wert wie `courage` oder ein Bedürfnis wie `social`).
 2.  **Initialisierung:** Geben Sie einen Standardwert in `constants.ts` (z.B. in `defaultPsyche`) und in den Generierungsfunktionen (`sanitizeAndCreateAgents` in `hooks/useSimulation.ts`) an.
 3.  **Simulation-Engine:** Integrieren Sie die Logik für das neue Attribut in `services/simulation.ts`. Wie verändert es sich pro Schritt (`applyPerStepMechanisms`)?
 4.  **KI-Integration (entscheidend):** Damit die KI das neue Attribut versteht und berücksichtigt, müssen die Prompts in `services/geminiService.ts` aktualisiert werden. Fügen Sie das Attribut zur Agenten-Zustandsbeschreibung hinzu und erklären Sie in der `instructions`-Sektion, wie es die Aktionsauswahl beeinflussen soll (z.B. "Hoher `courage` erhöht die Wahrscheinlichkeit für die Aktion 'Fight'").
 
-### 9.3 Neue Technologien oder Rezepte
+### 10.3 Neue Technologien oder Rezepte
 1.  **Technologien:** Fügen Sie einen neuen Eintrag zum `TECH_TREE` in `constants.ts` hinzu. Definieren Sie die Kosten, Voraussetzungen und was die Technologie freischaltet (neue Aktionen, Rezepte).
 2.  **Rezepte:** Fügen Sie einen neuen Eintrag zur `RECIPES`-Liste in `constants.ts` hinzu. Definieren Sie das Ergebnis, die Zutaten und eventuelle Fähigkeits- oder Technologieanforderungen. Das System erstellt daraus automatisch eine `Craft...`-Aktion.
 
-### 9.4 Erweiterung der Benutzeroberfläche
+### 10.4 Erweiterung der Benutzeroberfläche
 Neue Informationen können in den Komponenten in `components/` visualisiert werden, z.B. durch Hinzufügen eines neuen Diagramms in `AgentCard.tsx` oder einer neuen Visualisierung im `AnalyticsDashboard.tsx`.
 
-### 9.5 Agenten-erfundene Technologien (NEU)
-Dies ist ein zentrales Feature für emergentes Gameplay. Die Simulation ist nicht mehr auf den vordefinierten Technologiebaum beschränkt.
-- **Die Aktion "Technologie erfinden":** Agenten (insbesondere Wissenschaftler mit hoher Inspiration) können versuchen, neue Technologien zu erfinden.
-- **KI als Erfinder:** Wenn diese Aktion ausgelöst wird, wird die Gemini-API aufgerufen. Sie erhält den Kontext der aktuellen Welt, der bereits bekannten Technologien und der Fähigkeiten des Agenten. Basierend darauf generiert die KI eine plausible neue Technologie, einschließlich Name, Beschreibung, Forschungskosten, Voraussetzungen und was sie freischaltet (z.B. eine neue, benutzerdefinierte Aktion).
-- **Dynamischer Technologiebaum:** Diese neu erfundene Technologie wird dem globalen `techTree` der Simulation hinzugefügt. Die Kultur des erfindenden Agenten erhält einen Forschungsbonus darauf. Von diesem Moment an können alle Kulturen diese neue Technologie erforschen. Dies führt zu einzigartigen und unvorhersehbaren technologischen Entwicklungen in jeder Simulation.
+### 10.5 Agenten-erfundene Technologien & Produkte
+Dies ist ein zentrales Feature für emergentes Gameplay. Die Simulation ist nicht mehr auf den vordefinierten Technologie- oder Rezeptbaum beschränkt.
+- **Die Aktionen "Technologie erfinden" & "Produkt erfinden":** Agenten (insbesondere Wissenschaftler oder Unternehmer mit hoher Inspiration) können versuchen, neue Dinge zu erfinden.
+- **KI als Erfinder:** Wenn diese Aktion ausgelöst wird, wird die Gemini-API aufgerufen. Sie erhält den Kontext der aktuellen Welt, der bereits bekannten Technologien und der Fähigkeiten des Agenten. Basierend darauf generiert die KI eine plausible neue Technologie oder ein neues Produktrezept.
+- **Dynamische Entwicklung:** Diese neue Erfindung wird dem globalen Zustand der Simulation hinzugefügt. Dies führt zu einzigartigen und unvorhersehbaren technologischen und wirtschaftlichen Entwicklungen in jeder Simulation.
 
-## 10. Kerntechnologien & Architektur
+## 11. Kerntechnologien & Architektur
 
 - **Frontend-Framework:** **React & TypeScript** werden für den Aufbau einer robusten, typsicheren und komponentenbasierten Benutzeroberfläche verwendet.
 

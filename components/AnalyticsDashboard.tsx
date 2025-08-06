@@ -2,7 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import type { WorldState, Agent, Transaction, Culture } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
-import { BarChart2, X, Users, CircleDollarSign, Map as MapIcon, BookOpenCheck } from './IconComponents';
+import { BarChart2, X, Users, CircleDollarSign, Map as MapIcon, BookOpenCheck, Download } from './IconComponents';
+import { TranslationKey } from '../translations';
 
 type Tab = 'social' | 'economic' | 'cultural' | 'tech';
 
@@ -15,133 +16,137 @@ const cultureColors: { [key: string]: string } = {
 // --- Social Network Graph ---
 const SocialNetworkGraph: React.FC<{ agents: Agent[], cultures: Culture[] }> = ({ agents, cultures }) => {
     const t = useTranslations();
-    const liveAgents = agents.filter(a => a.isAlive);
 
-    const agentGroups = useMemo(() => {
-        const groups: { [key: string]: Agent[] } = {};
-        liveAgents.forEach(agent => {
-            const cultureId = agent.cultureId || 'unaffiliated';
-            if (!groups[cultureId]) {
-                groups[cultureId] = [];
-            }
-            groups[cultureId].push(agent);
-        });
-        return groups;
-    }, [liveAgents]);
+    const handleDownloadInteractiveMap = () => {
+        const liveAgents = agents.filter(a => a.isAlive);
 
-    const layout = useMemo(() => {
-        const agentPositions = new Map<string, { x: number, y: number, name: string }>();
-        const groupLayouts: { id: string, name: string, x: number, y: number }[] = [];
-        const svgSize = 500;
-        const mainRadius = 180;
-        const mainCenterX = svgSize / 2;
-        const mainCenterY = svgSize / 2;
-
-        const groupIds = Object.keys(agentGroups);
-        const numGroups = groupIds.length;
-
-        groupIds.forEach((groupId, i) => {
-            const groupAgents = agentGroups[groupId];
-            const numAgentsInGroup = groupAgents.length;
-            const groupAngle = (i / numGroups) * 2 * Math.PI;
-            
-            const groupCenterX = mainCenterX + (numGroups > 1 ? mainRadius * Math.cos(groupAngle) : 0);
-            const groupCenterY = mainCenterY + (numGroups > 1 ? mainRadius * Math.sin(groupAngle) : 0);
-            
-            const culture = cultures.find(c => c.id === groupId);
-            groupLayouts.push({ id: groupId, name: culture?.name || 'Unaffiliated', x: groupCenterX, y: groupCenterY });
-
-            const clusterRadius = 30 + numAgentsInGroup * 4.5;
-
-            groupAgents.forEach((agent, j) => {
-                const agentAngle = (j / numAgentsInGroup) * 2 * Math.PI;
-                agentPositions.set(agent.id, {
-                    x: groupCenterX + clusterRadius * Math.cos(agentAngle),
-                    y: groupCenterY + clusterRadius * Math.sin(agentAngle),
-                    name: agent.name
-                });
-            });
-        });
-        return { agentPositions, groupLayouts };
-    }, [agentGroups, cultures]);
-
-    const relationshipLines = useMemo(() => {
-        const lines: { x1: number, y1: number, x2: number, y2: number, opacity: number, key: string, color: string }[] = [];
+        const nodes = liveAgents.map(agent => ({
+          id: agent.id,
+          label: agent.name,
+          group: agent.cultureId || 'unaffiliated',
+          title: `Age: ${agent.age.toFixed(1)}, Role: ${t(`role_${(agent.role || 'none').toLowerCase()}` as TranslationKey)}`
+        }));
+        
+        const edges: any[] = [];
         const processedPairs = new Set<string>();
-
         liveAgents.forEach(agentA => {
             if (!agentA.relationships) return;
             Object.entries(agentA.relationships).forEach(([agentBId, relationship]) => {
                 const pairKey = [agentA.id, agentBId].sort().join('-');
-                if (processedPairs.has(pairKey)) return;
-
-                const posA = layout.agentPositions.get(agentA.id);
-                const posB = layout.agentPositions.get(agentBId);
-
-                if (posA && posB && relationship && relationship.score > 25) {
-                    let color = "rgba(107, 114, 128, 0.7)";
-                    if (relationship.type === 'spouse' || relationship.type === 'partner') color = "rgba(236, 72, 153, 0.8)";
-                    else if (relationship.type === 'friend') color = "rgba(16, 185, 129, 0.7)";
-                    else if (relationship.type === 'rival') color = "rgba(239, 68, 68, 0.7)";
-
-                    lines.push({
-                        x1: posA.x, y1: posA.y, x2: posB.x, y2: posB.y,
-                        opacity: Math.max(0.2, relationship.score / 100),
-                        key: pairKey, color
-                    });
-                }
+                const agentB = liveAgents.find(a => a.id === agentBId);
+                if (!agentB || processedPairs.has(pairKey) || relationship.score <= 25) return;
+                
                 processedPairs.add(pairKey);
+
+                let edgeColor = { color: 'rgba(107, 114, 128, 0.7)' };
+                if (relationship.type === 'spouse' || relationship.type === 'partner') edgeColor = { color: 'rgba(236, 72, 153, 0.8)' };
+                else if (relationship.type === 'friend') edgeColor = { color: 'rgba(16, 185, 129, 0.7)' };
+                else if (relationship.type === 'rival') edgeColor = { color: 'rgba(239, 68, 68, 0.7)' };
+
+                edges.push({
+                    from: agentA.id,
+                    to: agentBId,
+                    value: relationship.score / 20,
+                    title: `${t(`relationship_${relationship.type}` as TranslationKey)} (${relationship.score.toFixed(0)})`,
+                    color: edgeColor
+                });
             });
         });
-        return lines;
-    }, [liveAgents, layout.agentPositions]);
+        
+        const visCultureColors: { [key: string]: { background: string, border: string } } = {
+            'culture-utopian': { background: '#38bdf8', border: '#0284c7' },
+            'culture-primitivist': { background: '#34d399', border: '#059669' },
+        };
+        const groupOptions = cultures.reduce((acc, culture) => {
+            acc[culture.id] = visCultureColors[culture.id] || { background: '#94a3b8', border: '#64748b' };
+            return acc;
+        }, {} as any);
+        groupOptions['unaffiliated'] = { color: { background: '#94a3b8', border: '#64748b' }};
 
-    if (liveAgents.length === 0) {
-        return <p className="text-slate-400 text-center p-8">{t('analytics_social_no_relations')}</p>;
-    }
+        const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Social Network</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        html, body { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; background-color: #111827; }
+        #network { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="network"></div>
+    <script type="text/javascript">
+        const nodes = new vis.DataSet(${JSON.stringify(nodes, null, 2)});
+        const edges = new vis.DataSet(${JSON.stringify(edges, null, 2)});
+        const container = document.getElementById('network');
+        const data = { nodes, edges };
+        const options = {
+            nodes: {
+                shape: 'dot',
+                size: 16,
+                font: { size: 14, color: '#e2e8f0' },
+                borderWidth: 2
+            },
+            edges: {
+                width: 2,
+                smooth: { type: 'continuous' }
+            },
+            groups: ${JSON.stringify(groupOptions, null, 2)},
+            physics: {
+                solver: 'forceAtlas2Based',
+                forceAtlas2Based: {
+                    gravitationalConstant: -50,
+                    centralGravity: 0.01,
+                    springLength: 200,
+                    springConstant: 0.08,
+                    avoidOverlap: 0.5
+                },
+                stabilization: { iterations: 150 }
+            },
+            interaction: {
+                tooltipDelay: 300,
+                hideEdgesOnDrag: true,
+                zoomView: true,
+                dragView: true
+            }
+        };
+        const network = new vis.Network(container, data, options);
+    </script>
+</body>
+</html>`;
 
-    const renderNodes = () => (
-        <>
-            {layout.groupLayouts.map(group => (
-                <g key={group.id}>
-                    <text x={group.x} y={group.y} textAnchor="middle" fill="#64748b" fontSize="12" fontWeight="bold">{group.name}</text>
-                </g>
-            ))}
-            {Array.from(layout.agentPositions.entries()).map(([id, pos]) => (
-                <g key={id}>
-                     <title>{pos.name}</title>
-                     <circle cx={pos.x} cy={pos.y} r="6" fill="#1e293b" stroke="#60a5fa" strokeWidth="1.5" />
-                     <text x={pos.x} y={pos.y + 15} textAnchor="middle" fill="#cbd5e1" fontSize="9">{pos.name}</text>
-                </g>
-            ))}
-        </>
-    );
-    
-    if (relationshipLines.length === 0) {
-        return (
-            <div className="relative w-full h-full">
-                <p className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-400 text-center p-8 bg-slate-850/50 rounded-lg z-10">{t('analytics_social_no_relations')}</p>
-                 <svg viewBox="0 0 500 500" className="w-full h-full">
-                    {renderNodes()}
-                </svg>
-            </div>
-        );
-    }
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'interactive_social_network.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     return (
-        <svg viewBox="0 0 500 500" className="w-full h-full">
-            {layout.groupLayouts.map(group => (
-                <g key={group.id}>
-                    <text x={group.x} y={group.y} textAnchor="middle" fill="#64748b" fontSize="12" fontWeight="bold">{group.name}</text>
-                </g>
-            ))}
-            {relationshipLines.map(line => (
-                <line key={line.key} x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke={line.color} strokeWidth="1.5" opacity={line.opacity}/>
-            ))}
-            {renderNodes()}
-        </svg>
+        <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-slate-900/50 rounded-lg">
+            <BarChart2 className="w-16 h-16 text-slate-600 mb-4" />
+            <p className="text-slate-300 mb-6 max-w-md">
+                {t('analytics_social_download_desc')}
+            </p>
+            <button
+                onClick={handleDownloadInteractiveMap}
+                disabled={agents.filter(a => a.isAlive).length === 0}
+                className="bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 px-4 rounded-md transition-colors flex items-center gap-2 disabled:bg-slate-600 disabled:cursor-not-allowed"
+            >
+                <Download className="w-5 h-5"/>
+                {t('analytics_social_download_btn')}
+            </button>
+        </div>
     );
 };
+
 
 // --- Economic Flow (Sankey-like) ---
 const EconomicFlowDiagram: React.FC<{ transactions: Transaction[], agents: Agent[], currentTime: number }> = ({ transactions, agents, currentTime }) => {

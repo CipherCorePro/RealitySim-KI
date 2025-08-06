@@ -6,11 +6,15 @@
     - [Die Besonderheit von Neugeborenen: Vererbung und Entwicklung](#12-die-besonderheit-von-neugeborenen-vererbung-und-entwicklung)
 2. [Hinter den Kulissen: Die Logik der Aktionsauswahl](#2-hinter-den-kulissen-die-logik-der-aktionsauswahl)
 3. [Beispiele für emergentes Verhalten entschlüsselt](#3-beispiele-für-emergentes-verhalten-entschlüsselt)
-    - [Warum stimmt Agent A für Agent B als Anführer?](#warum-stimmt-agent-a-für-agent-b-als-anführer)
-    - [Warum werden Agenten aggressiv und bekämpfen sich?](#warum-werden-agenten-aggressiv-und-bekämpfen-sich)
-    - [Warum versuchen Agenten etwas, wofür ihnen die Fähigkeiten fehlen?](#warum-versuchen-agenten-etwas-wofür-ihnen-die-fähigkeiten-fehlen)
-4. [Verifizierung im Code: Wo diese Logik lebt](#4-verifizierung-im-code-wo-diese-logik-lebt)
-5. [Fazit: Die Illusion des freien Willens](#5-fazit-die-illusion-des-freien-willens)
+    - [Warum stimmt Agent A für Agent B als Anführer?](#31-warum-stimmt-agent-a-für-agent-b-als-anführer)
+    - [Wie entsteht ein neues Gesetz?](#32-wie-entsteht-ein-neues-gesetz)
+    - [Warum werden Agenten aggressiv und bekämpfen sich?](#33-warum-werden-agenten-aggressiv-und-bekämpfen-sich)
+    - [Warum versuchen Agenten etwas, wofür ihnen die Fähigkeiten fehlen?](#34-warum-versuchen-agenten-etwas-wofür-ihnen-die-fähigkeiten-fehlen)
+4. [Die dynamische Wirtschaft: Fabriken und Erfindungen](#4-die-dynamische-wirtschaft-fabriken-und-erfindungen)
+5. [Das Gedächtnis: Wie Agenten lernen und sich erinnern](#5-das-gedächtnis-wie-agenten-lernen-und-sich-erinnern)
+6. [Die innere Welt: Psychoanalyse und Tagebücher](#6-die-innere-welt-psychoanalyse-und-tagebücher)
+7. [Verifizierung im Code: Wo diese Logik lebt](#7-verifizierung-im-code-wo-diese-logik-lebt)
+8. [Fazit: Die Illusion des freien Willens](#8-fazit-die-illusion-des-freien-willens)
 
 ---
 
@@ -33,106 +37,97 @@ Ein durch die KI generierter Agent (z.B. bei der Welterschaffung) hat keine expl
 
 Wenn zwei Agenten ein Kind bekommen, durchläuft der neue Agent einen speziellen Erstellungsprozess (`addNewbornAgent`), der das Konzept von Vererbung simuliert.
 
-- **Startalter und Fähigkeiten:** Ein Baby startet mit `Alter: 0` und **allen Fähigkeiten (`skills`) auf 0**. Es ist buchstäblich ein Anfänger in allem und muss jede Fähigkeit von Grund auf lernen, indem es Aktionen ausführt.
+- **Startalter und Fähigkeiten:** Ein Baby beginnt mit `Alter: 0` und `Fähigkeiten: 0` in allen Bereichen. Es ist anfangs völlig abhängig.
+- **Vererbung:** Das Neugeborene erbt eine Mischung der Attribute seiner Eltern, mit einer leichten zufälligen Mutation:
+  - **`genome` (Genom):** Eine Kombination der Gene beider Elternteile.
+  - **`personality` (Persönlichkeit):** Die Persönlichkeitsmerkmale sind ein Durchschnitt der Elternwerte mit einer leichten zufälligen Abweichung.
+  - **`psyche` (Psyche):** Auch die psychologischen Grundtriebe werden von den Eltern vererbt.
+- **Kulturelle Prägung:** Das Kind wird in die Kultur (`cultureId`) und Religion (`religionId`) seiner Eltern hineingeboren und übernimmt deren grundlegende Überzeugungen.
 
-- **Genetische Vererbung (`genome`):** Das Genom des Kindes ist eine Mischung aus den Genen beider Eltern. Das System kombiniert die Gene der Eltern, wählt zufällig etwa die Hälfte davon aus und wendet eine kleine **Mutationsrate** an. Das bedeutet, dass ein Kind ein Gen erben kann, das keiner seiner Elternteile hatte, was genetische Vielfalt simuliert.
-
-- **Psychologische Vererbung (`personality` & `psyche`):** Die Persönlichkeitsmerkmale und psychologischen Triebe des Kindes sind nicht zufällig. Sie werden als **Durchschnitt der Werte beider Eltern** berechnet, plus einer kleinen zufälligen Abweichung (Mutation). Ein Kind von zwei sehr offenen und wenig neurotischen Eltern wird mit hoher Wahrscheinlichkeit ebenfalls diese Tendenzen aufweisen.
-
-- **Kulturelle und ideologische Prägung:** Das Baby erbt die `cultureId` und `religionId` eines seiner Elternteile. Sein anfängliches Überzeugungsnetzwerk (`beliefNetwork`) ist ebenfalls der Durchschnitt der Überzeugungen beider Eltern. Es wird also buchstäblich in die Weltanschauung seiner Familie hineingeboren.
-
-- **Anfängliches Verhalten:** Da ein Baby mit null Fähigkeiten und ohne komplexe Ziele startet, wird sein Verhalten in den ersten Lebensphasen fast ausschließlich von den **Grundbedürfnissen** (Hunger, Durst, Müdigkeit) und dem **Erkundungsdrang** (zufällige Aktionen) bestimmt. Sein Verhalten ist anfangs sehr einfach und überlebensorientiert. Erst mit dem Alter und der Entwicklung von Fähigkeiten und sozialen Beziehungen wird sein Verhalten komplexer.
-
-Eine weitere besondere Form der Erinnerung, die ein Agent im Laufe seines Lebens entwickeln kann, ist das **Gefängnistagebuch**. Wenn ein Agent inhaftiert ist, wird für jeden Zeitschritt ein KI-generierter Tagebucheintrag erstellt, der seine Persönlichkeit und seinen Zustand widerspiegelt. Dieses Tagebuch bleibt auch nach der Freilassung ein permanenter Teil seiner Geschichte und kann jederzeit von seiner Agentenkarte als Markdown-Datei heruntergeladen werden.
+Dieser Prozess sorgt für eine natürliche Generationenfolge, bei der Nachkommen ihren Eltern ähneln, aber dennoch einzigartige Individuen sind.
 
 ## 2. Hinter den Kulissen: Die Logik der Aktionsauswahl
 
-Das Herzstück des emergenten Verhaltens ist die `chooseAction`-Funktion der Simulations-Engine. Diese Funktion wird für jeden Agenten in jedem Schritt aufgerufen und entscheidet, was er als Nächstes tut. Dies geschieht nicht willkürlich, sondern durch ein ausgeklügeltes **Bewertungssystem**.
+Das Herzstück der Autonomie eines Agenten ist die `chooseAction`-Funktion. Sie läuft in jedem Schritt für jeden Agenten ab und entscheidet, was er als Nächstes tun wird. Dies ist keine zufällige Wahl, sondern ein ausgeklügeltes Bewertungssystem, das eine Vielzahl von Faktoren abwägt:
 
-Für jede verfügbare Aktion (z.B. "Essen", "Reden", "Kämpfen") wird eine Punktzahl berechnet. Die Aktion mit der höchsten Punktzahl wird ausgeführt. Diese Punktzahl wird durch eine Vielzahl von internen und externen Faktoren beeinflusst, die zusammen das komplexe und oft überraschende Verhalten der Agenten formen.
-
-**Die wichtigsten Einflussfaktoren sind:**
-
-1.  **Überlebenstriebe (Höchste Priorität):** Die Grundbedürfnisse haben den stärksten Einfluss.
-    - Hoher `Hunger`, `Durst` oder `Müdigkeit` geben Aktionen wie `Eat Food`, `Drink Water` und `Rest` einen massiven Bonus. Die KI wird fast immer versuchen, ihr Überleben zu sichern, bevor sie Luxus- oder Sozialaktionen durchführt.
-
-2.  **Psyche & Emotionen (Die inneren Antriebe):** Dies ist der Schlüssel zu vielen nicht offensichtlichen Verhaltensweisen, die nicht direkt im Log stehen.
-    - Eine hohe `vengefulness` (Rachsucht) gibt der `Fight`-Aktion einen enormen Schub, wenn ein Rivale in der Nähe ist.
-    - Hohe `grief` (Trauer) macht die `Mourn`-Aktion (Trauern) sehr wahrscheinlich.
-    - Hohes `spiritualNeed` (Spirituelles Bedürfnis) fördert `Meditate`.
-    - Hohe `jealousy` (Eifersucht) kann zu `Confront Partner` führen.
-
-3.  **Ziele (Goals):** Wenn ein Agent ein aktives Ziel hat, erhalten Aktionen, die auf dieses Ziel hinarbeiten, eine sehr hohe Priorität. Ein Agent mit dem Ziel "Anführer werden" wird `Run for Election` stark bevorzugen.
-
-4.  **Persönlichkeit (Charakterzüge):**
-    - Hohe `conscientiousness` (Gewissenhaftigkeit) führt zu einem extremen Malus für illegale Aktionen. Solche Agenten sind gesetzestreu.
-    - Hohe `extraversion` (Extraversion) erhöht die Punktzahl für soziale Aktionen wie `Talk`.
-    - Niedrige `agreeableness` (Verträglichkeit) kann die Hemmschwelle für aggressive Aktionen wie `Fight` senken.
-
-5.  **Sozialer Kontext & Rolle:**
-    - Ein Agent mit der Rolle `Scientist` erhält einen Bonus auf `Research`.
-    - Die Anwesenheit anderer Agenten in der Nähe beeinflusst die Bewertung sozialer Aktionen.
-
-6.  **Verstärkendes Lernen (Q-Learning):** Die `qTable` ist ein einfaches Lernsystem. Der Agent merkt sich, welche Aktionen in einer bestimmten Situation (z.B. "hungrig & nahe an Nahrung") zu einem positiven Ergebnis (Belohnung) geführt haben, und bevorzugt diese in Zukunft.
-
-7.  **Erkundung & Zufall (`Epsilon-Greedy`):** Es gibt eine kleine (ca. 10%) Wahrscheinlichkeit, dass ein Agent eine **zufällige Aktion** wählt, anstatt der mit der höchsten Punktzahl. Dies simuliert Neugier, Spontaneität und Erkundungsverhalten. Es ist ein entscheidender Faktor, warum Agenten manchmal unlogische Dinge tun oder neue Verhaltensweisen ausprobieren.
+1.  **Überlebenspriorität (Höchste Priorität):** Wenn ein Agent am Verhungern (`hunger > 60`), Verdursten (`thirst > 50`) oder extrem müde (`fatigue > 85`) ist, erhalten Aktionen wie `Eat Food`, `Drink Water` oder `Rest` einen massiven Bonus. Überleben steht über allem.
+2.  **Psychologische Imperative:** Starke innere Triebe aus der `psyche` drängen den Agenten zu bestimmten Handlungen:
+    - Hohe `Trauer` (`grief`) führt zu `Mourn`.
+    - Hohe `Rachsucht` (`vengefulness`) und ein `Rivale` in der Nähe führen zu `Fight`.
+    - Hohe `Langeweile` (`boredom`) kann eine zufällige, neuartige Aktion auslösen, um die Monotonie zu durchbrechen.
+    - Hohe `Eifersucht` (`jealousy`) kann zu `Confront Partner` führen.
+    - Hohes `Spirituelles Bedürfnis` (`spiritualNeed`) oder `Sinnsuche` (`searchForMeaning`) machen `Meditate` sehr wahrscheinlich.
+3.  **Ziele (`goals`):** Aktive Ziele geben dem Agenten eine langfristige Motivation. Ein Agent mit dem Ziel `becomeLeader` wird Aktionen wie `Run for Election` stark bevorzugen.
+4.  **Rolle & Persönlichkeit:** Die Rolle und der Charakter eines Agenten beeinflussen seine "Standard"-Handlungen. Ein `Guard` wird zum `Patrol` neigen, ein `Scientist` zum `Research`. Ein extrovertierter Agent wird eher `Talk` wählen als ein introvertierter.
+5.  **Gesetze & Moral:** Illegale Aktionen (z.B. `Steal`) erhalten einen starken Malus, der durch eine hohe `Gewissenhaftigkeit` (`conscientiousness`) noch verstärkt wird.
+6.  **Wirtschaftliches Kalkül:** Agenten handeln ökonomisch. Ein armer Agent wird `Work for money` in Betracht ziehen. Ein reicher `Entrepreneur` könnte eine `Factory` gründen.
+7.  **Verstärkungslernen (`qTable`):** Jeder Agent führt eine einfache "Q-Tabelle". Sie merkt sich, welche Aktionen in bestimmten Situationen (z.B. "hungrig und in der Nähe von Essen") zu einer positiven Belohnung (`reward`) geführt haben. Mit der Zeit "lernt" der Agent, welche Handlungen sich lohnen.
+8.  **Erkundung (`EPSILON_GREEDY`):** Es gibt eine kleine (ca. 10%) Wahrscheinlichkeit, dass ein Agent eine völlig zufällige Aktion wählt. Dies simuliert Neugier und ermöglicht es dem Agenten, neue, potenziell bessere Strategien zu entdecken.
+9.  **Fallback:** Wenn nach Abwägung aller Faktoren keine Aktion eine ausreichend hohe Bewertung erhält, wird der Agent einfach umherwandern (`Wander`).
 
 ## 3. Beispiele für emergentes Verhalten entschlüsselt
 
-Mit dem Wissen über das Bewertungssystem können wir die spezifischen Fragen zum Agentenverhalten beantworten.
+Das Zusammenspiel der oben genannten Regeln führt zu komplexem, oft überraschendem Verhalten.
 
-### Warum stimmt Agent A für Agent B als Anführer?
+### 3.1 Warum stimmt Agent A für Agent B als Anführer?
 
-**Das Ereignisprotokoll zeigt nur, *dass* A für B gestimmt hat, aber nicht *warum*.** Der Grund liegt in der Logik der `Vote`-Aktion und dem Zustand des Agenten.
+Die aktuelle Wahl-Logik ist sehr pragmatisch. Wenn eine Wahl aktiv ist, wird ein Agent für den Kandidaten stimmen, der den höchsten **Sozialstatus** hat. Beziehungen spielen hierbei noch eine untergeordnete Rolle. Dies modelliert eine Gesellschaft, in der Ansehen und Einfluss die Wahlentscheidung dominieren.
 
-Die aktuelle Implementierung ist eine Heuristik: Wenn ein Agent zur Wahl geht, identifiziert er alle Kandidaten und gibt seine Stimme demjenigen mit dem höchsten `socialStatus`. Dies ist eine vereinfachte Simulation von politischer Entscheidung, bei der der Agent annimmt, dass die Person mit dem höchsten Ansehen und der größten Beliebtheit die beste Wahl ist. Es ist keine komplexe politische Abwägung, sondern das Ergebnis einer einfachen, aber plausiblen Regel.
+### 3.2 Wie entsteht ein neues Gesetz?
 
-### Warum werden Agenten aggressiv und bekämpfen sich?
+Dies ist ein Paradebeispiel für die fortschrittliche KI-Integration:
+1.  **Auslöser:** Nur der aktuelle Anführer (`Leader`) mit der Technologie "Governance" kann ein Gesetz vorschlagen. Er wird dies eher tun, wenn seine Erinnerungen auf soziale Probleme hindeuten (z.B. viele Kämpfe).
+2.  **KI-Gesetzgeber:** Die Aktion `Propose New Law` ruft die Gemini-KI auf. Die KI analysiert die jüngsten Ereignisse aus den Erinnerungen des Anführers und die Grundwerte seiner Kultur. Basierend darauf **erfindet die KI ein komplett neues, passendes Gesetz**, z.B. ein "Ressourcenschutzgesetz", wenn Ressourcen knapp werden.
+3.  **Abstimmung im Clan:** Das vorgeschlagene Gesetz wird nicht einfach erlassen. Es wird eine Abstimmung unter allen Mitgliedern der Kultur des Anführers simuliert. Die Zustimmungswahrscheinlichkeit jedes Mitglieds hängt von seiner **Beziehung zum Anführer** und seiner eigenen **Verträglichkeit** (`agreeableness`) ab.
+4.  **Mehrheitsentscheid:** Nur wenn die Mehrheit zustimmt, wird das Gesetz Teil der Weltregeln.
 
-Aggression ist selten grundlos und entspringt oft einer Kombination mehrerer Faktoren:
+### 3.3 Warum werden Agenten aggressiv und bekämpfen sich?
 
-1.  **Hohe Rachsucht (`vengefulness`):** Ein Agent mit einem hohen Wert in diesem Psyche-Attribut ist von Natur aus streitlustiger.
-2.  **Beziehungsstatus "Rivale":** Wenn zwei Agenten eine Rivalenbeziehung haben, erhält die `Fight`-Aktion einen hohen Bonus, wenn sie sich begegnen.
-3.  **Ziel "Rache":** Ein Agent mit dem aktiven Ziel `avengeRival` wird aktiv versuchen, seinen Rivalen zu finden und zu bekämpfen.
-4.  **Niedrige Verträglichkeit:** Ein Agent mit niedriger `agreeableness` hat eine geringere Hemmschwelle für Konflikte.
+Aggression ist selten zufällig. Sie entsteht aus einer Kombination von Faktoren:
+- **Ziel `avengeRival`:** Ein Agent mit diesem Ziel wird aktiv die Konfrontation mit seinem Rivalen suchen.
+- **Hohe `vengefulness`:** Ein rachsüchtiger Agent hat eine niedrigere Hemmschwelle, einen Kampf zu beginnen.
+- **Niedrige `agreeableness`:** Ein wenig verträglicher Agent neigt eher zu Konflikten.
+- **Direkter Befehl:** Der Benutzer kann einen Kampf über die Eingabeaufforderung provozieren.
 
-### Warum versuchen Agenten etwas, wofür ihnen die Fähigkeiten fehlen?
+### 3.4 Warum versuchen Agenten etwas, wofür ihnen die Fähigkeiten fehlen?
 
-Dies ist ein perfektes Beispiel für Aspiration und den Unterschied zwischen Motivation und Fähigkeit. Das Aktionsauswahl-System bewertet primär den **Wunsch** oder die **Notwendigkeit**, eine Aktion auszuführen.
+Dies ist oft ein Zeichen für Verzweiflung oder Neugier:
+- **Verzweiflung:** Ein verhungernder Agent mit `farming: 0` wird trotzdem versuchen, `Gather Food` auszuführen, weil die Überlebenspriorität alle anderen Bedenken überstimmt.
+- **Neugier (Exploration):** Die `EPSILON_GREEDY`-Logik kann dazu führen, dass ein Agent eine zufällige Aktion wie `Craft Sword` ausprobiert, einfach um zu sehen, was passiert, auch wenn seine `crafting`-Fähigkeit miserabel ist.
 
-**Beispiel:** Ein Agent ohne `crafting`-Fähigkeit versucht, ein Schwert herzustellen. Warum?
-- **Hohe Motivation:** Der Agent könnte eine niedrige Gesundheit haben und eine hohe `fearOfDeath` (Todesangst). Sein System bewertet jede Aktion, die Sicherheit verspricht (wie der Besitz einer Waffe), extrem hoch.
-- **Zielorientierung:** Er könnte das Ziel `achieveWealth` (Reichtum erlangen) haben und "weiß", dass Schwerter wertvoll sind.
-- **Verfügbarkeit:** Die Zutaten (Eisen, Holz) sind zufällig in seinem Inventar vorhanden.
+## 4. Die dynamische Wirtschaft: Fabriken und Erfindungen
 
-Der Agent "denkt" also: "Ich habe Angst, ich brauche Schutz. Ich habe die Materialien für ein Schwert. Also versuche ich, ein Schwert zu bauen!" Die Simulations-Engine lässt diesen Versuch zu, aber die `execute`-Funktion der Aktion wird dann fehlschlagen und eine Log-Nachricht wie `log_action_craft_fail_skill` ausgeben.
+Die Simulation verfügt über ein tiefgreifendes Wirtschaftssystem, das Produktionsketten und Innovation modelliert.
+- **Ressourcen & Waren:** Es gibt Rohstoffe (`Holz`, `Eisen`, `Kohle` etc.) und daraus herstellbare Waren (`Stahlbarren`, `Werkzeuge`, `Möbel`).
+- **Fabriken:** Agenten mit der Rolle `Entrepreneur` können `Factory`-Entitäten gründen, die auf die Produktion eines bestimmten Gutes spezialisiert sind.
+- **Arbeitsmarkt:** Andere Agenten können in diesen Fabriken arbeiten (`Work in Factory`), um einen Lohn vom Besitzer zu erhalten, während der Besitzer die produzierten Waren erhält.
+- **KI-gesteuerte Innovation:** Das Highlight ist die Aktion `Invent Product`. Ein Unternehmer kann die KI nutzen, um basierend auf den verfügbaren Ressourcen und Technologien **ein völlig neues Produktrezept zu erfinden**. Dieses neue Rezept wird dann der Simulation hinzugefügt und kann von allen fähigen Agenten hergestellt werden, was zu einer sich dynamisch entwickelnden Wirtschaft führt.
 
-Dieses Verhalten ist nicht unlogisch, sondern menschlich. Es modelliert den Wunsch, die eigenen Fähigkeiten zu übersteigen, um ein dringendes Bedürfnis oder ein hohes Ziel zu erreichen. Auch der **Erkundungsfaktor** kann hier eine Rolle spielen, bei dem der Agent einfach etwas Neues ausprobiert.
+## 5. Das Gedächtnis: Wie Agenten lernen und sich erinnern
 
-## 4. Verifizierung im Code: Wo diese Logik lebt
+Das Gedächtnis ist der Schlüssel zu kontextbewusstem Verhalten. Es ist keine einfache Liste von Ereignissen.
+- **Vektor-Datenbank:** Jede wichtige Aktion und deren Ergebnis wird in einen Text umgewandelt (z.B. "Ich habe erfolgreich 5 Holz gesammelt"). Dieser Text wird mittels KI in einen numerischen Vektor ("Embedding") umgewandelt, der die semantische Bedeutung erfasst.
+- **Semantische Suche:** Wenn ein Agent eine komplexe Entscheidung treffen muss (z.B. auf die Frage "Was hältst du von Bob?"), wird die Frage ebenfalls in einen Vektor umgewandelt. Das System sucht dann im Langzeitgedächtnis nach den Erinnerungen, deren Vektoren dem Frage-Vektor am ähnlichsten sind.
+- **Kontext für die KI:** Die relevantesten Erinnerungen (z.B. vergangene Kämpfe oder freundliche Gespräche mit Bob) werden der KI als zusätzlicher Kontext gegeben. Dadurch kann der Agent "wie ein Mensch" auf Basis relevanter vergangener Erfahrungen antworten, anstatt nur auf seinen unmittelbaren Zustand zu reagieren.
 
-Ein häufiges Missverständnis bei komplexen Simulationen ist, dass das beschriebene Verhalten nur eine "Wunschvorstellung" der Entwickler ist. Im Fall von RealitySim AI ist die hier dokumentierte Logik jedoch direkt und nachvollziehbar im Quellcode implementiert.
+## 6. Die innere Welt: Psychoanalyse und Tagebücher
 
-**Antwort auf die Frage: "Steht das wirklich im Code?"**
+Um die psychologische Tiefe zu erhöhen, gibt es zwei besondere Features:
+- **Psychoanalyse:** Auf Knopfdruck analysiert die KI den gesamten Zustand eines Agenten (Persönlichkeit, Erinnerungen, Traumata, Ziele) und erstellt einen detaillierten psychologischen Bericht. Dieser Bericht kann dem Agenten neue `unconscious_modifiers` (unbewusste Triebe) und ein `suggested_goal` (vorgeschlagenes Ziel) geben, was sein zukünftiges Verhalten subtil beeinflusst.
+- **Gefängnistagebuch (`jailJournal`):** Wenn ein Agent inhaftiert ist, generiert die KI für jeden Schritt einen Tagebucheintrag. Dieser Eintrag reflektiert die Persönlichkeit des Agenten, seine Erinnerungen an die Tat und seine Gefühle über die Gefangenschaft. Dies bietet einen faszinierenden Einblick in die "Gedankenwelt" des Agenten.
 
-Ja. Die in diesem Dokument beschriebenen Mechanismen, insbesondere die Vererbung und die komplexe Aktionsauswahl, sind das Kernstück der Simulations-Engine.
+## 7. Verifizierung im Code: Wo diese Logik lebt
 
-**Spezifisches Beispiel: Genom-Vererbung bei Babys**
+Um diese Verhaltensweisen selbst zu überprüfen und zu modifizieren, sind folgende Dateien entscheidend:
+- **`services/simulation.ts`:** Hier befindet sich die `chooseAction`-Methode, das "Gehirn" der Agenten. Sie enthält die gesamte Bewertungslogik, die in Abschnitt 2 beschrieben wird.
+- **`services/actions.ts`:** Diese Datei enthält die Implementierung jeder einzelnen Aktion (`execute`-Funktion). Hier wird definiert, was genau passiert, wenn ein Agent z.B. kämpft, handelt oder ein Gesetz erlässt.
+- **`services/geminiService.ts`:** Hier sind alle Prompts definiert, die an die KI gesendet werden, einschließlich der komplexen Anweisungen für die Gesetzeserfindung, Psychoanalyse und das Tagebuchschreiben.
 
-Die Frage nach der Vererbung von Genen ist ein exzellentes Beispiel. Die Logik befindet sich in der Datei `services/simulation.ts` innerhalb der Funktion `inheritGenome`. Der Prozess läuft wie folgt ab:
-1.  **Kombination:** Die Genome beider Elternteile werden zu einem gemeinsamen Genpool zusammengefügt, wobei Duplikate entfernt werden.
-2.  **Auswahl:** Das Kind erbt etwa die Hälfte der Gene aus diesem kombinierten Pool, zufällig ausgewählt.
-3.  **Mutation:** Es gibt eine kleine Wahrscheinlichkeit (`MUTATION_RATE`), dass ein vererbtes Gen zu einem zufälligen anderen Gen aus der Liste aller möglichen Genome (`GENOME_OPTIONS`) mutiert.
-4.  **Eindeutigkeit:** Das System stellt sicher, dass das Kind am Ende keine doppelten Gene hat.
+## 8. Fazit: Die Illusion des freien Willens
 
-Ähnliche, klar definierte Funktionen (`inheritPersonality`, `inheritPsyche`) existieren für die Vererbung psychologischer Merkmale.
+Das Verhalten der Agenten in RealitySim AI ist nicht vorprogrammiert. Es ist das **emergente Ergebnis** aus dem Zusammenspiel von:
+- **Deterministischen Regeln** (Bedürfnisse, Fähigkeiten, Mathematik des Kampfes).
+- **Komplexen internen Zuständen** (Persönlichkeit, Psyche, Ziele, Erinnerungen).
+- **KI-gesteuerter Kreativität und Interpretation** (Dialog, Erfindungen, Gesetze).
 
-**Wo findet man die Entscheidungslogik?**
-
-Die gesamte Logik, die das emergente Verhalten steuert (warum ein Agent kämpft, wählt oder eine ungelernte Fähigkeit ausprobiert), ist in der Funktion `chooseAction` in `services/simulation.ts` zentralisiert. Dort werden die in Abschnitt 2 beschriebenen Punktzahlen für jede mögliche Aktion berechnet.
-
-## 5. Fazit: Die Illusion des freien Willens
-
-Das Verhalten der Agenten ist das Ergebnis eines komplexen, aber deterministischen Systems. Es gibt keinen "echten" freien Willens, sondern eine Kaskade von Berechnungen, die auf Dutzenden von internen und externen Variablen basieren.
-
-Die Illusion von Spontaneität und Persönlichkeit entsteht durch die schiere Komplexität dieses Zusammenspiels. Das Ereignisprotokoll (`Event Log`) kratzt nur an der Oberfläche. Um wirklich zu verstehen, warum ein Agent eine bestimmte Entscheidung getroffen hat, muss man seinen **vollständigen Zustand zum Zeitpunkt der Entscheidung** betrachten: seine Bedürfnisse, seine Persönlichkeit, seine Psyche, seine Ziele, seine Beziehungen und die kleine Prise Zufall, die ihn manchmal auf unerwartete Pfade führt. Die Agentenkarte (`Agent Card`) ist daher das wichtigste Werkzeug, um die verborgene Logik hinter dem emergenten Verhalten zu entschlüsseln.
+Diese Kombination schafft eine überzeugende Illusion von autonomen Wesen mit eigenem Willen, eigenen Motivationen und einer einzigartigen Lebensgeschichte.
