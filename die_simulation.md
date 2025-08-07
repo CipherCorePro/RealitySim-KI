@@ -6,11 +6,11 @@
     - [Die Besonderheit von Neugeborenen: Vererbung und Entwicklung](#12-die-besonderheit-von-neugeborenen-vererbung-und-entwicklung)
 2. [Hinter den Kulissen: Die Logik der Aktionsauswahl](#2-hinter-den-kulissen-die-logik-der-aktionsauswahl)
 3. [Beispiele für emergentes Verhalten entschlüsselt](#3-beispiele-für-emergentes-verhalten-entschlüsselt)
-    - [Warum stimmt Agent A für Agent B als Anführer?](#31-warum-stimmt-agent-a-für-agent-b-als-anführer)
+    - [Warum stimmt Agent A für Agent B als Anführer? Die Macht der Ideologie](#31-warum-stimmt-agent-a-für-agent-b-als-anführer-die-macht-der-ideologie)
     - [Wie entsteht ein neues Gesetz?](#32-wie-entsteht-ein-neues-gesetz)
     - [Warum werden Agenten aggressiv und bekämpfen sich?](#33-warum-werden-agenten-aggressiv-und-bekämpfen-sich)
     - [Warum versuchen Agenten etwas, wofür ihnen die Fähigkeiten fehlen?](#34-warum-versuchen-agenten-etwas-wofür-ihnen-die-fähigkeiten-fehlen)
-4. [Die dynamische Wirtschaft: Fabriken und Erfindungen](#4-die-dynamische-wirtschaft-fabriken-und-erfindungen)
+4. [Die dynamische Wirtschaft: Fabriken und KI-gesteuerte Innovation](#4-die-dynamische-wirtschaft-fabriken-und-ki-gesteuerte-innovation)
 5. [Das Gedächtnis: Wie Agenten lernen und sich erinnern](#5-das-gedächtnis-wie-agenten-lernen-und-sich-erinnern)
 6. [Die innere Welt: Psychoanalyse und Tagebücher](#6-die-innere-welt-psychoanalyse-und-tagebücher)
 7. [Verifizierung im Code: Wo diese Logik lebt](#7-verifizierung-im-code-wo-diese-logik-lebt)
@@ -57,21 +57,25 @@ Das Herzstück der Autonomie eines Agenten ist die `chooseAction`-Funktion. Sie 
     - Hohe `Langeweile` (`boredom`) kann eine zufällige, neuartige Aktion auslösen, um die Monotonie zu durchbrechen.
     - Hohe `Eifersucht` (`jealousy`) kann zu `Confront Partner` führen.
     - Hohes `Spirituelles Bedürfnis` (`spiritualNeed`) oder `Sinnsuche` (`searchForMeaning`) machen `Meditate` sehr wahrscheinlich.
-3.  **Ziele (`goals`):** Aktive Ziele geben dem Agenten eine langfristige Motivation. Ein Agent mit dem Ziel `becomeLeader` wird Aktionen wie `Run for Election` stark bevorzugen.
-4.  **Rolle & Persönlichkeit:** Die Rolle und der Charakter eines Agenten beeinflussen seine "Standard"-Handlungen. Ein `Guard` wird zum `Patrol` neigen, ein `Scientist` zum `Research`. Ein extrovertierter Agent wird eher `Talk` wählen als ein introvertierter.
-5.  **Gesetze & Moral:** Illegale Aktionen (z.B. `Steal`) erhalten einen starken Malus, der durch eine hohe `Gewissenhaftigkeit` (`conscientiousness`) noch verstärkt wird.
-6.  **Wirtschaftliches Kalkül:** Agenten handeln ökonomisch. Ein armer Agent wird `Work for money` in Betracht ziehen. Ein reicher `Entrepreneur` könnte eine `Factory` gründen.
-7.  **Verstärkungslernen (`qTable`):** Jeder Agent führt eine einfache "Q-Tabelle". Sie merkt sich, welche Aktionen in bestimmten Situationen (z.B. "hungrig und in der Nähe von Essen") zu einer positiven Belohnung (`reward`) geführt haben. Mit der Zeit "lernt" der Agent, welche Handlungen sich lohnen.
-8.  **Erkundung (`EPSILON_GREEDY`):** Es gibt eine kleine (ca. 10%) Wahrscheinlichkeit, dass ein Agent eine völlig zufällige Aktion wählt. Dies simuliert Neugier und ermöglicht es dem Agenten, neue, potenziell bessere Strategien zu entdecken.
-9.  **Fallback:** Wenn nach Abwägung aller Faktoren keine Aktion eine ausreichend hohe Bewertung erhält, wird der Agent einfach umherwandern (`Wander`).
+3.  **Ideologische Nähe (JSD):** Agenten bevorzugen die Interaktion (`Talk`) mit "Gleichgesinnten". Die **Jensen-Shannon-Divergenz** misst die ideologische Distanz zu nahen Agenten, und eine hohe Ähnlichkeit (niedriger JSD) gibt der `Talk`-Aktion einen Bonus.
+4.  **Ziele (`goals`):** Aktive Ziele geben dem Agenten eine langfristige Motivation. Ein Agent mit dem Ziel `becomeLeader` wird Aktionen wie `Run for Election` stark bevorzugen.
+5.  **Rolle & Persönlichkeit:** Die Rolle und der Charakter eines Agenten beeinflussen seine "Standard"-Handlungen. Ein `Guard` wird zum `Patrol` neigen, ein `Scientist` zum `Research`. Ein extrovertierter Agent wird eher `Talk` wählen als ein introvertierter.
+6.  **Gesetze & Moral:** Illegale Aktionen (z.B. `Steal`) erhalten einen starken Malus, der durch eine hohe `Gewissenhaftigkeit` (`conscientiousness`) noch verstärkt wird.
+7.  **Wirtschaftliches Kalkül:** Agenten handeln ökonomisch. Ein armer Agent wird `Work for money` in Betracht ziehen. Ein reicher `Entrepreneur` könnte eine `Factory` gründen.
+8.  **Verstärkungslernen (`qTable`):** Jeder Agent führt eine einfache "Q-Tabelle". Sie merkt sich, welche Aktionen in bestimmten Situationen (z.B. "hungrig und in der Nähe von Essen") zu einer positiven Belohnung (`reward`) geführt haben. Mit der Zeit "lernt" der Agent, welche Handlungen sich lohnen.
+9.  **Erkundung (`EPSILON_GREEDY`):** Es gibt eine kleine (ca. 10%) Wahrscheinlichkeit, dass ein Agent eine völlig zufällige Aktion wählt. Dies simuliert Neugier und ermöglicht es dem Agenten, neue, potenziell bessere Strategien zu entdecken.
+10. **Fallback:** Wenn nach Abwägung aller Faktoren keine Aktion eine ausreichend hohe Bewertung erhält, wird der Agent einfach umherwandern (`Wander`).
 
 ## 3. Beispiele für emergentes Verhalten entschlüsselt
 
 Das Zusammenspiel der oben genannten Regeln führt zu komplexem, oft überraschendem Verhalten.
 
-### 3.1 Warum stimmt Agent A für Agent B als Anführer?
+### 3.1 Warum stimmt Agent A für Agent B als Anführer? Die Macht der Ideologie
 
-Die aktuelle Wahl-Logik ist sehr pragmatisch. Wenn eine Wahl aktiv ist, wird ein Agent für den Kandidaten stimmen, der den höchsten **Sozialstatus** hat. Beziehungen spielen hierbei noch eine untergeordnete Rolle. Dies modelliert eine Gesellschaft, in der Ansehen und Einfluss die Wahlentscheidung dominieren.
+Die Wahl-Logik basiert nicht mehr auf oberflächlichem Status, sondern auf tiefen ideologischen Überzeugungen.
+- **Jensen-Shannon-Divergenz (JSD):** Vor der Wahl berechnet ein Agent den JSD-Wert zwischen seinem eigenen `beliefNetwork` und dem jedes Kandidaten.
+- **Wahl des Gleichgesinnten:** Der Agent wird mit sehr hoher Wahrscheinlichkeit für den Kandidaten stimmen, dessen JSD-Wert am **niedrigsten** ist – also den Kandidaten, dessen Weltanschauung seiner eigenen am meisten ähnelt.
+- **Emergentes Ergebnis:** Dies führt zur Bildung von politischen Blöcken und zu Wahlen, die entlang ideologischer Linien entschieden werden, anstatt dass einfach die "beliebteste" Person gewinnt.
 
 ### 3.2 Wie entsteht ein neues Gesetz?
 
@@ -87,6 +91,7 @@ Aggression ist selten zufällig. Sie entsteht aus einer Kombination von Faktoren
 - **Ziel `avengeRival`:** Ein Agent mit diesem Ziel wird aktiv die Konfrontation mit seinem Rivalen suchen.
 - **Hohe `vengefulness`:** Ein rachsüchtiger Agent hat eine niedrigere Hemmschwelle, einen Kampf zu beginnen.
 - **Niedrige `agreeableness`:** Ein wenig verträglicher Agent neigt eher zu Konflikten.
+- **Kognitive Dissonanz:** Ein Agent, der gegen seine friedlichen Überzeugungen handelt (z.B. gezwungen wird zu kämpfen), erleidet Stress, was ihn in Zukunft reizbarer machen kann.
 - **Direkter Befehl:** Der Benutzer kann einen Kampf über die Eingabeaufforderung provozieren.
 
 ### 3.4 Warum versuchen Agenten etwas, wofür ihnen die Fähigkeiten fehlen?
@@ -95,20 +100,20 @@ Dies ist oft ein Zeichen für Verzweiflung oder Neugier:
 - **Verzweiflung:** Ein verhungernder Agent mit `farming: 0` wird trotzdem versuchen, `Gather Food` auszuführen, weil die Überlebenspriorität alle anderen Bedenken überstimmt.
 - **Neugier (Exploration):** Die `EPSILON_GREEDY`-Logik kann dazu führen, dass ein Agent eine zufällige Aktion wie `Craft Sword` ausprobiert, einfach um zu sehen, was passiert, auch wenn seine `crafting`-Fähigkeit miserabel ist.
 
-## 4. Die dynamische Wirtschaft: Fabriken und Erfindungen
+## 4. Die dynamische Wirtschaft: Fabriken und KI-gesteuerte Innovation
 
 Die Simulation verfügt über ein tiefgreifendes Wirtschaftssystem, das Produktionsketten und Innovation modelliert.
 - **Ressourcen & Waren:** Es gibt Rohstoffe (`Holz`, `Eisen`, `Kohle` etc.) und daraus herstellbare Waren (`Stahlbarren`, `Werkzeuge`, `Möbel`).
 - **Fabriken:** Agenten mit der Rolle `Entrepreneur` können `Factory`-Entitäten gründen, die auf die Produktion eines bestimmten Gutes spezialisiert sind.
 - **Arbeitsmarkt:** Andere Agenten können in diesen Fabriken arbeiten (`Work in Factory`), um einen Lohn vom Besitzer zu erhalten, während der Besitzer die produzierten Waren erhält.
-- **KI-gesteuerte Innovation:** Das Highlight ist die Aktion `Invent Product`. Ein Unternehmer kann die KI nutzen, um basierend auf den verfügbaren Ressourcen und Technologien **ein völlig neues Produktrezept zu erfinden**. Dieses neue Rezept wird dann der Simulation hinzugefügt und kann von allen fähigen Agenten hergestellt werden, was zu einer sich dynamisch entwickelnden Wirtschaft führt.
+- **KI-gesteuerte Innovation:** Das Highlight ist die Aktion `Invent Technology`. Ein Wissenschaftler kann die KI nutzen, um basierend auf den bekannten Technologien und den "Erfahrungen" (Erinnerungen) der Kultur **eine völlig neue Technologie zu erfinden**. Diese neue Technologie schaltet dann wiederum neue Aktionen oder Handwerksrezepte frei und treibt so die gesellschaftliche Entwicklung auf unvorhersehbare Weise voran.
 
 ## 5. Das Gedächtnis: Wie Agenten lernen und sich erinnern
 
 Das Gedächtnis ist der Schlüssel zu kontextbewusstem Verhalten. Es ist keine einfache Liste von Ereignissen.
 - **Vektor-Datenbank:** Jede wichtige Aktion und deren Ergebnis wird in einen Text umgewandelt (z.B. "Ich habe erfolgreich 5 Holz gesammelt"). Dieser Text wird mittels KI in einen numerischen Vektor ("Embedding") umgewandelt, der die semantische Bedeutung erfasst.
 - **Semantische Suche:** Wenn ein Agent eine komplexe Entscheidung treffen muss (z.B. auf die Frage "Was hältst du von Bob?"), wird die Frage ebenfalls in einen Vektor umgewandelt. Das System sucht dann im Langzeitgedächtnis nach den Erinnerungen, deren Vektoren dem Frage-Vektor am ähnlichsten sind.
-- **Kontext für die KI:** Die relevantesten Erinnerungen (z.B. vergangene Kämpfe oder freundliche Gespräche mit Bob) werden der KI als zusätzlicher Kontext gegeben. Dadurch kann der Agent "wie ein Mensch" auf Basis relevanter vergangener Erfahrungen antworten, anstatt nur auf seinen unmittelbaren Zustand zu reagieren.
+- **Kontext für die KI:** Die relevantesten Erinnerungen (z.B. vergangene Kämpfe oder freundliche Gespräche mit Bob) werden der KI als zusätzlicher Kontext gegeben. Dadurch kann der Agent "wie ein Mensch" auf Basis relevanter vergangener Erfahrungen antworten, anstatt nur auf seinen unmittelbaren Zustand zu reagieren. Dies wird auch als Kontext für die Erfindung neuer Gesetze und Technologien genutzt.
 
 ## 6. Die innere Welt: Psychoanalyse und Tagebücher
 
@@ -119,15 +124,17 @@ Um die psychologische Tiefe zu erhöhen, gibt es zwei besondere Features:
 ## 7. Verifizierung im Code: Wo diese Logik lebt
 
 Um diese Verhaltensweisen selbst zu überprüfen und zu modifizieren, sind folgende Dateien entscheidend:
-- **`services/simulation.ts`:** Hier befindet sich die `chooseAction`-Methode, das "Gehirn" der Agenten. Sie enthält die gesamte Bewertungslogik, die in Abschnitt 2 beschrieben wird.
-- **`services/actions.ts`:** Diese Datei enthält die Implementierung jeder einzelnen Aktion (`execute`-Funktion). Hier wird definiert, was genau passiert, wenn ein Agent z.B. kämpft, handelt oder ein Gesetz erlässt.
+- **`services/simulation.ts`:** Hier befindet sich die `chooseAction`-Methode, das "Gehirn" der Agenten. Sie enthält die gesamte Bewertungslogik, die in Abschnitt 2 beschrieben wird. Auch die Logik für kognitive Dissonanz ist hier zu finden.
+- **`services/actions.ts`:** Diese Datei enthält die Implementierung jeder einzelnen Aktion (`execute`-Funktion). Hier wird definiert, was genau passiert, wenn ein Agent wählt, handelt oder ein Gesetz erlässt.
 - **`services/geminiService.ts`:** Hier sind alle Prompts definiert, die an die KI gesendet werden, einschließlich der komplexen Anweisungen für die Gesetzeserfindung, Psychoanalyse und das Tagebuchschreiben.
+- **`services/statisticsUtils.ts`:** Enthält die mathematische Implementierung der Jensen-Shannon-Divergenz.
 
 ## 8. Fazit: Die Illusion des freien Willens
 
 Das Verhalten der Agenten in RealitySim AI ist nicht vorprogrammiert. Es ist das **emergente Ergebnis** aus dem Zusammenspiel von:
 - **Deterministischen Regeln** (Bedürfnisse, Fähigkeiten, Mathematik des Kampfes).
 - **Komplexen internen Zuständen** (Persönlichkeit, Psyche, Ziele, Erinnerungen).
+- **Mathematischer Soziologie** (Jensen-Shannon-Divergenz zur Messung ideologischer Nähe).
 - **KI-gesteuerter Kreativität und Interpretation** (Dialog, Erfindungen, Gesetze).
 
 Diese Kombination schafft eine überzeugende Illusion von autonomen Wesen mit eigenem Willen, eigenen Motivationen und einer einzigartigen Lebensgeschichte.
