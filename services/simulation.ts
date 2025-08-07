@@ -1,3 +1,4 @@
+
 import type { WorldState, Agent, Entity, Action, EnvironmentState, Beliefs, Resonance, LogEntry, Relationship, Culture, ActionExecutionResult, Religion, Personality, Skills, Trauma, Goal, Law, TradeOffer, ItemType, SocialMemoryEntry, PsychoReport, Psyche, ActionContext, Transaction, ActionEffect, Technology } from '../types';
 import { 
     RESONANCE_DECAY_RATE, RESONANCE_THRESHOLD, RESONANCE_UPDATE_AMOUNT, MAX_LAST_ACTIONS,
@@ -21,6 +22,7 @@ import { VectorDB } from './memoryService';
 import { generateEmbedding, generateJailJournalEntry } from './geminiService';
 import type { Settings } from '../contexts/SettingsContext';
 import { translations } from '../translations';
+import { jensenShannonDivergence } from './statisticsUtils';
 
 const getRandomItem = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -682,6 +684,11 @@ export class RealityEngine {
             agent.socialStatus = Math.min(100, agent.socialStatus + 10);
             return [{ key: 'log_promotion', params: { agentName: agent.name, newRole: 'Healer' } }];
         }
+        if (agent.role === 'Worker' && agent.genome.includes('G-INTELLIGENT') && (agent.skills.crafting || 0) > 15) {
+            agent.role = 'Scientist';
+            agent.socialStatus = Math.min(100, agent.socialStatus + 10);
+            return [{ key: 'log_promotion', params: { agentName: agent.name, newRole: 'Scientist' } }];
+        }
         return [];
     }
 
@@ -911,12 +918,23 @@ export class RealityEngine {
         });
 
         // --- SOCIAL & ROLE ---
-        let socialScore = agent.personality.extraversion * 50;
-        socialScore += (agent.emotions.pride || 0) * 30;
-        socialScore -= (agent.emotions.shame || 0) * 40;
-        socialScore -= (agent.emotions.grief || 0) * 50;
         const talkAction = this.actions.get("Talk");
-        if (talkAction) actionScores.set(talkAction, (actionScores.get(talkAction) || 0) + socialScore);
+        if (talkAction) {
+            let socialScore = agent.personality.extraversion * 50;
+            socialScore += (agent.emotions.pride || 0) * 30;
+            socialScore -= (agent.emotions.shame || 0) * 40;
+            socialScore -= (agent.emotions.grief || 0) * 50;
+
+            const nearestAgent = findNearestAgent(agent, this.agents, a => a.isAlive && !a.adminAgent);
+            if (nearestAgent) {
+                const jsd = jensenShannonDivergence(agent.beliefNetwork, nearestAgent.beliefNetwork);
+                // jsd is 0 for identical, ~0.69 for max different.
+                // Reward low jsd. (0.7 - jsd) is high for similar agents.
+                const ideologicalBonus = (0.7 - jsd) * 60; 
+                socialScore += ideologicalBonus;
+            }
+            actionScores.set(talkAction, (actionScores.get(talkAction) || 0) + socialScore);
+        }
 
         if (agent.role === 'Scientist') { const researchAction = this.actions.get("Research"); if (researchAction) actionScores.set(researchAction, (actionScores.get(researchAction) || 0) + 70 + (agent.psyche.inspiration * 50)); }
         if (agent.role === 'Guard') { const patrolAction = this.actions.get("Patrol"); if (patrolAction) actionScores.set(patrolAction, (actionScores.get(patrolAction) || 0) + 80); }
@@ -990,6 +1008,24 @@ export class RealityEngine {
         const stateKeyBeforeAction = this.getAgentStateKey(agent, this.agents, this.entities);
         const { log, sideEffects, status, reward } = await action.execute!(agent, this.agents, this.entities, worldStateForAction, actionContext);
         actionLogs.push(log);
+
+        // --- Cognitive Dissonance ---
+        if (status === 'success' && (action.name === 'Steal' || action.name === 'Fight')) {
+            let actionBeliefs: { [key: string]: number } = {};
+            if (action.name === 'Steal') {
+                actionBeliefs = { "immorality_ok": 0.9, "community_first": 0.1 };
+            } else { // Fight
+                actionBeliefs = { "aggression": 0.9, "community_first": 0.1 };
+            }
+            const jsd = jensenShannonDivergence(agent.beliefNetwork, actionBeliefs);
+            // High JSD means the agent's beliefs are very different from the action's implied beliefs -> cognitive dissonance.
+            const stressFromDissonance = jsd * 25; // Max stress ~ 0.69 * 25 = 17.25
+            if (stressFromDissonance > 5) { // Only add significant stress
+                agent.stress = Math.min(100, agent.stress + stressFromDissonance);
+                actionLogs.push({ key: 'log_cognitive_dissonance', params: { agentName: agent.name } });
+            }
+        }
+
 
         // --- LONG-TERM MEMORY CREATION ---
         const memoryContent = this.formatLogToString(log);
@@ -1114,6 +1150,35 @@ export class RealityEngine {
                     const founder = this.agents.get(data.founderId);
                     if (founder) {
                         founder.cultureId = newCulture.id;
+                    }
+                }
+                if (sideEffects?.createReligion) {
+                    const data = sideEffects.createReligion;
+                    const newReligion: Religion = {
+                        id: `religion-${Date.now()}`,
+                        name: data.name,
+                        dogma: data.dogma,
+                        memberIds: [],
+                    };
+                    this.religions.set(newReligion.id, newReligion);
+                    
+                    const culture = this.cultures.get(data.cultureIdToAdopt);
+                    if (culture) {
+                        culture.memberIds.forEach(memberId => {
+                            const member = this.agents.get(memberId);
+                            if (member && member.isAlive) {
+                                if (member.religionId) {
+                                    const oldReligion = this.religions.get(member.religionId);
+                                    if (oldReligion) {
+                                        oldReligion.memberIds = oldReligion.memberIds.filter(id => id !== memberId);
+                                    }
+                                }
+                                member.religionId = newReligion.id;
+                                if (!newReligion.memberIds.includes(memberId)) {
+                                    newReligion.memberIds.push(memberId);
+                                }
+                            }
+                        });
                     }
                 }
                 if (sideEffects?.updateAgentCulture) {

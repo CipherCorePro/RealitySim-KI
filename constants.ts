@@ -76,7 +76,7 @@ export const RECIPES: Recipe[] = [
 export const ELECTION_TERM_LENGTH = 100; // An election is held every 100 steps
 export const INITIAL_LAWS: Law[] = [
     { id: 'law-no-theft', name: 'Anti-Theft Law', description: 'Stealing from others is illegal.', violatingAction: 'Steal', punishment: { type: 'arrest', amount: 20 } },
-    { id: 'law-no-fighting', name: 'Peace Mandate', description: 'Initiating a fight is illegal.', violatingAction: 'Fight', punishment: { type: 'fine', amount: 25 } },
+    { id: 'law-no-fighting', name: 'Peace Mandate', description: 'Initiating a fight is illegal.', violatingAction: 'Fight', punishment: { type: 'arrest', amount: 15 } },
 ];
 export const INITIAL_GOVERNMENT: Government = { type: 'democracy', leaderId: null, laws: INITIAL_LAWS };
 

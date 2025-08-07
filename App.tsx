@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useMemo, useState, useEffect } from 'react';
 import type { Agent, PsychoReport } from './types';
 import { AgentCard } from './components/AgentCard';
@@ -18,6 +14,7 @@ import { useSettings } from './contexts/SettingsContext';
 import { useTranslations } from './hooks/useTranslations';
 import { useSimulation } from './hooks/useSimulation';
 import { ProcessingIndicator } from './components/ProcessingIndicator';
+import { TranslationKey } from './translations';
 
 // --- View Toggle Panel ---
 interface ViewTogglePanelProps {
@@ -297,7 +294,7 @@ interface GenerateContentModalProps {
 
 const GenerateContentModal: React.FC<GenerateContentModalProps> = ({ isOpen, onClose, onGenerateAgents, onGenerateEntities, isGenerating }) => {
     const [agentCount, setAgentCount] = useState(5);
-    const [entityCounts, setEntityCounts] = useState({ food: 2, water: 2, wood: 2, iron: 2, buildings: 2 });
+    const [entityCounts, setEntityCounts] = useState({ food: 2, water: 2, wood: 2, iron: 2, stone: 2, coal: 2, sand: 2, clay: 2, buildings: 2 });
     const t = useTranslations();
 
     if (!isOpen) {
@@ -363,24 +360,40 @@ const GenerateContentModal: React.FC<GenerateContentModalProps> = ({ isOpen, onC
                     {/* Entity Generation */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2"><Boxes className="w-5 h-5"/>{t('generateContent_addEntities')}</h3>
-                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="entity-count-food" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_foodSources')}</label>
+                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-food" className="text-xs text-slate-400 flex items-center gap-1"><Apple className="w-3 h-3"/>{t('generateContent_foodSources')}</label>
                                 <input id="entity-count-food" type="number" value={entityCounts.food} onChange={(e) => handleEntityCountChange('food', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
                             </div>
-                            <div>
-                                <label htmlFor="entity-count-water" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_waterSources')}</label>
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-water" className="text-xs text-slate-400 flex items-center gap-1"><Droplet className="w-3 h-3"/>{t('generateContent_waterSources')}</label>
                                 <input id="entity-count-water" type="number" value={entityCounts.water} onChange={(e) => handleEntityCountChange('water', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
                             </div>
-                            <div>
-                                <label htmlFor="entity-count-wood" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_woodSources')}</label>
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-wood" className="text-xs text-slate-400 flex items-center gap-1"><Log className="w-3 h-3"/>{t('generateContent_woodSources')}</label>
                                 <input id="entity-count-wood" type="number" value={entityCounts.wood} onChange={(e) => handleEntityCountChange('wood', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
                             </div>
-                            <div>
-                                <label htmlFor="entity-count-iron" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_ironSources')}</label>
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-iron" className="text-xs text-slate-400 flex items-center gap-1"><Hammer className="w-3 h-3"/>{t('generateContent_ironSources')}</label>
                                 <input id="entity-count-iron" type="number" value={entityCounts.iron} onChange={(e) => handleEntityCountChange('iron', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
                             </div>
-                             <div className="col-span-2">
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-stone" className="text-xs text-slate-400 flex items-center gap-1"><Mountain className="w-3 h-3"/>{t('generateContent_stoneSources')}</label>
+                                <input id="entity-count-stone" type="number" value={entityCounts.stone} onChange={(e) => handleEntityCountChange('stone', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-coal" className="text-xs text-slate-400 flex items-center gap-1"><Mountain className="w-3 h-3"/>{t('generateContent_coalSources')}</label>
+                                <input id="entity-count-coal" type="number" value={entityCounts.coal} onChange={(e) => handleEntityCountChange('coal', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-sand" className="text-xs text-slate-400 flex items-center gap-1"><Waves className="w-3 h-3"/>{t('generateContent_sandSources')}</label>
+                                <input id="entity-count-sand" type="number" value={entityCounts.sand} onChange={(e) => handleEntityCountChange('sand', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="flex flex-col gap-1">
+                                <label htmlFor="entity-count-clay" className="text-xs text-slate-400 flex items-center gap-1"><Palmtree className="w-3 h-3"/>{t('generateContent_claySources')}</label>
+                                <input id="entity-count-clay" type="number" value={entityCounts.clay} onChange={(e) => handleEntityCountChange('clay', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
+                            </div>
+                             <div className="col-span-full">
                                 <label htmlFor="entity-count-buildings" className="block text-sm font-medium text-slate-300 mb-1">{t('generateContent_buildings')}</label>
                                 <input id="entity-count-buildings" type="number" value={entityCounts.buildings} onChange={(e) => handleEntityCountChange('buildings', e.target.value)} min="0" disabled={isGenerating} className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition disabled:opacity-50"/>
                             </div>
@@ -691,14 +704,21 @@ export default function App() {
                                 {t('availableActions')}
                             </h2>
                             <ul className="space-y-1 max-h-[25vh] overflow-y-auto pr-2">
-                                {worldState.actions.map(action => (
-                                    <li key={action.name} title={action.description} className="flex items-center justify-between text-xs p-2 bg-slate-700/50 rounded-md">
-                                        <span className="truncate pr-2">{action.name}</span>
-                                         <button onClick={() => handlers.handleDelete('action', action.name)} className="p-1 -mr-1 text-slate-500 hover:text-red-400 rounded-md transition-colors flex-shrink-0">
-                                             <Trash2 className="w-3 h-3" />
-                                        </button>
-                                    </li>
-                                ))}
+                                {worldState.actions.map(action => {
+                                    const actionNameKey = `action_${action.name.replace(/ /g, '_')}` as TranslationKey;
+                                    const actionDescKey = `action_desc_${action.name.replace(/ /g, '_')}` as TranslationKey;
+                                    const translatedName = t(actionNameKey);
+                                    const translatedDesc = t(actionDescKey);
+
+                                    return (
+                                        <li key={action.name} title={translatedDesc === actionDescKey ? action.description : translatedDesc} className="flex items-center justify-between text-xs p-2 bg-slate-700/50 rounded-md">
+                                            <span className="truncate pr-2">{translatedName === actionNameKey ? action.name : translatedName}</span>
+                                            <button onClick={() => handlers.handleDelete('action', action.name)} className="p-1 -mr-1 text-slate-500 hover:text-red-400 rounded-md transition-colors flex-shrink-0">
+                                                <Trash2 className="w-3 h-3" />
+                                            </button>
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         </div>
                         <CreateObjectPanel onCreate={handlers.handleCreate} />

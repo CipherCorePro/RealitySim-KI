@@ -242,7 +242,7 @@ export const CreateObjectPanel: React.FC<CreateObjectPanelProps> = ({ onCreate }
                                     <div className="flex items-center gap-2">
                                         <label className="text-slate-400 text-xs">{t('create_skill_to_gain')}</label>
                                         <select value={skillGain.skill} onChange={e => setSkillGain(p => ({...p, skill: e.target.value}))} className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-xs">
-                                             {SKILL_TYPES.map(s => <option key={s} value={s}>{t(`skill_${s}` as any, {s})}</option>)}
+                                             {SKILL_TYPES.map(s => <option key={s} value={s}>{t(`skill_${s}` as any)}</option>)}
                                         </select>
                                         <label className="text-slate-400 text-xs">{t('create_amount')}</label>
                                          <input type="number" step="any" value={skillGain.amount} onChange={e => setSkillGain(p => ({...p, amount: e.target.value}))} className="w-24 bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-xs" />

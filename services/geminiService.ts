@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import type { Action, Agent, EnvironmentState, WorldState, Culture, PsychoReport, Goal, Technology, Law } from '../types';
+import type { Action, Agent, EnvironmentState, WorldState, Culture, PsychoReport, Goal, Technology, Law, Beliefs } from '../types';
 import { Language } from "../contexts/LanguageContext";
 import { GENOME_OPTIONS, CHILDHOOD_MAX_AGE, ADOLESCENCE_MAX_AGE, ADULTHOOD_MAX_AGE, ROLES } from "../constants";
 import { translations, TranslationKey } from '../translations';
@@ -12,57 +12,57 @@ export class LmStudioError extends Error {
 }
 
 const prompts = {
-    en: {
-        system_base: `You are an assistant for a reality simulation. Your task is to interpret a user's prompt and select the most appropriate action for an AI agent to perform from a given list.
+  en: {
+    system_base: `You are an assistant for a reality simulation. Your task is to interpret a user's prompt and select the most appropriate action for an AI agent to perform from a given list.
 Consider the agent's current state, survival needs, personality, goals, stress, skills, role, religion, culture, health, beliefs, emotions, relationships, inventory, currency, position, and the overall world state including laws, technology, and market prices. The world is a {width}x{height} grid.`,
-        agent_state: `**Agent State:**`,
-        agent_name: 'Name',
-        agent_age: 'Age',
-        agent_lifeStage: 'Life Stage',
-        agent_role: 'Role',
-        agent_religion: 'Religion',
-        agent_genome: 'Genome',
-        agent_culture: 'Culture',
-        agent_relationships: 'Relationships & Dispositions',
-        agent_relationships_none: 'None',
-        agent_position: 'Position',
-        agent_health: 'Health',
-        agent_isAlive: 'Is Alive',
-        agent_sickness: 'Sickness',
-        agent_sickness_none: 'None',
-        agent_beliefs: 'Beliefs',
-        agent_emotions: 'Current Emotions',
-        agent_psyche: 'Drives & Psyche (0-1)',
-        agent_needs: 'Needs',
-        agent_hunger: 'Hunger',
-        agent_thirst: 'Thirst',
-        agent_fatigue: 'Fatigue',
-        agent_inventory: 'Inventory',
-        agent_inventory_none: 'Empty',
-        agent_currency: 'Currency',
-        agent_personality: 'Personality (0-1)',
-        agent_goals: 'Active Goals',
-        agent_goals_none: 'None',
-        agent_stress: 'Stress Level (0-100)',
-        agent_status: 'Social Status (0-100)',
-        agent_skills: 'Skills',
-        agent_trauma: 'Traumas',
-        agent_trauma_none: 'None',
-        agent_property: 'Owned Property',
-        agent_property_none: 'None',
-        agent_imprisoned: 'IMPRISONED until step {until}',
-        recalled_memories: `**Recalled Memories (from most to least relevant):**`,
-        social_history: 'Social History:',
-        other_agents: `**Other Agents:**`,
-        entities_on_map: `**Entities on Map (incl. Resources):**`,
-        available_actions: `**Available Actions:**`,
-        world_state: `**World State:**`,
-        world_leader: 'Current Leader',
-        world_laws: 'Current Laws',
-        world_tech: 'Known Technologies by Culture',
-        world_market: 'Market Listings (Dynamic Prices)',
-        user_prompt: `**User's Prompt:**`,
-        instructions: `Based on all the information, which single action is the most logical for the agent?
+    agent_state: `**Agent State:**`,
+    agent_name: 'Name',
+    agent_age: 'Age',
+    agent_lifeStage: 'Life Stage',
+    agent_role: 'Role',
+    agent_religion: 'Religion',
+    agent_genome: 'Genome',
+    agent_culture: 'Culture',
+    agent_relationships: 'Relationships & Dispositions',
+    agent_relationships_none: 'None',
+    agent_position: 'Position',
+    agent_health: 'Health',
+    agent_isAlive: 'Is Alive',
+    agent_sickness: 'Sickness',
+    agent_sickness_none: 'None',
+    agent_beliefs: 'Beliefs',
+    agent_emotions: 'Current Emotions',
+    agent_psyche: 'Drives & Psyche (0-1)',
+    agent_needs: 'Needs',
+    agent_hunger: 'Hunger',
+    agent_thirst: 'Thirst',
+    agent_fatigue: 'Fatigue',
+    agent_inventory: 'Inventory',
+    agent_inventory_none: 'Empty',
+    agent_currency: 'Currency',
+    agent_personality: 'Personality (0-1)',
+    agent_goals: 'Active Goals',
+    agent_goals_none: 'None',
+    agent_stress: 'Stress Level (0-100)',
+    agent_status: 'Social Status (0-100)',
+    agent_skills: 'Skills',
+    agent_trauma: 'Traumas',
+    agent_trauma_none: 'None',
+    agent_property: 'Owned Property',
+    agent_property_none: 'None',
+    agent_imprisoned: 'IMPRISONED until step {until}',
+    recalled_memories: `**Recalled Memories (from most to least relevant):**`,
+    social_history: 'Social History:',
+    other_agents: `**Other Agents:**`,
+    entities_on_map: `**Entities on Map (incl. Resources):**`,
+    available_actions: `**Available Actions:**`,
+    world_state: `**World State:**`,
+    world_leader: 'Current Leader',
+    world_laws: 'Current Laws',
+    world_tech: 'Known Technologies by Culture',
+    world_market: 'Market Listings (Dynamic Prices)',
+    user_prompt: `**User's Prompt:**`,
+    instructions: `Based on all the information, which single action is the most logical for the agent?
 - **PRIORITIZE SURVIVAL & FREEDOM:** If imprisoned, the only option is 'Rest'. If hunger, thirst, or fatigue are very high (over 80), resolving them is a high priority. High 'fearOfDeath' also heavily prioritizes safety and 'Rest'.
 - **PSYCHOLOGICAL DRIVES:** An agent with high 'grief' will prefer to 'Mourn'. High 'vengefulness' will prioritize 'Fight' against their rival. High 'boredom' suggests a novel or random action. High 'jealousy' points to 'Confront Partner'. High 'spiritualNeed' or 'searchForMeaning' strongly suggests 'Meditate'.
 - **THINK ECONOMICALLY:** Wealth is the primary driver for investment. If the agent is wealthy, 'Found Company' (to start a business) is a very strong option, boosted by high openness and reduced by high neuroticism (risk-aversion). If the agent is poor, they should consider 'Work for Company'. If an 'Entrepreneur' (owns property), prioritize actions that use that property (like gathering from it).
@@ -70,24 +70,23 @@ Consider the agent's current state, survival needs, personality, goals, stress, 
 - **FOLLOW GOALS:** If the agent has a goal like 'avengeRival', they should prioritize fighting that specific rival when nearby.
 - **USE THE MARKET:** Prices are dynamic. If an item is cheap, buy it. If an item is expensive, consider selling it via 'List Item on Market'.
 - **CONSIDER ROLE:** A 'Guard' should 'Patrol'. A 'Scientist' should 'Research', especially if 'inspiration' is high.
-- **CONSIDER PERSONALITY:** High extraversion and high 'pride' suggest social actions. Low agreeableness and high 'shame' suggest withdrawal or 'Rest'.
 - Analyze the user's prompt and the agent's situation deeply.
 Return ONLY the name of the chosen action (e.g., "Move North"). If no action is suitable, return "Keine Aktion".`,
-        conversation_system_base: `You are a character in a reality simulation. You are playing the role of an AI agent named {agentName}.
+    conversation_system_base: `You are a character in a reality simulation. You are playing the role of an AI agent named {agentName}.
 Your personality is: "{agentDescription}". Your personality traits are: {agentPersonality}. Your core drives are: {agentPsyche}.
 Your current role is: {agentRole}. Your religion is: {agentReligion}. Your culture is '{agentCulture}'.
 Your age is {agentAge} ({agentLifeStage}). Health: {agentHealth}/100. Needs: Hunger {agentHunger}/100, Thirst {agentThirst}/100, Fatigue {agentFatigue}/100. Stress: {agentStress}/100. Currency: {agentCurrency}. Property: {agentProperty}.
 Your skills are: {agentSkills}. Your inventory: {agentInventory}. Your goals: {agentGoals}.
 You are at ({agentX}, {agentY}). The world leader is {worldLeader}. Active laws: {worldLaws}.
 You are talking to {otherAgentName}. Your relationship is '{relationshipType}' ({relationshipScore}/100). Your disposition towards them: {relationshipDisposition}.`,
-        agent_recent_experiences: 'Your Recent Experiences (what you did, what you saw):',
-        agent_recent_experiences_none: 'Nothing of note has happened recently.',
-        conversation_history: `**Recent Conversation History (last 5 messages):**`,
-        conversation_no_history: `This is the start of your conversation.`,
-        conversation_instruction: `Based on your personality, needs, and relationship, generate a response. Your response MUST be a JSON object with "dialogue" (what you say) and "action" (your next move from the list below).
+    agent_recent_experiences: 'Your Recent Experiences (what you did, what you saw):',
+    agent_recent_experiences_none: 'Nothing of note has happened recently.',
+    conversation_history: `**Recent Conversation History (last 5 messages):**`,
+    conversation_no_history: `This is the start of your conversation.`,
+    conversation_instruction: `Based on your personality, needs, and relationship, generate a response. Your response MUST be a JSON object with "dialogue" (what you say) and "action" (your next move from the list below).
 Your dialogue should be natural and psychologically realistic. Let your psychological state (grief, jealousy, inspiration) color your words. Talk about what's on your mind. Gossip, complain, boast, or propose a trade. Keep your dialogue to one or two short sentences.
 Available actions for your next move: {availableActions}.`,
-        agent_analysis_instruction: `
+    agent_analysis_instruction: `
 Generate a deep psychological analysis of this agent based on the following data:
 
 - Personality (Big Five): {personality}
@@ -117,11 +116,11 @@ Return a JSON object with the following fields. The first 7 fields are for human
   "suggested_goal": { "type": "achieveWealth", "description": "Achieve wealth to overcome feelings of inadequacy." }
 }
 `,
-        lifeStage_child: 'Child',
-        lifeStage_adolescent: 'Adolescent',
-        lifeStage_adult: 'Adult',
-        lifeStage_elder: 'Elder',
-        jail_journal_instruction: `You are the AI agent {agentName}. A week has passed in jail. Write a detailed, first-person journal entry reflecting on this past week.
+    lifeStage_child: 'Child',
+    lifeStage_adolescent: 'Adolescent',
+    lifeStage_adult: 'Adult',
+    lifeStage_elder: 'Elder',
+    jail_journal_instruction: `You are the AI agent {agentName}. A week has passed in jail. Write a detailed, first-person journal entry reflecting on this past week.
         **Your Current State:**
         - Personality: {agentPersonality}
         - Psyche/Drives: {agentPsyche}
@@ -137,7 +136,7 @@ Return a JSON object with the following fields. The first 7 fields are for human
         - Describe your life in jail this week. Did you talk to anyone? Did you get into a fight? What are the conditions like?
         - Express your feelings about your sentence. How much longer do you have? What are your hopes or fears for when you get out?
         - Keep the entry to a few paragraphs. Return ONLY the text of the journal entry, without any titles or formatting.`,
-        invent_technology_instruction: `You are a creative historian and technologist for a reality simulation. Your task is to invent a plausible new technology for a specific culture.
+    invent_technology_instruction: `You are a creative historian and technologist for a reality simulation. Your task is to invent a plausible new technology for a specific culture.
 **Context:**
 - Inventor: {agentName}, a {agentRole} with skills in {agentSkills}.
 - Culture: {cultureName}, which already knows these technologies: {knownTech}.
@@ -162,7 +161,7 @@ Return a JSON object with the following fields. The first 7 fields are for human
   }
 }
 If it unlocks a recipe, put it in the "recipes" array. If you cannot think of a new technology, return null.`,
-        invent_law_instruction: `You are a legislator for a reality simulation. Your task is to invent a plausible new law based on the current state of society.
+    invent_law_instruction: `You are a legislator for a reality simulation. Your task is to invent a plausible new law based on the current state of society.
 **Context:**
 - Proposer: Leader {agentName}, a {agentRole}.
 - Culture: {cultureName}, with shared beliefs: {cultureBeliefs}.
@@ -187,58 +186,78 @@ If it unlocks a recipe, put it in the "recipes" array. If you cannot think of a 
   }
 }
 If you cannot think of a new law, return null.`,
-    },
-    de: {
-        system_base: `Sie sind ein Assistent für eine Realitätssimulation. Ihre Aufgabe ist es, die Eingabe eines Benutzers zu interpretieren und die am besten geeignete Aktion für einen KI-Agenten auszuwählen.
+    invent_religion_instruction: `You are a theologian and historian for a reality simulation. Your task is to invent a plausible new religion for a specific culture.
+**Context:**
+- Proposer: {agentName}, a {agentRole} with personality {agentPersonality}.
+- Culture: {cultureName}, with shared beliefs: {cultureBeliefs}.
+- Current Religions in the world: {currentReligions}.
+
+**Instructions:**
+- Invent a NEW religion that is not already in the Current Religions list.
+- The religion should be creative and logically follow from the culture's core beliefs. For example, a "progress_good" culture might create a faith centered around technology, while a "nature_good" culture might worship nature.
+- Give it a creative, evocative name.
+- Define its core beliefs ("dogma") as an object with 2-3 belief keys and values from 0.0 to 1.0. These keys should reflect the religion's tenets.
+- Return ONLY a JSON object with the following structure. Do not add any extra text.
+{
+  "name": "The Religion's Name",
+  "dogma": {
+    "technology_is_sacred": 0.9,
+    "community_over_individual": 0.7
+  }
+}
+If you cannot think of a new religion, return null.`,
+  },
+  de: {
+    system_base: `Sie sind ein Assistent für eine Realitätssimulation. Ihre Aufgabe ist es, die Eingabe eines Benutzers zu interpretieren und die am besten geeignete Aktion für einen KI-Agenten auszuwählen.
 Berücksichtigen Sie Zustand, Bedürfnisse, Persönlichkeit, Ziele, Stress, Fähigkeiten, Rolle, Religion, Kultur, Gesundheit, Überzeugungen, Emotionen, Beziehungen, Inventar, Währung, Position des Agenten und den Weltzustand inkl. Gesetzen, Technologie und Marktpreisen. Die Welt ist ein {width}x{height} Raster.`,
-        agent_state: `**Agentenzustand:**`,
-        agent_name: 'Name',
-        agent_age: 'Alter',
-        agent_lifeStage: 'Lebensphase',
-        agent_role: 'Rolle',
-        agent_religion: 'Religion',
-        agent_genome: 'Genom',
-        agent_culture: 'Kultur',
-        agent_relationships: 'Beziehungen & Dispositionen',
-        agent_relationships_none: 'Keine',
-        agent_position: 'Position',
-        agent_health: 'Gesundheit',
-        agent_isAlive: 'Lebt',
-        agent_sickness: 'Krankheit',
-        agent_sickness_none: 'Keine',
-        agent_beliefs: 'Überzeugungen',
-        agent_emotions: 'Aktuelle Emotionen',
-        agent_psyche: 'Triebe & Psyche (0-1)',
-        agent_needs: 'Bedürfnisse',
-        agent_hunger: 'Hunger',
-        agent_thirst: 'Durst',
-        agent_fatigue: 'Müdigkeit',
-        agent_inventory: 'Inventar',
-        agent_inventory_none: 'Leer',
-        agent_currency: 'Währung',
-        agent_personality: 'Persönlichkeit (0-1)',
-        agent_goals: 'Aktive Ziele',
-        agent_goals_none: 'Keine',
-        agent_stress: 'Stresslevel (0-100)',
-        agent_status: 'Sozialer Status (0-100)',
-        agent_skills: 'Fähigkeiten',
-        agent_trauma: 'Traumata',
-        agent_trauma_none: 'Keine',
-        agent_property: 'Eigentum',
-        agent_property_none: 'Keine',
-        agent_imprisoned: 'INHAFTIERT bis Schritt {until}',
-        recalled_memories: `**Erinnerte Ereignisse (von relevantestem zu irrelevantestem):**`,
-        social_history: 'Soziale Historie:',
-        other_agents: `**Andere Agenten:**`,
-        entities_on_map: `**Entitäten auf der Karte (inkl. Ressourcen):**`,
-        available_actions: `**Verfügbare Aktionen:**`,
-        world_state: `**Weltzustand:**`,
-        world_leader: 'Aktueller Anführer',
-        world_laws: 'Aktuelle Gesetze',
-        world_tech: 'Bekannte Technologien nach Kultur',
-        world_market: 'Marktangebote (Dynamische Preise)',
-        user_prompt: `**Eingabe des Benutzers:**`,
-        instructions: `Welche einzelne Aktion ist auf Basis aller Informationen die logischste für den Agenten?
+    agent_state: `**Agentenzustand:**`,
+    agent_name: 'Name',
+    agent_age: 'Alter',
+    agent_lifeStage: 'Lebensphase',
+    agent_role: 'Rolle',
+    agent_religion: 'Religion',
+    agent_genome: 'Genom',
+    agent_culture: 'Kultur',
+    agent_relationships: 'Beziehungen & Dispositionen',
+    agent_relationships_none: 'Keine',
+    agent_position: 'Position',
+    agent_health: 'Gesundheit',
+    agent_isAlive: 'Lebt',
+    agent_sickness: 'Krankheit',
+    agent_sickness_none: 'Keine',
+    agent_beliefs: 'Überzeugungen',
+    agent_emotions: 'Aktuelle Emotionen',
+    agent_psyche: 'Triebe & Psyche (0-1)',
+    agent_needs: 'Bedürfnisse',
+    agent_hunger: 'Hunger',
+    agent_thirst: 'Durst',
+    agent_fatigue: 'Müdigkeit',
+    agent_inventory: 'Inventar',
+    agent_inventory_none: 'Leer',
+    agent_currency: 'Währung',
+    agent_personality: 'Persönlichkeit (0-1)',
+    agent_goals: 'Aktive Ziele',
+    agent_goals_none: 'Keine',
+    agent_stress: 'Stresslevel (0-100)',
+    agent_status: 'Sozialer Status (0-100)',
+    agent_skills: 'Fähigkeiten',
+    agent_trauma: 'Traumata',
+    agent_trauma_none: 'Keine',
+    agent_property: 'Eigentum',
+    agent_property_none: 'Keine',
+    agent_imprisoned: 'INHAFTIERT bis Schritt {until}',
+    recalled_memories: `**Erinnerte Ereignisse (von relevantestem zu irrelevantestem):**`,
+    social_history: 'Soziale Historie:',
+    other_agents: `**Andere Agenten:**`,
+    entities_on_map: `**Entitäten auf der Karte (inkl. Ressourcen):**`,
+    available_actions: `**Verfügbare Aktionen:**`,
+    world_state: `**Weltzustand:**`,
+    world_leader: 'Aktueller Anführer',
+    world_laws: 'Aktuelle Gesetze',
+    world_tech: 'Bekannte Technologien nach Kultur',
+    world_market: 'Marktangebote (Dynamische Preise)',
+    user_prompt: `**Eingabe des Benutzers:**`,
+    instructions: `Welche einzelne Aktion ist auf Basis aller Informationen die logischste für den Agenten?
 - **ÜBERLEBEN & FREIHEIT PRIORISIEREN:** Wenn inhaftiert, ist 'Ausruhen' die einzige Option. Wenn Hunger, Durst oder Müdigkeit **sehr hoch** (über 80) sind, hat deren Lösung hohe Priorität. Hohe 'Todesangst' priorisiert ebenfalls stark Sicherheit und 'Ausruhen'.
 - **PSYCHOLOGISCHE TRIEBE:** Ein Agent mit hoher 'Trauer' wird 'Trauern' bevorzugen. Hohe 'Rachsucht' priorisiert 'Kämpfen' gegen den Rivalen. Hohe 'Langeweile' deutet auf eine neue oder zufällige Aktion hin. Hohe 'Eifersucht' führt zu 'Partner konfrontieren'. Hoher 'spiritueller Bedarf' oder 'Sinnsuche' legt 'Meditieren' nahe.
 - **WIRTSCHAFTLICH DENKEN:** Reichtum ist der Hauptantrieb für Investitionen. Wenn der Agent wohlhabend ist, ist 'Found Company' (Unternehmen gründen) eine sehr starke Option, die durch hohe Offenheit gefördert und durch hohen Neurotizismus (Risikoscheu) gemindert wird. Wenn der Agent arm ist, sollte er 'Für Unternehmen arbeiten' in Betracht ziehen. Wenn ein 'Unternehmer' (besitzt Eigentum), priorisiere Aktionen, die dieses Eigentum nutzen (z.B. darauf sammeln).
@@ -249,21 +268,21 @@ Berücksichtigen Sie Zustand, Bedürfnisse, Persönlichkeit, Ziele, Stress, Fäh
 - **PERSÖNLICHKEIT BEACHTEN:** Hohe Extraversion und hoher 'Stolz' legen soziale Aktionen nahe. Geringe Verträglichkeit und hohe 'Scham' deuten auf Rückzug oder 'Ausruhen' hin.
 - Analysieren Sie die Benutzereingabe und die Situation des Agenten genau.
 Geben Sie NUR den Namen der gewählten Aktion zurück (z.B. "Move North"). Wenn keine Aktion geeignet ist, geben Sie "Keine Aktion" zurück.`,
-        conversation_system_base: `Sie sind eine Figur in einer Realitätssimulation. Sie spielen die Rolle eines KI-Agenten namens {agentName}.
+    conversation_system_base: `Sie sind eine Figur in einer Realitätssimulation. Sie spielen die Rolle eines KI-Agenten namens {agentName}.
 Ihre Persönlichkeit ist: "{agentDescription}". Ihre Persönlichkeitsmerkmale sind: {agentPersonality}. Ihre Kerntriebe sind: {agentPsyche}.
 Ihre aktuelle Rolle ist: {agentRole}. Ihre Religion ist: {agentReligion}. Ihre Kultur ist '{agentCulture}'.
 Ihr Alter ist {agentAge} ({agentLifeStage}). Gesundheit: {agentHealth}/100. Bedürfnisse: Hunger {agentHunger}/100, Durst {agentThirst}/100, Müdigkeit {agentFatigue}/100. Stress: {agentStress}/100. Währung: {agentCurrency}. Eigentum: {agentProperty}.
 Ihre Fähigkeiten sind: {agentSkills}. Ihr Inventar: {agentInventory}. Ihre Ziele: {agentGoals}.
 Sie sind bei ({agentX}, {agentY}). Der Anführer der Welt ist {worldLeader}. Aktive Gesetze: {worldLaws}.
 Sie sprechen mit {otherAgentName}. Ihre Beziehung ist '{relationshipType}' ({relationshipScore}/100). Ihre Disposition: {relationshipDisposition}.`,
-        agent_recent_experiences: 'Ihre jüngsten Erfahrungen (was Sie getan, was Sie gesehen haben):',
-        agent_recent_experiences_none: 'Nichts Bemerkenswertes ist kürzlich passiert.',
-        conversation_history: `**Kürzlicher Gesprächsverlauf (letzte 5 Nachrichten):**`,
-        conversation_no_history: `Dies ist der Beginn Ihres Gesprächs.`,
-        conversation_instruction: `Basierend auf Ihrer Persönlichkeit, Ihren Bedürfnissen und Ihrer Beziehung, generieren Sie eine Antwort. Ihre Antwort MUSS ein JSON-Objekt sein mit "dialogue" (was Sie sagen) und "action" (Ihre nächste Aktion aus der untenstehenden Liste).
+    agent_recent_experiences: 'Ihre jüngsten Erfahrungen (was Sie getan, was Sie gesehen haben):',
+    agent_recent_experiences_none: 'Nichts Bemerkenswertes ist kürzlich passiert.',
+    conversation_history: `**Kürzlicher Gesprächsverlauf (letzte 5 Nachrichten):**`,
+    conversation_no_history: `Dies ist der Beginn Ihres Gesprächs.`,
+    conversation_instruction: `Basierend auf Ihrer Persönlichkeit, Ihren Bedürfnissen und Ihrer Beziehung, generieren Sie eine Antwort. Ihre Antwort MUSS ein JSON-Objekt sein mit "dialogue" (was Sie sagen) und "action" (Ihre nächste Aktion aus der untenstehenden Liste).
 Ihr Dialog soll natürlich und psychologisch realistisch sein. Lassen Sie Ihren psychologischen Zustand (Trauer, Eifersucht, Inspiration) Ihre Worte färben. Sprechen Sie über das, was Sie beschäftigt. Tratschen, beschweren, prahlen oder schlagen Sie einen Handel vor. Halten Sie Ihren Dialog auf ein oder zwei kurze Sätze beschränkt.
 Verfügbare Aktionen für Ihren nächsten Schritt: {availableActions}.`,
-        agent_analysis_instruction: `
+    agent_analysis_instruction: `
 Erstelle eine tiefenpsychologische Analyse dieses Agenten basierend auf folgenden Daten:
 
 - Persönlichkeit (Big Five): {personality}
@@ -293,11 +312,11 @@ Gib ein JSON-Objekt mit den folgenden Feldern zurück. Die ersten 7 Felder sind 
   "suggested_goal": { "type": "achieveWealth", "description": "Reichtum erlangen, um Gefühle der Unzulänglichkeit zu überwinden." }
 }
 `,
-        lifeStage_child: 'Kind',
-        lifeStage_adolescent: 'Jugendlicher',
-        lifeStage_adult: 'Erwachsener',
-        lifeStage_elder: 'Ältester',
-        jail_journal_instruction: `Du bist der KI-Agent {agentName}. Eine Woche ist im Gefängnis vergangen. Schreibe einen detaillierten Tagebucheintrag in der Ich-Perspektive, der über die vergangene Woche reflektiert.
+    lifeStage_child: 'Kind',
+    lifeStage_adolescent: 'Jugendlicher',
+    lifeStage_adult: 'Erwachsener',
+    lifeStage_elder: 'Ältester',
+    jail_journal_instruction: `Du bist der KI-Agent {agentName}. Eine Woche ist im Gefängnis vergangen. Schreibe einen detaillierten Tagebucheintrag in der Ich-Perspektive, der über die vergangene Woche reflektiert.
         **Dein aktueller Zustand:**
         - Persönlichkeit: {agentPersonality}
         - Psyche/Triebe: {agentPsyche}
@@ -313,7 +332,7 @@ Gib ein JSON-Objekt mit den folgenden Feldern zurück. Die ersten 7 Felder sind 
         - Beschreibe dein Leben im Gefängnis diese Woche. Hast du mit jemandem gesprochen? Hattest du einen Kampf? Wie sind die Bedingungen?
         - Drücke deine Gefühle bezüglich deiner Strafe aus. Wie lange hast du noch? Was sind deine Hoffnungen oder Ängste für die Zeit nach deiner Entlassung?
         - Halte den Eintrag auf wenige Absätze beschränkt. Gib NUR den Text des Tagebucheintrags zurück, ohne Titel oder Formatierungen.`,
-        invent_technology_instruction: `Sie sind ein kreativer Historiker und Technologe für eine Realitätssimulation. Ihre Aufgabe ist es, eine plausible neue Technologie für eine bestimmte Kultur zu erfinden.
+    invent_technology_instruction: `Sie sind ein kreativer Historiker und Technologe für eine Realitätssimulation. Ihre Aufgabe ist es, eine plausible neue Technologie für eine bestimmte Kultur zu erfinden.
 **Kontext:**
 - Erfinder: {agentName}, ein {agentRole} mit Fähigkeiten in {agentSkills}.
 - Kultur: {cultureName}, die bereits diese Technologien kennt: {knownTech}.
@@ -338,7 +357,7 @@ Gib ein JSON-Objekt mit den folgenden Feldern zurück. Die ersten 7 Felder sind 
   }
 }
 Wenn es ein Rezept freischaltet, fügen Sie es in das "recipes"-Array ein. Wenn Ihnen keine neue Technologie einfällt, geben Sie null zurück.`,
-        invent_law_instruction: `Sie sind ein Gesetzgeber für eine Realitätssimulation. Ihre Aufgabe ist es, ein plausibles neues Gesetz basierend auf dem aktuellen Zustand der Gesellschaft zu erfinden.
+    invent_law_instruction: `Sie sind ein Gesetzgeber für eine Realitätssimulation. Ihre Aufgabe ist es, ein plausibles neues Gesetz basierend auf dem aktuellen Zustand der Gesellschaft zu erfinden.
 **Kontext:**
 - Vorschlagender: Anführer {agentName}, ein {agentRole}.
 - Kultur: {cultureName}, mit geteilten Überzeugungen: {cultureBeliefs}.
@@ -363,7 +382,27 @@ Wenn es ein Rezept freischaltet, fügen Sie es in das "recipes"-Array ein. Wenn 
   }
 }
 Wenn Ihnen kein neues Gesetz einfällt, geben Sie null zurück.`,
-    }
+    invent_religion_instruction: `Sie sind ein Theologe und Historiker für eine Realitätssimulation. Ihre Aufgabe ist es, eine plausible neue Religion für eine bestimmte Kultur zu erfinden.
+**Kontext:**
+- Vorschlagender: {agentName}, ein {agentRole} mit Persönlichkeit {agentPersonality}.
+- Kultur: {cultureName}, mit geteilten Überzeugungen: {cultureBeliefs}.
+- Aktuelle Religionen in der Welt: {currentReligions}.
+
+**Anweisungen:**
+- Erfinden Sie eine NEUE Religion, die nicht bereits in der Liste der aktuellen Religionen enthalten ist.
+- Die Religion sollte kreativ sein und logisch aus den Kernüberzeugungen der Kultur folgen. Zum Beispiel könnte eine "progress_good"-Kultur einen Glauben schaffen, der sich auf Technologie konzentriert, während eine "nature_good"-Kultur die Natur anbeten könnte.
+- Geben Sie ihr einen kreativen, eindrucksvollen Namen.
+- Definieren Sie ihre Kernüberzeugungen ("Dogma") als Objekt mit 2-3 Überzeugungsschlüsseln und Werten von 0.0 bis 1.0. Diese Schlüssel sollten die Lehren der Religion widerspiegeln.
+- Geben Sie NUR ein JSON-Objekt mit der folgenden Struktur zurück. Fügen Sie keinen zusätzlichen Text hinzu.
+{
+  "name": "Name der Religion",
+  "dogma": {
+    "technologie_ist_heilig": 0.9,
+    "gemeinschaft_über_individuum": 0.7
+  }
+}
+Wenn Ihnen keine neue Religion einfällt, geben Sie null zurück.`,
+  }
 };
 
 interface AiConfig {
@@ -738,39 +777,53 @@ Generieren Sie eine Welt mit EXAKT {agentCount} Agenten und EXAKT {entityCount} 
     }
 }[language]);
 
+const entityTypePrompts = {
+    en: {
+        food: "food resources ('isResource': true, 'resourceType': 'food', 'quantity')",
+        water: "water resources ('isResource': true, 'resourceType': 'water', 'quantity')",
+        wood: "wood resources ('isResource': true, 'resourceType': 'wood', 'quantity')",
+        iron: "iron resources ('isResource': true, 'resourceType': 'iron', 'quantity')",
+        stone: "stone resources ('isResource': true, 'resourceType': 'stone', 'quantity')",
+        coal: "coal resources ('isResource': true, 'resourceType': 'coal', 'quantity')",
+        sand: "sand resources ('isResource': true, 'resourceType': 'sand', 'quantity')",
+        clay: "clay resources ('isResource': true, 'resourceType': 'clay', 'quantity')",
+        buildings: "building/general entities",
+    },
+    de: {
+        food: "Nahrungsquellen ('isResource': true, 'resourceType': 'food', 'quantity')",
+        water: "Wasserquellen ('isResource': true, 'resourceType': 'water', 'quantity')",
+        wood: "Holzquellen ('isResource': true, 'resourceType': 'wood', 'quantity')",
+        iron: "Eisenquellen ('isResource': true, 'resourceType': 'iron', 'quantity')",
+        stone: "Steinquellen ('isResource': true, 'resourceType': 'stone', 'quantity')",
+        coal: "Kohlequellen ('isResource': true, 'resourceType': 'coal', 'quantity')",
+        sand: "Sandquellen ('isResource': true, 'resourceType': 'sand', 'quantity')",
+        clay: "Lehmquellen ('isResource': true, 'resourceType': 'clay', 'quantity')",
+        buildings: "Gebäude/allgemeine Entitäten",
+    }
+};
+
 export async function generateWorld(
     environment: EnvironmentState, language: Language, agentCount: number, entityCounts: { [key: string]: number }
 ): Promise<{ agents: any[], entities: any[] } | null> {
     const t = getWorldGenPrompts(language);
     const totalEntityCount = Object.values(entityCounts).reduce((sum, val) => sum + val, 0);
 
-    const buildingCount = entityCounts.buildings || 0;
-    let building_instruction_en = '';
-    if (buildingCount > 0) {
-        building_instruction_en = `EXACTLY ${buildingCount} building/general entities. IMPORTANT: Among these, one MUST be a marketplace ('isMarketplace': true) and one MUST be a jail ('isJail': true), assuming the count is 2 or more. If the count is 1, make it a marketplace.`;
-    }
-    let building_instruction_de = '';
-     if (buildingCount > 0) {
-        building_instruction_de = `EXAKT ${buildingCount} Gebäude/allgemeine Entitäten. WICHTIG: Darunter MUSS ein Marktplatz ('isMarketplace': true) und ein Gefängnis ('isJail': true) sein, sofern die Anzahl 2 oder mehr beträgt. Wenn die Anzahl 1 ist, erstellen Sie einen Marktplatz.`;
-    }
+    const promptParts = Object.entries(entityCounts).map(([type, count]) => {
+        if (count > 0) {
+            if (type === 'buildings') {
+                if (language === 'de') {
+                    return `EXAKT ${count} ${(entityTypePrompts.de as any)[type]}. WICHTIG: Darunter MUSS ein Marktplatz ('isMarketplace': true) und ein Gefängnis ('isJail': true) sein, sofern die Anzahl 2 oder mehr beträgt. Wenn die Anzahl 1 ist, erstellen Sie einen Marktplatz.`;
+                }
+                return `EXACTLY ${count} ${(entityTypePrompts.en as any)[type]}. IMPORTANT: Among these, one MUST be a marketplace ('isMarketplace': true) and one MUST be a jail ('isJail': true), assuming the count is 2 or more. If the count is 1, make it a marketplace.`;
+            }
+            const promptKey = language === 'de' ? (entityTypePrompts.de as any)[type] : (entityTypePrompts.en as any)[type];
+            const prefix = language === 'de' ? 'EXAKT' : 'EXACTLY';
+            return `${prefix} ${count} ${promptKey}.`;
+        }
+        return '';
+    }).filter(Boolean);
 
-    const details_en = [
-        entityCounts.food > 0 ? `EXACTLY ${entityCounts.food} food resources ('isResource': true, 'resourceType': 'food', 'quantity').` : '',
-        entityCounts.water > 0 ? `EXACTLY ${entityCounts.water} water resources ('isResource': true, 'resourceType': 'water', 'quantity').` : '',
-        entityCounts.wood > 0 ? `EXACTLY ${entityCounts.wood} wood resources ('isResource': true, 'resourceType': 'wood', 'quantity').` : '',
-        entityCounts.iron > 0 ? `EXACTLY ${entityCounts.iron} iron resources ('isResource': true, 'resourceType': 'iron', 'quantity').` : '',
-        building_instruction_en
-    ].filter(Boolean).join('\n');
-    
-    const details_de = [
-        entityCounts.food > 0 ? `EXAKT ${entityCounts.food} Nahrungsquellen ('isResource': true, 'resourceType': 'food', 'quantity').` : '',
-        entityCounts.water > 0 ? `EXAKT ${entityCounts.water} Wasserquellen ('isResource': true, 'resourceType': 'water', 'quantity').` : '',
-        entityCounts.wood > 0 ? `EXAKT ${entityCounts.wood} Holzquellen ('isResource': true, 'resourceType': 'wood', 'quantity').` : '',
-        entityCounts.iron > 0 ? `EXAKT ${entityCounts.iron} Eisenquellen ('isResource': true, 'resourceType': 'iron', 'quantity').` : '',
-        building_instruction_de
-    ].filter(Boolean).join('\n');
-
-    const specificEntityDetails = language === 'de' ? details_de : details_en;
+    const specificEntityDetails = promptParts.join('\n');
     
     const systemPrompt = `${t.world_system_base
         .replace('{agentCount}', String(agentCount))
@@ -821,23 +874,16 @@ export async function generateEntities(
     const t = getWorldGenPrompts(language);
     const totalCount = Object.values(entityCounts).reduce((sum, val) => sum + val, 0);
 
-    const details_en = [
-        entityCounts.food > 0 ? `EXACTLY ${entityCounts.food} food resources ('isResource': true, 'resourceType': 'food', 'quantity').` : '',
-        entityCounts.water > 0 ? `EXACTLY ${entityCounts.water} water resources ('isResource': true, 'resourceType': 'water', 'quantity').` : '',
-        entityCounts.wood > 0 ? `EXACTLY ${entityCounts.wood} wood resources ('isResource': true, 'resourceType': 'wood', 'quantity').` : '',
-        entityCounts.iron > 0 ? `EXACTLY ${entityCounts.iron} iron resources ('isResource': true, 'resourceType': 'iron', 'quantity').` : '',
-        entityCounts.buildings > 0 ? `EXACTLY ${entityCounts.buildings} general entities (like buildings, landmarks, non-resource objects).` : '',
-    ].filter(Boolean).join('\n');
-
-    const details_de = [
-        entityCounts.food > 0 ? `EXAKT ${entityCounts.food} Nahrungsquellen ('isResource': true, 'resourceType': 'food', 'quantity').` : '',
-        entityCounts.water > 0 ? `EXAKT ${entityCounts.water} Wasserquellen ('isResource': true, 'resourceType': 'water', 'quantity').` : '',
-        entityCounts.wood > 0 ? `EXAKT ${entityCounts.wood} Holzquellen ('isResource': true, 'resourceType': 'wood', 'quantity').` : '',
-        entityCounts.iron > 0 ? `EXAKT ${entityCounts.iron} Eisenquellen ('isResource': true, 'resourceType': 'iron', 'quantity').` : '',
-        entityCounts.buildings > 0 ? `EXAKT ${entityCounts.buildings} allgemeine Entitäten (wie Gebäude, Sehenswürdigkeiten, nicht-Ressourcen Objekte).` : '',
-    ].filter(Boolean).join('\n');
+    const details_parts = Object.entries(entityCounts).map(([type, count]) => {
+        if (count > 0) {
+            const promptKey = (language === 'de' ? (entityTypePrompts.de as any)[type] : (entityTypePrompts.en as any)[type]) || `${type} objects`;
+            const prefix = language === 'de' ? 'EXAKT' : 'EXACTLY';
+            return `${prefix} ${count} ${promptKey}.`;
+        }
+        return '';
+    }).filter(Boolean);
     
-    const specificDetails = language === 'de' ? details_de : details_en;
+    const specificDetails = details_parts.join('\n');
 
     const systemPrompt = `${t.world_system_base
         .replace('EXACTLY {agentCount} unique human agents and ', '')
@@ -953,6 +999,47 @@ export async function generateNewLaw(
         return result;
     } catch (error) {
         console.error("Error generating law with AI:", error);
+        if (error instanceof LmStudioError) throw error;
+        throw new Error(`AI Error: ${(error as Error).message}`);
+    }
+}
+
+export async function generateNewReligion(
+    agent: Agent,
+    worldState: WorldState,
+    language: Language
+): Promise<{ name: string; dogma: Beliefs } | null> {
+    const t = prompts[language];
+    const culture = worldState.cultures.find(c => c.id === agent.cultureId);
+    if (!culture) return null;
+
+    const agentPersonality = JSON.stringify(agent.personality, (k, v) => typeof v === 'number' ? v.toFixed(2) : v);
+    const cultureBeliefs = JSON.stringify(culture.sharedBeliefs);
+    const currentReligions = worldState.religions.map(r => r.name).join(', ') || 'None';
+
+    const systemPrompt = t.invent_religion_instruction
+        .replace('{agentName}', agent.name)
+        .replace('{agentRole}', agent.role || 'worker')
+        .replace('{agentPersonality}', agentPersonality)
+        .replace('{cultureName}', culture.name)
+        .replace('{cultureBeliefs}', cultureBeliefs)
+        .replace('{currentReligions}', currentReligions);
+
+    try {
+        const jsonText = await callAi(systemPrompt, null, true);
+        if (!jsonText || jsonText.toLowerCase() === 'null') return null;
+
+        const result: { name: string; dogma: Beliefs } = JSON.parse(jsonText);
+
+        // Basic validation
+        if (typeof result.name !== 'string' || typeof result.dogma !== 'object') {
+            console.error("AI returned invalid religion structure:", result);
+            return null;
+        }
+
+        return result;
+    } catch (error) {
+        console.error("Error generating religion with AI:", error);
         if (error instanceof LmStudioError) throw error;
         throw new Error(`AI Error: ${(error as Error).message}`);
     }

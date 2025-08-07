@@ -165,7 +165,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, allAgents, entities
                 <div className="space-y-4">
                     <Card title={t('agentCard_beliefs')} icon={<BookOpenCheck className="w-5 h-5 text-sky-400"/>}>
                         {Object.keys(agent.beliefNetwork).length > 0 ? (
-                           <div className="h-40"><BeliefsChart data={Object.entries(agent.beliefNetwork).map(([name, value]) => ({name, value}))} barColor="#818cf8" /></div>
+                           <div className="h-40"><BeliefsChart data={Object.entries(agent.beliefNetwork).map(([name, value]) => ({name, value}))} barColor="#818cf8" keyPrefix="belief_" /></div>
                         ) : <p className="text-sm text-slate-400">{t('agentCard_noBeliefs')}</p>}
                     </Card>
                     <Card title={t('agentCard_emotions')} icon={<Heart className="w-5 h-5 text-sky-400"/>}>
@@ -216,12 +216,23 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, allAgents, entities
                     <Card title={t('agentCard_inventory')} icon={<Briefcase className="w-5 h-5 text-sky-400"/>}>
                          {Object.keys(agent.inventory).length > 0 ? (
                             <ul className="space-y-1 text-sm max-h-40 overflow-y-auto pr-1">
-                                {Object.entries(agent.inventory).map(([item, quantity]) => quantity > 0 && (
-                                    <li key={item} className="flex justify-between p-1.5 bg-slate-700/50 rounded-md">
-                                        <span>{t(`item_${item}` as TranslationKey) || item}</span>
-                                        <span className="font-mono">{quantity}</span>
-                                    </li>
-                                ))}
+                                {Object.entries(agent.inventory).map(([item, quantity]) => {
+                                    if (quantity <= 0) return null;
+                                    const key = `item_${item}` as TranslationKey;
+                                    const translatedName = t(key);
+                                    // If translation is not found, t returns the key.
+                                    // In that case, we format the original item key for display.
+                                    const displayName = translatedName === key 
+                                        ? item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) 
+                                        : translatedName;
+
+                                    return (
+                                        <li key={item} className="flex justify-between p-1.5 bg-slate-700/50 rounded-md">
+                                            <span>{displayName}</span>
+                                            <span className="font-mono">{quantity}</span>
+                                        </li>
+                                    );
+                                })}
                             </ul>
                          ) : <p className="text-sm text-slate-400">{t('agentCard_noInventory')}</p>}
                     </Card>

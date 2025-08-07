@@ -1,3 +1,4 @@
+
 import type { Action, Agent, Entity, WorldState, ActionContext, Law, Technology } from '../types';
 import { findNearestEntity, findNearestAgent, moveTowards, wander } from './simulationUtils';
 import { 
@@ -6,7 +7,8 @@ import {
     RESOURCE_PURCHASE_COST, RECIPES, RESEARCH_PER_ACTION, MIN_REPRODUCTION_AGE,
     MAX_REPRODUCTION_AGE, MAX_OFFSPRING, ADOLESCENCE_MAX_AGE
 } from '../constants';
-import { generateAgentConversation, generateNewTechnology, generateNewLaw } from '../services/geminiService';
+import { generateAgentConversation, generateNewTechnology, generateNewLaw, generateNewReligion } from '../services/geminiService';
+import { jensenShannonDivergence } from './statisticsUtils';
 
 const moveAction = (direction: 'North' | 'South' | 'East' | 'West'): Action => ({
     name: `Move ${direction}`,
@@ -317,12 +319,23 @@ export const availableActions: Action[] = [
                 return { log: { key: 'log_action_vote_no_candidates', params: { agentName: agent.name }}, status: 'failure', reward: -1 };
             }
             const candidates = election.candidates.map(id => allAgents.get(id)!).filter(Boolean);
-            const bestCandidate = candidates.sort((a,b) => b.socialStatus - a.socialStatus)[0];
+            
+            if (candidates.length > 0) {
+                const candidatesWithJsd = candidates.map(candidate => ({
+                    candidate,
+                    jsd: jensenShannonDivergence(agent.beliefNetwork, candidate.beliefNetwork)
+                }));
+                
+                candidatesWithJsd.sort((a, b) => a.jsd - b.jsd); // Sort by lowest JSD (most similar)
     
-            if (bestCandidate) {
-                context.castVote(bestCandidate.id);
-                return { log: { key: 'log_action_vote_cast', params: { agentName: agent.name, candidateName: bestCandidate.name }}, status: 'success', reward: 2 };
+                const bestCandidate = candidatesWithJsd[0].candidate;
+    
+                if (bestCandidate) {
+                    context.castVote(bestCandidate.id);
+                    return { log: { key: 'log_action_vote_cast', params: { agentName: agent.name, candidateName: bestCandidate.name }}, status: 'success', reward: 2 };
+                }
             }
+            
             return { log: { key: 'log_action_vote_undecided', params: { agentName: agent.name }}, status: 'neutral', reward: 0 };
         }
     },
@@ -406,6 +419,78 @@ export const availableActions: Action[] = [
     },
 
     // --- Tech & Social Actions ---
+    {
+        name: 'Found Religion',
+        description: 'Attempt to establish a new religion for your culture.',
+        execute: async (agent, allAgents, allEntities, worldState, context) => {
+            if (!agent.cultureId) {
+                return { log: { key: 'log_action_found_religion_fail_no_culture', params: { agentName: agent.name } }, status: 'failure', reward: -1 };
+            }
+            if (agent.socialStatus < 50) {
+                return { log: { key: 'log_action_found_religion_fail_status', params: { agentName: agent.name } }, status: 'failure', reward: -2 };
+            }
+            
+            const culture = worldState.cultures.find(c => c.id === agent.cultureId);
+            if (!culture) {
+                 return { log: { key: 'log_action_found_religion_fail_no_culture', params: { agentName: agent.name } }, status: 'failure', reward: -1 };
+            }
+    
+            const religiousMembers = culture.memberIds.map(id => allAgents.get(id)).filter(a => a && a.isAlive && a.religionId).length;
+            if ((religiousMembers / culture.memberIds.length) > 0.5) {
+                return { log: { key: 'log_action_found_religion_fail_has_religion', params: { agentName: agent.name, cultureName: culture.name } }, status: 'failure', reward: -1 };
+            }
+            
+            let religionProposal: { name: string; dogma: any } | null = null;
+            try {
+                religionProposal = await generateNewReligion(agent, worldState, context.language);
+            } catch (error) {
+                console.error("AI religion generation failed:", error);
+                return { log: { key: 'log_action_found_religion_fail_ai', params: { agentName: agent.name } }, status: 'failure', reward: -5 };
+            }
+            
+            if (!religionProposal) {
+                return { log: { key: 'log_action_found_religion_fail_ai', params: { agentName: agent.name } }, status: 'failure', reward: -5 };
+            }
+    
+            // Simulate vote
+            const cultureMembers = culture.memberIds.map(id => allAgents.get(id)).filter((a): a is Agent => !!a && a.isAlive && a.id !== agent.id);
+            let approvals = 0;
+            
+            for (const member of cultureMembers) {
+                const spiritualNeed = member.psyche.spiritualNeed || 0.1;
+                const openness = member.personality.openness;
+                const fanaticism = member.psyche.fanaticism || 0;
+                const relationshipScore = member.relationships[agent.id]?.score || 0;
+                const approvalChance = (spiritualNeed * 0.4) + (openness * 0.3) + (relationshipScore / 200) + (fanaticism * 0.1); // max ~1.3
+                if (Math.random() < approvalChance) {
+                    approvals++;
+                }
+            }
+            
+            const wasApproved = cultureMembers.length === 0 || (approvals / cultureMembers.length) >= 0.5;
+            
+            if (wasApproved) {
+                return {
+                    log: { key: 'log_action_found_religion_success', params: { religionName: religionProposal.name, cultureName: culture.name } },
+                    status: 'success',
+                    reward: 50,
+                    sideEffects: {
+                        createReligion: {
+                            name: religionProposal.name,
+                            dogma: religionProposal.dogma,
+                            cultureIdToAdopt: culture.id,
+                        }
+                    }
+                };
+            } else {
+                return {
+                    log: { key: 'log_action_found_religion_fail_vote', params: { religionName: religionProposal.name, cultureName: culture.name } },
+                    status: 'failure',
+                    reward: -10
+                };
+            }
+        }
+    },
     {
         name: 'Research',
         description: 'Contribute to cultural research.',
@@ -520,15 +605,22 @@ export const availableActions: Action[] = [
             if (!target) {
                 return { log: { key: 'log_action_recruit_culture_no_target', params: { agentName: agent.name } }, status: 'failure', reward: -1 };
             }
+            
+            const culture = worldState.cultures.find(c => c.id === agent.cultureId);
+            if (!culture) {
+                return { log: { key: 'log_action_recruit_culture_no_culture', params: { agentName: agent.name } }, status: 'failure', reward: -1 };
+            }
+            
+            const jsd = jensenShannonDivergence(target.beliefNetwork, culture.sharedBeliefs);
     
             const rhetoricSkill = agent.skills.rhetoric || 1;
             const relationshipScore = agent.relationships[target.id]?.score || 0;
-            const successChance = (rhetoricSkill / 100) + (relationshipScore / 200) - (target.personality.conscientiousness * 0.1);
+            let successChance = (rhetoricSkill / 100) + (relationshipScore / 200) - (target.personality.conscientiousness * 0.1);
+            successChance -= jsd * 0.5; // Ideological difference makes it harder
     
             if (Math.random() < successChance) {
-                const cultureName = worldState.cultures.find(c => c.id === agent.cultureId)?.name || 'their';
                 return {
-                    log: { key: 'log_action_recruit_culture_success', params: { recruiterName: agent.name, targetName: target.name, cultureName } },
+                    log: { key: 'log_action_recruit_culture_success', params: { recruiterName: agent.name, targetName: target.name, cultureName: culture.name } },
                     status: 'success',
                     reward: 20,
                     sideEffects: {
@@ -714,6 +806,8 @@ export const availableActions: Action[] = [
         name: 'Fight',
         description: 'Fight with a nearby agent.',
         beliefKey: 'aggression',
+        onSuccess: { belief: 'aggression', delta: 0.05 },
+        onFailure: { belief: 'aggression', delta: -0.05 },
         execute: async (agent, allAgents, allEntities, worldState, context) => {
             const target = findNearestAgent(agent, allAgents, a => a.isAlive && !a.adminAgent);
             if (!target) {

@@ -331,6 +331,7 @@ export interface ActionExecutionResult {
         createAction?: Partial<Action> & { name: string, description: string };
         createCulture?: Partial<Culture> & { name: string, sharedBeliefs: Beliefs, founderId: string };
         updateAgentCulture?: { agentId: string, newCultureId: string | null };
+        createReligion?: { name: string, dogma: Beliefs, cultureIdToAdopt: string };
     }
 }
 

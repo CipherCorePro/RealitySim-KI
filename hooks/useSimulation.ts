@@ -80,8 +80,8 @@ const sanitizeAndCreateAgents = (generatedAgents: any[], worldState: WorldState)
             ? sanitizeObjectToNumber(geminiAgent.inventory) 
             : {};
 
-        const x = safeParseInt(geminiAgent.x, Math.floor(Math.random() * worldState.environment.width));
-        const y = safeParseInt(geminiAgent.y, Math.floor(Math.random() * worldState.environment.height));
+        const x = Math.floor(Math.random() * worldState.environment.width);
+        const y = Math.floor(Math.random() * worldState.environment.height);
         const age = safeParseInt(geminiAgent.age, 25);
         const hunger = safeParseInt(geminiAgent.hunger, Math.floor(Math.random() * 50));
         const thirst = safeParseInt(geminiAgent.thirst, Math.floor(Math.random() * 50));
@@ -136,8 +136,8 @@ const sanitizeAndCreateAgents = (generatedAgents: any[], worldState: WorldState)
 
 const sanitizeAndCreateEntities = (generatedEntities: any[], worldState: WorldState): Entity[] => {
     return generatedEntities.map((geminiEntity, index) => {
-        const x = safeParseInt(geminiEntity.x, Math.floor(Math.random() * worldState.environment.width));
-        const y = safeParseInt(geminiEntity.y, Math.floor(Math.random() * worldState.environment.height));
+        const x = Math.floor(Math.random() * worldState.environment.width);
+        const y = Math.floor(Math.random() * worldState.environment.height);
         return {
             id: `entity-gen-${Date.now()}-${index}`,
             name: geminiEntity.name,
