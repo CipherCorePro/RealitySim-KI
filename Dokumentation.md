@@ -19,8 +19,8 @@
 6. [Die Wirtschaftssimulation: Von Rohstoffen zu Produkten](#6-die-wirtschaftssimulation-von-rohstoffen-zu-produkten)
     - [Erweiterte Rohstoffe und Waren](#erweiterte-rohstoffe-und-waren)
     - [Fabriken und Produktionsketten](#fabriken-und-produktionsketten)
-    - [Die Rolle des Unternehmers: Produkterfindung](#die-rolle-des-unternehmers-produkterfindung)
 7. [Der Simulationszyklus & KI-Entscheidungsfindung](#7-der-simulationszyklus--ki-entscheidungsfindung)
+    - [Jensen-Shannon-Divergenz: Das Maß der ideologischen Distanz](#jensen-shannon-divergenz-das-maß-der-ideologischen-distanz)
     - [Politische Autonomie: Wie Gesetze entstehen](#politische-autonomie-wie-gesetze-entstehen)
 8. [Benutzerinteraktion](#8-benutzerinteraktion)
     - [Steuerungspanel](#steuerungspanel)
@@ -39,7 +39,7 @@
     - [Neue Agenten-Attribute (Psyche, Bedürfnisse etc)](#102-neue-agenten-attribute-psyche-bedürfnisse-etc)
     - [Neue Technologien oder Rezepte](#103-neue-technologien-oder-rezepte)
     - [Erweiterung der Benutzeroberfläche](#104-erweiterung-der-benutzeroberfläche)
-    - [Agenten-erfundene Technologien & Produkte](#105-agenten-erfundene-technologien--produkte)
+    - [Agenten-erfundene Technologien & Religionen](#105-agenten-erfundene-technologien--religionen)
 11. [Kerntechnologien & Architektur](#11-kerntechnologien--architektur)
 
 ---
@@ -100,6 +100,7 @@ Jeder Agent ist weit mehr als nur eine Figur auf der Karte. Sein Verhalten wird 
   - `Todesangst`: Steigt bei niedriger Gesundheit und priorisiert sichere, heilende Aktionen.
 - **Emotionen:** Kurzfristige Gefühle wie `Freude`, `Trauer`, `Wut`, die als direkte Reaktion auf Ereignisse entstehen und mit der Zeit abklingen. Hohe `Trauer` kann z.B. die Aktion "Trauern" auslösen.
 - **Überzeugungen:** Ein Netzwerk von Überzeugungen (`beliefNetwork`), das die Weltsicht des Agenten darstellt (z.B. `natur_ist_gut: 0.8`). Erfolgreiche oder fehlgeschlagene Aktionen können diese Überzeugungen stärken oder schwächen.
+- **Kognitive Dissonanz:** Wenn ein Agent eine Handlung ausführt, die stark gegen seine Kernüberzeugungen verstößt (z.B. ein pazifistischer Agent kämpft), erleidet er psychologischen Stress.
 - **Ziele:** Agenten können dynamisch Ziele entwickeln (z.B. "Anführer werden", "Rache am Rivalen nehmen"). Diese Ziele geben ihrem Handeln eine langfristige Richtung und werden bei der Aktionsauswahl stark gewichtet.
 
 ### Gefängnistagebuch: Die innere Welt der Inhaftierten
@@ -139,6 +140,7 @@ Dies ermöglicht ein unglaublich nuanciertes Verhalten:
 - Ein Agent wird sich an einen vergangenen, unfairen Handel erinnern, wenn er erneut mit demselben Partner interagiert.
 - Ein Agent kann seine Meinung über einen Ort bilden, basierend auf wiederholten positiven oder negativen Erfahrungen dort.
 - Ein Agent kann auf Fragen zu vergangenen Ereignissen antworten, die hunderte von Schritten zurückliegen, solange sie für die Frage relevant sind.
+- Die KI nutzt diesen Kontext auch, um **neue Gesetze oder Technologien zu erfinden**, die auf den "Erfahrungen" der Gesellschaft basieren.
 
 Das Vektor-Gedächtnis verwandelt die Agenten von rein reaktiven Wesen zu Wesen, die aus ihrer gesamten Lebenserfahrung lernen und reflektieren können.
 
@@ -153,15 +155,9 @@ Die Welt ist reich an Ressourcen. Neben den Grundbedürfnissen wie **Nahrung** u
 - **Endprodukte:** Diese Zwischenprodukte werden zu wertvollen Endprodukten wie `Werkzeugen`, `Möbeln` oder `Schwertern` weiterverarbeitet.
 
 ### Fabriken und Produktionsketten
-- **Gründung:** Agenten mit der Rolle `Unternehmer` können eine **Fabrik** gründen (`Found Factory`). Dies ist eine teure Investition, die Kapital und Baumaterialien erfordert. Bei der Gründung wird festgelegt, welches spezifische Produkt diese Fabrik herstellen soll (z.B. eine Werkzeugschmiede).
+- **Gründung:** Agenten mit der Rolle `Entrepreneur` können eine **Fabrik** gründen (`Found Factory`). Dies ist eine teure Investition, die Kapital und Baumaterialien erfordert. Bei der Gründung wird festgelegt, welches spezifische Produkt diese Fabrik herstellen soll (z.B. eine Werkzeugschmiede).
 - **Produktion:** Fabriken produzieren nicht von alleine. Ein Agent muss dort arbeiten (`Work in Factory`). Diese Aktion verbraucht Rohstoffe aus dem Inventar des Fabrikbesitzers und legt das fertige Produkt ebenfalls in dessen Inventar ab.
 - **Arbeitsmarkt:** Andere Agenten können in einer Fabrik arbeiten, um einen Lohn vom Besitzer zu erhalten. Dies schafft einen dynamischen Arbeitsmarkt, bei dem Unternehmer Arbeiter einstellen, um ihre Produktion zu steigern.
-
-### Die Rolle des Unternehmers: Produkterfindung
-Unternehmer sind der Motor der wirtschaftlichen Innovation. Sie haben die einzigartige Fähigkeit, neue Produkte zu erfinden:
-- **Aktion `Invent Product`:** Ein Unternehmer mit hoher `Inspiration` kann versuchen, ein neues Produkt zu erfinden.
-- **KI als Innovator:** Diese Aktion ruft die Gemini-KI auf. Basierend auf den Fähigkeiten des Agenten, den verfügbaren Technologien und den Rohstoffen in der Welt, **generiert die KI ein plausibles neues Rezept für ein Endprodukt**. Dies könnte alles sein, von "Verzierten Töpferwaren" bis hin zu "Komplexen mechanischen Teilen".
-- **Dynamische Wirtschaft:** Sobald ein Produkt erfunden wurde, sein Rezept der Simulation hinzugefügt. Es entsteht eine neue `Craft...`-Aktion, die von jedem Agenten mit den nötigen Fähigkeiten und Technologien ausgeführt werden kann. Dies ermöglicht eine sich ständig weiterentwickelnde Wirtschaft, die in jeder Simulation einzigartig ist.
 
 ## 7. Der Simulationszyklus & KI-Entscheidungsfindung
 
@@ -169,14 +165,15 @@ Jeder "Schritt" der Simulation durchläuft einen festen Zyklus:
 1.  **Globale Updates:** Die Zeit schreitet voran, politische Ereignisse wie Wahlen werden geprüft.
 2.  **Agenten-Zyklus (für jeden Agenten):**
     a. **Passive Updates:** Bedürfnisse steigen, Gesundheit verändert sich, Emotionen klingen ab. Wenn ein Agent inhaftiert ist, wird geprüft, ob ein Tagebucheintrag generiert werden muss.
-    b. **Aktionsauswahl (`chooseAction`):** Dies ist das "Gehirn" des Agenten. Ein ausgeklügeltes Bewertungssystem wägt verschiedene Faktoren ab, um die beste Aktion auszuwählen:
-        - **Überlebenspriorität:** Hoher Hunger oder Durst erhält eine massive Priorität.
-        - **Psychologische Triebe:** Starke Antriebe (z.B. hohe Trauer, hohe Rachsucht) geben bestimmten Aktionen einen hohen Bonus.
-        - **Ziele:** Aktive Ziele werden stark gewichtet.
-        - **Gesetze & Persönlichkeit:** Illegale Handlungen erhalten einen Malus, besonders bei gewissenhaften Agenten.
-        - **Q-Learning:** Ein einfaches Verstärkungslernen-System (`qTable`) merkt sich, welche Aktionen in bestimmten Zuständen zu positiven Ergebnissen geführt haben, und bevorzugt diese in Zukunft.
+    b. **Aktionsauswahl (`chooseAction`):** Dies ist das "Gehirn" des Agenten. Ein ausgeklügeltes Bewertungssystem wägt verschiedene Faktoren ab, um die beste Aktion auszuwählen (siehe unten).
     c. **Aktionsausführung:** Die gewählte Aktion wird ausgeführt.
     d. **Gedächtnisbildung:** Das Ergebnis wird, wie oben beschrieben, in eine Erinnerung umgewandelt und im Vektor-Gedächtnis gespeichert.
+
+### Jensen-Shannon-Divergenz: Das Maß der ideologischen Distanz
+Ein neues, mathematisch fundiertes Konzept, die **Jensen-Shannon-Divergenz (JSD)**, wurde integriert, um das Verhalten der Agenten noch realistischer zu gestalten. JSD misst die Ähnlichkeit zwischen zwei Wahrscheinlichkeitsverteilungen – in diesem Fall den `beliefNetworks` der Agenten. Ein niedriger JSD-Wert bedeutet hohe ideologische Ähnlichkeit, ein hoher Wert große Unterschiede. Dies wird an mehreren Stellen genutzt:
+- **Soziale Cliquenbildung:** Bei der Wahl, mit wem sie sprechen (`Talk`), bevorzugen Agenten nun andere Agenten mit einem **niedrigen JSD-Wert**. Dies führt zur natürlichen Entstehung von ideologischen Gruppen und Fraktionen.
+- **Ideologie-basiertes Wahlverhalten:** Agenten stimmen nicht mehr nur für den Kandidaten mit dem höchsten Status. Stattdessen berechnen sie den JSD zwischen ihren eigenen Überzeugungen und denen jedes Kandidaten und wählen mit hoher Wahrscheinlichkeit denjenigen, dessen Ideologie ihrer eigenen am nächsten ist.
+- **Kognitive Dissonanz:** Wenn ein Agent eine Handlung ausführt, die seinen Überzeugungen widerspricht (z.B. "Stehlen" bei hoher Gewissenhaftigkeit), wird der JSD zwischen seinen Überzeugungen und den "moralischen Implikationen" der Tat berechnet. Ein hoher JSD-Wert führt direkt zu einem Anstieg von `Stress`.
 
 ### Politische Autonomie: Wie Gesetze entstehen
 
@@ -201,7 +198,7 @@ Dieser Prozess schafft eine dynamische und plausible politische Landschaft, in d
 ### Steuerungspanel
 - **Step / Run:** Führt die Simulation für einen oder mehrere Schritte aus.
 - **Reset:** Setzt die Welt auf ihren ursprünglichen Zustand zurück.
-- **Generate World / Add with AI:** Nutzt die generative Kraft der KI, um die Welt mit einzigartigen Agenten und Entitäten zu bevölkern oder zur bestehenden Welt hinzuzufügen.
+- **New World / Add...:** Nutzt die generative Kraft der KI, um die Welt mit einzigartigen Agenten und Entitäten zu bevölkern oder zur bestehenden Welt hinzuzufügen.
 
 ### Agentensteuerung & KI-Interaktion
 Über die **Agentenkarte** können Sie direkt mit einem Agenten interagieren:
@@ -228,21 +225,21 @@ Dieses Panel, sichtbar in der Standardansicht des rechten Bereichs (wenn kein Ad
 Wenn ein Agent mit dem Attribut `adminAgent: true` ausgewählt ist, wechselt die rechte Ansicht zum Admin-Panel. Dieses Panel bietet direkte "gottgleiche" Kontrolle über die Kernparameter der Simulation:
 - **Politische Verwaltung:** Starten Sie Wahlen, setzen Sie einen Anführer manuell ein, erlassen oder widerrufen Sie Gesetze.
 - **Technologie-Management:** Beobachten Sie den Forschungsfortschritt jeder Kultur und schalten Sie Technologien bei Bedarf manuell frei.
-- **Agenten-Management:** Passen Sie die Attribute jedes Agenten an – setzen Sie Gesundheit, Währung, Position oder infizieren Sie ihn mit einer Krankheit. Tote Agenten können wiederbelebt werden.
+- **Agenten-Management:** Passen Sie die Attribute jedes Agenten an – setzen Sie Gesundheit, Währung, Position oder infizieren Sie ihn mit einer Krankheit. Tote Agenten können wiederbelebt und Agenten für eine bestimmte Dauer inhaftiert werden.
 
 ## 9. Analyse & Beobachtung: Das Analytics Dashboard
 
 Das Analytics Dashboard (erreichbar über das Balkendiagramm-Icon) bietet einen Makro-Blick auf die Simulation und hilft, emergente Muster zu erkennen, die im normalen Ereignisprotokoll untergehen würden.
 
 ### Soziales Netzwerk
-Dieser Tab visualisiert das Beziehungsgeflecht der Gesellschaft als Graphen. Agenten sind Knoten, und Linien zwischen ihnen stellen Beziehungen dar.
+Dieser Tab visualisiert das Beziehungsgeflecht der Gesellschaft als interaktiven Graphen. Agenten sind Knoten, und Linien zwischen ihnen stellen Beziehungen dar.
+- **Interaktivität:** Die Visualisierung kann als **interaktive HTML-Datei heruntergeladen** werden, in der Sie zoomen, Knoten verschieben und Details zu Agenten und Beziehungen anzeigen können.
 - **Farbe & Art:** Die Farbe der Linie zeigt die Art der Beziehung an (z.B. pink für Partner, grün für Freunde, rot für Rivalen).
-- **Stärke:** Die Deckkraft der Linie korreliert mit der Stärke der Beziehung.
-Dies ermöglicht es, auf einen Blick soziale Cliquen, zentrale Individuen oder isolierte Agenten zu erkennen.
+- **Gruppen:** Agenten werden nach ihrer Kultur farblich gruppiert, was die Erkennung von kulturellen Clustern erleichtert.
 
 ### Wirtschaftsflüsse
 Dieses Diagramm zeigt den Fluss von Währung (`currency`) zwischen den Agenten und der Welt (z.B. durch Arbeit).
-- **Sankey-ähnliche Darstellung:** Pfeile zeigen die Richtung des Geldflusses an, ihre Dicke repräsentiert das transferierte Volumen.
+- **Sankey-ähnliche Darstellung:** Pfeile zeigen die Richtung des Geldflusses an, ihre Länge und ein Label repräsentieren das transferierte Volumen.
 - **Zeitfenster-Regler:** Sie können den Analysezeitraum anpassen, um kurzfristige Handelsmuster oder langfristige Wirtschaftsbeziehungen zu untersuchen.
 
 ### Kulturelle Ausbreitung
@@ -276,11 +273,11 @@ Die Simulation kann durch neue interne Zustände für Agenten erweitert werden.
 ### 10.4 Erweiterung der Benutzeroberfläche
 Neue Informationen können in den Komponenten in `components/` visualisiert werden, z.B. durch Hinzufügen eines neuen Diagramms in `AgentCard.tsx` oder einer neuen Visualisierung im `AnalyticsDashboard.tsx`.
 
-### 10.5 Agenten-erfundene Technologien & Produkte
-Dies ist ein zentrales Feature für emergentes Gameplay. Die Simulation ist nicht mehr auf den vordefinierten Technologie- oder Rezeptbaum beschränkt.
-- **Die Aktionen "Technologie erfinden" & "Produkt erfinden":** Agenten (insbesondere Wissenschaftler oder Unternehmer mit hoher Inspiration) können versuchen, neue Dinge zu erfinden.
-- **KI als Erfinder:** Wenn diese Aktion ausgelöst wird, wird die Gemini-API aufgerufen. Sie erhält den Kontext der aktuellen Welt, der bereits bekannten Technologien und der Fähigkeiten des Agenten. Basierend darauf generiert die KI eine plausible neue Technologie oder ein neues Produktrezept.
-- **Dynamische Entwicklung:** Diese neue Erfindung wird dem globalen Zustand der Simulation hinzugefügt. Dies führt zu einzigartigen und unvorhersehbaren technologischen und wirtschaftlichen Entwicklungen in jeder Simulation.
+### 10.5 Agenten-erfundene Technologien & Religionen
+Dies ist ein zentrales Feature für emergentes Gameplay. Die Simulation ist nicht mehr auf den vordefinierten Technologie- oder Religionsbaum beschränkt.
+- **Die Aktionen "Technologie erfinden" & "Religion gründen":** Agenten (insbesondere Wissenschaftler mit hoher Inspiration oder charismatische Figuren) können versuchen, neue Konzepte zu schaffen.
+- **KI als Erfinder:** Wenn diese Aktion ausgelöst wird, wird die Gemini-API aufgerufen. Sie erhält den Kontext der aktuellen Welt, der bereits bekannten Technologien/Religionen und der Fähigkeiten des Agenten. Basierend darauf generiert die KI eine plausible neue Technologie oder eine neue Religion mit eigenem Dogma.
+- **Dynamische Entwicklung:** Diese neue Erfindung wird dem globalen Zustand der Simulation hinzugefügt. Dies führt zu einzigartigen und unvorhersehbaren technologischen, wirtschaftlichen und spirituellen Entwicklungen in jeder Simulation.
 
 ## 11. Kerntechnologien & Architektur
 
