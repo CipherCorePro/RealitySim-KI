@@ -8,6 +8,8 @@ interface WorldGraphProps {
     entities: Entity[];
     environment: EnvironmentState;
     cultures: Culture[];
+    onSelectAgent: (agent: Agent) => void;
+    onSelectEntity: (entity: Entity) => void;
 }
 
 const getEntityIcon = (entity: Entity) => {
@@ -59,7 +61,7 @@ const cultureColors: { [key: string]: string } = {
     'culture-primitivist': '#34d399', // emerald-400
 };
 
-const WorldGraphComponent: React.FC<WorldGraphProps> = ({ agents, entities, environment, cultures }) => {
+const WorldGraphComponent: React.FC<WorldGraphProps> = ({ agents, entities, environment, cultures, onSelectAgent, onSelectEntity }) => {
     const t = useTranslations();
 
     const { width, height } = environment;
@@ -191,7 +193,7 @@ const WorldGraphComponent: React.FC<WorldGraphProps> = ({ agents, entities, envi
                         const ownerCultureColor = owner && owner.cultureId ? cultureColors[owner.cultureId] : null;
 
                         return (
-                            <g key={entity.id} transform={`translate(${entity.x * cellWidth}, ${entity.y * cellHeight})`}>
+                            <g key={entity.id} transform={`translate(${entity.x * cellWidth}, ${entity.y * cellHeight})`} onClick={() => onSelectEntity(entity)} className="cursor-pointer">
                                <title>{entity.name}{entity.isResource ? ` (${entity.quantity})` : ''} - Owner: ${ownerName}</title>
                                {ownerCultureColor && (
                                    <rect
@@ -224,7 +226,7 @@ const WorldGraphComponent: React.FC<WorldGraphProps> = ({ agents, entities, envi
                         const roleIconSize = agentIconSize * 0.5;
 
                         return (
-                            <g key={agent.id} transform={`translate(${x}, ${y})`} opacity={agent.imprisonedUntil ? 0.5 : 1}>
+                            <g key={agent.id} transform={`translate(${x}, ${y})`} opacity={agent.imprisonedUntil ? 0.5 : 1} onClick={() => onSelectAgent(agent)} className="cursor-pointer">
                                 <title>{agent.name} ({agent.health.toFixed(0)} HP, {agent.age.toFixed(1)} yrs)</title>
                                 {agent.isAlive && agent.cultureId && (
                                      <circle cx={agentIconSize/2} cy={agentIconSize/2} r={agentIconSize/2 + 3} fill={cultureColor} opacity="0.3" />

@@ -158,7 +158,8 @@ export const useSimulation = () => {
     const [engine, setEngine] = useState(() => new RealityEngine(initialWorldState, settings));
     const [worldState, setWorldState] = useState<WorldState>(engine.getState());
     const [logs, setLogs] = useState<TimedLogEntry[]>([]);
-    const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+    const [selectedAgent, setSelectedAgentState] = useState<Agent | null>(null);
+    const [selectedEntity, setSelectedEntityState] = useState<Entity | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isProcessingSteps, setIsProcessingSteps] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -201,17 +202,41 @@ export const useSimulation = () => {
     useEffect(() => {
         addLog({ key: 'log_simulationInitialized' });
     }, [addLog]);
+
+    const setSelectedAgent = useCallback((agent: Agent | null) => {
+        setSelectedAgentState(agent);
+        if (agent) {
+            setSelectedEntityState(null);
+        }
+    }, []);
+
+    const setSelectedEntity = useCallback((entity: Entity | null) => {
+        setSelectedEntityState(entity);
+        if (entity) {
+            setSelectedAgentState(null);
+        }
+    }, []);
   
     useEffect(() => {
       const selectedAgentFromState = selectedAgent && worldState.agents.find(a => a.id === selectedAgent.id);
-      if (!selectedAgentFromState) {
-        setSelectedAgent(worldState.agents[0] || null);
-      } else {
-        if(JSON.stringify(selectedAgent) !== JSON.stringify(selectedAgentFromState)) {
-          setSelectedAgent(selectedAgentFromState);
-        }
+      if (selectedAgent && !selectedAgentFromState) {
+        setSelectedAgent(null); // Deselect if agent no longer exists
+      } else if (selectedAgentFromState && JSON.stringify(selectedAgent) !== JSON.stringify(selectedAgentFromState)) {
+        setSelectedAgent(selectedAgentFromState); // Update with new state
       }
-    }, [worldState.agents, selectedAgent]);
+
+      const selectedEntityFromState = selectedEntity && worldState.entities.find(e => e.id === selectedEntity.id);
+      if (selectedEntity && !selectedEntityFromState) {
+          setSelectedEntity(null);
+      } else if (selectedEntityFromState && JSON.stringify(selectedEntity) !== JSON.stringify(selectedEntityFromState)) {
+          setSelectedEntity(selectedEntityFromState);
+      }
+
+      // If nothing is selected, select the first agent by default
+      if (!selectedAgent && !selectedEntity && worldState.agents.length > 0) {
+        setSelectedAgent(worldState.agents.find(a => !a.adminAgent) || worldState.agents[0]);
+      }
+    }, [worldState.agents, worldState.entities, selectedAgent, selectedEntity, setSelectedAgent, setSelectedEntity]);
   
     const handleStep = useCallback(async () => {
       setIsProcessingSteps(true);
@@ -257,7 +282,7 @@ export const useSimulation = () => {
       setWorldState(newEngine.getState());
       setSelectedAgent(newEngine.getState().agents[0] || null);
       setLogs([{ key: 'log_simulationReset', timestamp: Date.now() }]);
-    }, [t, settings]);
+    }, [setSelectedAgent, settings]);
   
     const isAiConfigured = useCallback(() => {
       return (settings.provider === 'gemini' && process.env.API_KEY) || (!!settings.lmStudioUrl && !!settings.lmStudioModel);
@@ -349,7 +374,7 @@ export const useSimulation = () => {
       } finally {
           setIsGenerating(false);
       }
-    }, [engine, addRawLog, t, language, worldState, settings, isAiConfigured]);
+    }, [engine, addRawLog, t, language, worldState, settings, isAiConfigured, setSelectedAgent]);
   
     const handleGenerateAgents = useCallback(async (count: number) => {
       if (!isAiConfigured()) {
@@ -695,14 +720,20 @@ export const useSimulation = () => {
                    type === 'entity' ? worldState.entities.find(e => e.id === id)?.name : id;
                    
       if (window.confirm(t('confirmDelete', { type: t(`type_${type}` as TranslationKey) }))) {
-        if (type === 'agent') engine.removeAgent(id);
-        else if (type === 'entity') engine.removeEntity(id);
+        if (type === 'agent') {
+            if (selectedAgent?.id === id) setSelectedAgent(null);
+            engine.removeAgent(id);
+        }
+        else if (type === 'entity') {
+            if (selectedEntity?.id === id) setSelectedEntity(null);
+            engine.removeEntity(id);
+        }
         else if (type === 'action') engine.removeAction(id);
         
         setWorldState({ ...engine.getState() });
         addLog({ key: 'log_removed', params: { type: t(`type_${type}` as TranslationKey), name: name || id } });
       }
-    }, [engine, worldState.agents, worldState.entities, addLog, t]);
+    }, [engine, worldState.agents, worldState.entities, addLog, t, selectedAgent, selectedEntity, setSelectedAgent, setSelectedEntity]);
   
     const handleUpdateEnvironment = useCallback((newEnv: EnvironmentState) => {
       engine.setEnvironment(newEnv);
@@ -808,6 +839,7 @@ export const useSimulation = () => {
         worldState,
         logs,
         selectedAgent,
+        selectedEntity,
         isGenerating,
         isProcessingSteps,
         isSettingsOpen,
@@ -820,6 +852,7 @@ export const useSimulation = () => {
         analyzedAgent,
         panelVisibility,
         setSelectedAgent,
+        setSelectedEntity,
         setIsSettingsOpen,
         setIsGenerateWorldModalOpen,
         setIsGenerateContentModalOpen,

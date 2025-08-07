@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import type { Agent, PsychoReport } from './types';
+import type { Agent, PsychoReport, Entity } from './types';
 import { AgentCard } from './components/AgentCard';
+import { EntityCard } from './components/EntityCard';
 import { ControlPanel } from './components/ControlPanel';
 import { LogPanel } from './components/LogPanel';
 import { WorldGraph } from './components/WorldGraph';
@@ -478,6 +479,7 @@ export default function App() {
         worldState,
         logs,
         selectedAgent,
+        selectedEntity,
         isGenerating,
         isProcessingSteps,
         isSettingsOpen,
@@ -490,6 +492,7 @@ export default function App() {
         analyzedAgent,
         panelVisibility,
         setSelectedAgent,
+        setSelectedEntity,
         setIsSettingsOpen,
         setIsGenerateWorldModalOpen,
         setIsGenerateContentModalOpen,
@@ -594,16 +597,18 @@ export default function App() {
                         <Boxes className="w-5 h-5 text-sky-400"/>
                         {t('entities')}
                     </h2>
-                    <ul className="space-y-1 max-h-[20vh] overflow-y-auto pr-2">
+                     <div className="space-y-1 max-h-[20vh] overflow-y-auto pr-2">
                         {worldState.entities.map((entity) => (
-                            <li key={entity.id} className="flex items-center justify-between text-sm p-2 bg-slate-700/50 rounded-md">
-                                <span>{entity.name}</span>
-                                <button onClick={() => handlers.handleDelete('entity', entity.id)} className="p-1 -mr-1 text-slate-500 hover:text-red-400 rounded-md transition-colors">
+                             <div key={entity.id} className="flex items-center gap-1">
+                                <button onClick={() => setSelectedEntity(entity)} className={`flex-grow text-left p-2 rounded-l-md transition-colors text-sm ${selectedEntity?.id === entity.id ? 'bg-sky-500/20 text-sky-300' : 'bg-slate-700/50 hover:bg-slate-700'}`}>
+                                    {entity.name}
+                                </button>
+                                <button onClick={() => handlers.handleDelete('entity', entity.id)} className={`p-2 text-slate-500 hover:text-red-400 rounded-r-md transition-colors ${selectedEntity?.id === entity.id ? 'bg-sky-500/20' : 'bg-slate-700/50 hover:bg-slate-700'}`}>
                                      <Trash2 className="w-3 h-3" />
                                 </button>
-                            </li>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                 </div>
             </div>
         )}
@@ -623,14 +628,27 @@ export default function App() {
                         onPrompt={handlers.handlePrompt} 
                         onGeneratePsychoanalysis={handlers.handleGeneratePsychoanalysis} 
                     />
+                ) : selectedEntity ? (
+                    <EntityCard
+                        entity={selectedEntity}
+                        allAgents={worldState.agents}
+                        markets={worldState.markets || []}
+                    />
                 ) : (
                     <div className="bg-slate-850 p-4 rounded-lg border border-slate-700 h-full flex items-center justify-center">
-                        <p className="text-slate-400">{t('agentCard_selectAgent')}</p>
+                        <p className="text-slate-400">{t('entityCard_selectEntity')}</p>
                     </div>
                 )
               )}
               {panelVisibility.worldMap && (
-                <WorldGraph agents={worldState.agents} entities={worldState.entities} environment={worldState.environment} cultures={worldState.cultures || []}/>
+                <WorldGraph 
+                    agents={worldState.agents} 
+                    entities={worldState.entities} 
+                    environment={worldState.environment} 
+                    cultures={worldState.cultures || []}
+                    onSelectAgent={setSelectedAgent}
+                    onSelectEntity={setSelectedEntity}
+                />
               )}
             </div>
         )}
