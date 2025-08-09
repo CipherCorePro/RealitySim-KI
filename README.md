@@ -1,304 +1,156 @@
-# RealitySim AI Dokumentation Version 30
+# Die Simulation: Emergenes Verhalten und die verborgene Logik der Agenten
 
 ## Inhaltsverzeichnis
-1. [Einleitung](#1-einleitung)
-2. [Installation & Konfiguration](#2-installation--konfiguration)
-3. [Die Simulationswelt](#3-die-simulationswelt)
-    - [Umgebung](#umgebung)
-    - [Entitäten](#entitäten)
-4. [Die Anatomie eines Agenten](#4-die-anatomie-eines-agenten)
-    - [Grundlagen & Überleben](#grundlagen--überleben)
-    - [Geist & Psyche](#geist--psyche)
-    - [Gefängnistagebuch: Die innere Welt der Inhaftierten](#gefängnistagebuch-die-innere-welt-der-inhaftierten)
-    - [Soziales Gefüge](#soziales-gefüge)
-5. [Langzeitgedächtnis: Die Vektor-Datenbank](#5-langzeitgedächtnis-die-vektor-datenbank)
-    - [Das Konzept des "Echten" Gedächtnisses](#das-konzept-des-echten-gedächtnisses)
-    - [Der Prozess: Von der Handlung zur Erinnerung](#der-prozess-von-der-handlung-zur-erinnerung)
-    - [Intelligenter Abruf durch Ähnlichkeitssuche](#intelligenter-abruf-durch-ähnlichkeitssuche)
-    - [Auswirkungen auf das Agentenverhalten](#auswirkungen-auf-das-agentenverhalten)
-6. [Die Wirtschaftssimulation: Von Rohstoffen zu Produkten](#6-die-wirtschaftssimulation-von-rohstoffen-zu-produkten)
-    - [Erweiterte Rohstoffe und Waren](#erweiterte-rohstoffe-und-waren)
-    - [Fabriken und Produktionsketten](#fabriken-und-produktionsketten)
-7. [Der Simulationszyklus & KI-Entscheidungsfindung](#7-der-simulationszyklus--ki-entscheidungsfindung)
-    - [Jensen-Shannon-Divergenz: Das Maß der ideologischen Distanz](#jensen-shannon-divergenz-das-maß-der-ideologischen-distanz)
-    - [Politische Autonomie: Wie Gesetze entstehen](#politische-autonomie-wie-gesetze-entstehen)
-8. [Benutzerinteraktion](#8-benutzerinteraktion)
-    - [Steuerungspanel](#steuerungspanel)
-    - [Agentensteuerung & KI-Interaktion](#agentensteuerung--ki-interaktion)
-    - [Welterschaffung & Psychoanalyse](#welterschaffung--psychoanalyse)
-    - [Zustand, Gespräche & Statistiken verwalten](#zustand-gespräche--statistiken-verwalten)
-    - [Manuelle Erstellung (Create New Panel)](#manuelle-erstellung-create-new-panel)
-    - [Das Admin-Panel (Gott-Modus)](#das-admin-panel-gott-modus)
-9. [Analyse & Beobachtung: Das Analytics Dashboard](#9-analyse--beobachtung-das-analytics-dashboard)
-    - [Soziales Netzwerk](#soziales-netzwerk)
-    - [Wirtschaftsflüsse](#wirtschaftsflüsse)
-    - [Kulturelle Ausbreitung](#kulturelle-ausbreitung)
-    - [Technologie](#technologie)
-10. [Erweiterbarkeit](#10-erweiterbarkeit)
-    - [Neue Aktionen hinzufügen](#101-neue-aktionen-hinzufügen)
-    - [Neue Agenten-Attribute (Psyche, Bedürfnisse etc)](#102-neue-agenten-attribute-psyche-bedürfnisse-etc)
-    - [Neue Technologien oder Rezepte](#103-neue-technologien-oder-rezepte)
-    - [Erweiterung der Benutzeroberfläche](#104-erweiterung-der-benutzeroberfläche)
-    - [Agenten-erfundene Technologien & Religionen](#105-agenten-erfundene-technologien--religionen)
-11. [Kerntechnologien & Architektur](#11-kerntechnologien--architektur)
+1. [Die Geburt eines Agenten: Der Startzustand](#1-die-geburt-eines-agenten-der-startzustand)
+    - [Startzustand eines generierten Agenten](#11-startzustand-eines-generierten-agenten)
+    - [Die Besonderheit von Neugeborenen: Vererbung und Entwicklung](#12-die-besonderheit-von-neugeborenen-vererbung-und-entwicklung)
+2. [Hinter den Kulissen: Die Logik der Aktionsauswahl](#2-hinter-den-kulissen-die-logik-der-aktionsauswahl)
+3. [Beispiele für emergentes Verhalten entschlüsselt](#3-beispiele-für-emergentes-verhalten-entschlüsselt)
+    - [Warum stimmt Agent A für Agent B als Anführer? Die Macht der Ideologie](#31-warum-stimmt-agent-a-für-agent-b-als-anführer-die-macht-der-ideologie)
+    - [Wie entsteht ein neues Gesetz?](#32-wie-entsteht-ein-neues-gesetz)
+    - [Warum werden Agenten aggressiv und bekämpfen sich?](#33-warum-werden-agenten-aggressiv-und-bekämpfen-sich)
+    - [Warum versuchen Agenten etwas, wofür ihnen die Fähigkeiten fehlen?](#34-warum-versuchen-agenten-etwas-wofür-ihnen-die-fähigkeiten-fehlen)
+4. [Die dynamische Wirtschaft: Fabriken und KI-gesteuerte Innovation](#4-die-dynamische-wirtschaft-fabriken-und-ki-gesteuerte-innovation)
+5. [Das Gedächtnis: Wie Agenten lernen und sich erinnern](#5-das-gedächtnis-wie-agenten-lernen-und-sich-erinnern)
+6. [Die innere und äußere Welt: Analysewerkzeuge](#6-die-innere-und-äußere-welt-analysewerkzeuge)
+7. [Verifizierung im Code: Wo diese Logik lebt](#7-verifizierung-im-code-wo-diese-logik-lebt)
+8. [Fazit: Die Illusion des freien Willens](#8-fazit-die-illusion-des-freien-willens)
 
 ---
 
-## 1. Einleitung
+## 1. Die Geburt eines Agenten: Der Startzustand
 
-**RealitySim AI** ist eine interaktive, webbasierte Simulationsumgebung, die das Leben einer kleinen Gesellschaft von KI-gesteuerten Agenten darstellt. Jeder Agent ist eine einzigartige Entität mit eigenen Überzeugungen, einer komplexen Persönlichkeit, psychologischen Trieben und einem dynamischen Gedächtnis.
+Wenn ein Agent in der Simulation erstellt wird, beginnt er nicht als vollkommen leeres Blatt. Sein Startzustand legt die grundlegenden Weichen für sein gesamtes zukünftiges Verhalten.
 
-Das Kernziel der Simulation ist nicht, ein Spiel zu gewinnen, sondern emergentes Verhalten zu beobachten: Wie entwickeln sich Kulturen? Wie bilden sich soziale und wirtschaftliche Strukturen? Wie beeinflussen individuelle Traumata und Ziele das Schicksal einer Gemeinschaft? Als Benutzer können Sie die Simulation beobachten, sie Schritt für Schritt vorantreiben, direkt mit den Agenten über natürliche Sprache interagieren, um deren Verhalten zu beeinflussen, oder sogar in die Gedanken inhaftierter Agenten durch ihre KI-generierten Tagebücher eintauchen.
+### 1.1 Startzustand eines generierten Agenten
 
-## 2. Installation & Konfiguration
+Ein durch die KI generierter Agent (z.B. bei der Welterschaffung) hat keine expliziten Erinnerungen (`longTermMemory` ist leer). Sein anfängliches "Wissen" über die Welt und seine grundlegenden Tendenzen sind in seinen Startattributen kodiert:
 
-Die Anwendung ist vollständig browserbasiert und erfordert keine serverseitige Installation. Öffnen Sie einfach die `index.html`-Datei in einem modernen Webbrowser.
+- **`name` (Name):** Jeder Agent wird mit einem einzigartigen, vollständigen Namen generiert. Dieser Name, bestehend aus Vor- und Nachname, wird als eine einzige Zeichenkette im `name`-Feld gespeichert. Die KI ist angewiesen, diesen vollständigen Namen zu liefern, nicht separate Felder. Das System führt eine zusätzliche Prüfung durch, um sicherzustellen, dass jeder generierte Name einzigartig in der Simulation ist. Sollte die KI einen doppelten oder ungültigen Namen liefern, greift ein internes Fallback-System, das einen neuen, zufälligen und garantiert einzigartigen Vor- und Nachnamen aus einer vordefinierten Liste (`constants.ts`) kombiniert. Dies gewährleistet die Integrität der Agentenidentitäten.
+- **`beliefNetwork` (Überzeugungen):** Grundlegende Annahmen wie "Fortschritt ist gut" oder "Natur ist heilig" geben ihm eine anfängliche ideologische Ausrichtung.
+- **`personality` (Persönlichkeit):** Die "Big Five"-Merkmale (z.B. hohe Extraversion, niedrige Verträglichkeit) definieren seine grundlegende Veranlagung.
+- **`psyche` (Psyche):** Startwerte für tiefere Triebe wie `Rachsucht` oder `Sinnsuche`.
+- **`cultureId` & `religionId`:** Die Zugehörigkeit zu einer Kultur oder Religion stattet ihn mit einem geteilten Glaubenssystem aus.
+- **Soziale Leere:** Der Agent beginnt ohne etablierte `Beziehungen`. Jeder andere Agent ist anfangs ein Fremder.
 
-Die Intelligenz der Agenten wird durch einen KI-Anbieter im Hintergrund angetrieben. Sie können dies über das **Einstellungsmenü** (Zahnrad-Icon) konfigurieren:
+### 1.2 Die Besonderheit von Neugeborenen: Vererbung und Entwicklung
 
-- **Google Gemini (Empfohlen):**
-  - **Funktionalität:** Bietet die fortschrittlichsten Funktionen, einschließlich der Erstellung von Vektor-Embeddings für das Langzeitgedächtnis.
-  - **Konfiguration:** Erfordert einen Google AI API-Schlüssel. Dieser Schlüssel darf **NICHT** in der UI eingegeben werden. Er muss als Umgebungsvariable `API_KEY` in der Umgebung, in der die Anwendung läuft, verfügbar sein. Die App liest diesen Schlüssel automatisch aus.
+Wenn zwei Agenten ein Kind bekommen, durchläuft der neue Agent einen speziellen Erstellungsprozess (`addNewbornAgent`), der das Konzept von Vererbung simuliert.
 
-- **LM Studio:**
-  - **Funktionalität:** Eine Alternative für Benutzer, die Modelle lokal ausführen möchten.
-  - **Konfiguration:**
-    1. Starten Sie einen lokalen Server in Ihrer LM Studio-Anwendung.
-    2. Geben Sie die angezeigte Server-URL (z.B. `http://localhost:1234`) in den App-Einstellungen ein.
-    3. Geben Sie den Identifier des geladenen **Chat-Modells** an.
-    4. Geben Sie optional den Identifier für ein separates **Embedding-Modell** an. Damit das Langzeitgedächtnis (Vektor-DB) lokal funktioniert, muss in LM Studio ein entsprechendes Modell geladen und für den Embedding-Endpunkt konfiguriert sein (z.B. `text-embedding-granite-embedding-278m-multilingual`). Wenn das Feld in den App-Einstellungen leer gelassen wird, wird versucht, das Chat-Modell für Embeddings zu verwenden.
-    5. **WICHTIG:** Aktivieren Sie die **CORS**-Option in den Servereinstellungen von LM Studio, da der Browser sonst die Verbindung blockiert.
+- **Startalter und Fähigkeiten:** Ein Baby beginnt mit `Alter: 0` und `Fähigkeiten: 0` in allen Bereichen. Es ist anfangs völlig abhängig.
+- **Vererbung:** Das Neugeborene erbt eine Mischung der Attribute seiner Eltern, mit einer leichten zufälligen Mutation:
+  - **`genome` (Genom):** Eine Kombination der Gene beider Elternteile.
+  - **`personality` (Persönlichkeit):** Die Persönlichkeitsmerkmale sind ein Durchschnitt der Elternwerte mit einer leichten zufälligen Abweichung.
+  - **`psyche` (Psyche):** Auch die psychologischen Grundtriebe werden von den Eltern vererbt.
+- **Kulturelle Prägung:** Das Kind wird in die Kultur (`cultureId`) und Religion (`religionId`) seiner Eltern hineingeboren und übernimmt deren grundlegende Überzeugungen.
 
-## 3. Die Simulationswelt
+Dieser Prozess sorgt für eine natürliche Generationenfolge, bei der Nachkommen ihren Eltern ähneln, aber dennoch einzigartige Individuen sind.
 
-### Umgebung
-Die Welt ist ein 2D-Gitter definierter Größe (`width` x `height`). Sie hat globale Eigenschaften wie die `Zeit` (gemessen in Schritten) und kann dynamische Ereignisse wie Wahlen umfassen.
-
-### Entitäten
-Dies sind die statischen oder semi-statischen Objekte in der Welt:
-- **Ressourcen:** Nahrungsquellen, Wasserquellen, Wälder, Erzvorkommen sowie Vorkommen von **Stein, Kohle, Sand und Lehm**. Sie haben eine begrenzte Menge und können von Agenten abgebaut werden.
-- **Gebäude:** Von Agenten gebaute Unterkünfte oder spezielle Gebäude wie der **Marktplatz** (für Handel), das **Gefängnis** (für Gesetzesbrecher) und **Fabriken** (für die Produktion von Waren).
-- **Eigentum:** Entitäten können einem Agenten gehören, was andere daran hindert, sie frei zu nutzen.
+## 2. Hinter den Kulissen: Die Logik der Aktionsauswahl
 
-## 4. Die Anatomie eines Agenten
+Das Herzstück der Autonomie eines Agenten ist die `chooseAction`-Funktion. Sie läuft in jedem Schritt für jeden Agenten ab und entscheidet, was er als Nächstes tun wird. Dies ist keine zufällige Wahl, sondern ein ausgeklügeltes Bewertungssystem, das eine Vielzahl von Faktoren abwägt:
 
-Jeder Agent ist weit mehr als nur eine Figur auf der Karte. Sein Verhalten wird durch ein vielschichtiges internes Zustandsmodell bestimmt.
+1.  **Überlebenspriorität (Höchste Priorität):** Wenn ein Agent am Verhungern (`hunger > 60`), Verdursten (`thirst > 50`) oder extrem müde (`fatigue > 85`) ist, erhalten Aktionen wie `Eat Food`, `Drink Water` oder `Rest` einen massiven Bonus. Überleben steht über allem.
+2.  **Psychologische Imperative:** Starke innere Triebe aus der `psyche` drängen den Agenten zu bestimmten Handlungen:
+    - Hohe `Trauer` (`grief`) führt zu `Mourn`.
+    - Hohe `Rachsucht` (`vengefulness`) und ein `Rivale` in der Nähe führen zu `Fight`.
+    - Hohe `Langeweile` (`boredom`) kann eine zufällige, neuartige Aktion auslösen, um die Monotonie zu durchbrechen.
+    - Hohe `Eifersucht` (`jealousy`) kann zu `Confront Partner` führen.
+    - Hohes `Spirituelles Bedürfnis` (`spiritualNeed`) oder `Sinnsuche` (`searchForMeaning`) machen `Meditate` sehr wahrscheinlich.
+3.  **Ideologische Nähe (JSD):** Agenten bevorzugen die Interaktion (`Talk`) mit "Gleichgesinnten". Die **Jensen-Shannon-Divergenz** misst die ideologische Distanz zu nahen Agenten, und eine hohe Ähnlichkeit (niedriger JSD) gibt der `Talk`-Aktion einen Bonus.
+4.  **Ziele (`goals`):** Aktive Ziele geben dem Agenten eine langfristige Motivation. Ein Agent mit dem Ziel `becomeLeader` wird Aktionen wie `Run for Election` stark bevorzugen.
+5.  **Rolle & Persönlichkeit:** Die Rolle und der Charakter eines Agenten beeinflussen seine "Standard"-Handlungen. Ein `Guard` wird zum `Patrol` neigen, ein `Scientist` zum `Research`. Ein extrovertierter Agent wird eher `Talk` wählen als ein introvertierter.
+6.  **Gesetze & Moral:** Illegale Aktionen (z.B. `Steal`) erhalten einen starken Malus, der durch eine hohe `Gewissenhaftigkeit` (`conscientiousness`) noch verstärkt wird.
+7.  **Wirtschaftliches Kalkül:** Agenten handeln ökonomisch. Ein armer Agent wird `Work for money` in Betracht ziehen. Ein reicher `Entrepreneur` könnte eine `Factory` gründen.
+8.  **Verstärkungslernen (`qTable`):** Jeder Agent führt eine einfache "Q-Tabelle". Sie merkt sich, welche Aktionen in bestimmten Situationen (z.B. "hungrig und in der Nähe von Essen") zu einer positiven Belohnung (`reward`) geführt haben. Mit der Zeit "lernt" der Agent, welche Handlungen sich lohnen.
+9.  **Erkundung (`EPSILON_GREEDY`):** Es gibt eine kleine (ca. 10%) Wahrscheinlichkeit, dass ein Agent eine völlig zufällige Aktion wählt. Dies simuliert Neugier und ermöglicht es dem Agenten, neue, potenziell bessere Strategien zu entdecken.
+10. **Fallback:** Wenn nach Abwägung aller Faktoren keine Aktion eine ausreichend hohe Bewertung erhält, wird der Agent einfach umherwandern (`Wander`).
 
-### Grundlagen & Überleben
-- **Attribute:** Jeder Agent hat grundlegende Werte wie `Position (x, y)`, `Alter`, `Gesundheit`, `Inventar` und `jailJournal` (eine Liste von Tagebucheinträgen, falls inhaftiert).
-- **Bedürfnisse:** Die primären Überlebenstriebe sind `Hunger`, `Durst` und `Müdigkeit`. Diese Werte steigen kontinuierlich an. Wenn sie einen kritischen Schwellenwert überschreiten, verursachen sie `Stress` und `Gesundheitsschaden`. Unbehandelt führen sie zum Tod des Agenten.
-- **Zustand:** Agenten können `inhaftiert` sein, was ihre Handlungsfähigkeit stark einschränkt. Ihr `imprisonedUntil`-Wert gibt an, wann sie wieder freikommen. Sie können auch einen `Job` in einer Fabrik haben.
-- **Genom:** Agenten besitzen genetische Merkmale (z.B. `G-AGILE` für schnellere Bewegung, `G-INTELLIGENT` für schnelleres Lernen), die ihre Fähigkeiten und ihr Überleben beeinflussen.
+Jeder dieser Faktoren modifiziert einen numerischen `score` für jede potenziell mögliche Aktion. Am Ende des Prozesses wählt der Agent einfach die Aktion mit der höchsten Gesamtpunktzahl aus. Dieser Mechanismus übersetzt komplexe psychologische und situative Zustände in eine konkrete, rationale Entscheidung.
 
-### Geist & Psyche
-- **Persönlichkeit (Big Five):** Jeder Agent wird durch fünf stabile Persönlichkeitsmerkmale definiert (`Offenheit`, `Gewissenhaftigkeit`, `Extraversion`, `Verträglichkeit`, `Neurotizismus`). Ein Agent mit hoher Extraversion wird eher soziale Interaktionen suchen, während ein Agent mit hohem Neurotizismus risikoreiche Aktionen meidet.
-- **Psyche & Triebe:** Dies sind tiefere, langsam veränderliche psychologische Antriebe, die das Verhalten stark färben. Dazu gehören:
-  - `Eifersucht`: Kann zu konfrontativen Handlungen führen.
-  - `Rachsucht`: Priorisiert aggressive Aktionen gegen Rivalen.
-  - `Sinnsuche` & `Spirituelles Bedürfnis`: Führt zu meditativen oder introspektiven Handlungen.
-  - `Langeweile`: Fördert neuartiges oder zufälliges Verhalten.
-  - `Todesangst`: Steigt bei niedriger Gesundheit und priorisiert sichere, heilende Aktionen.
-- **Emotionen:** Kurzfristige Gefühle wie `Freude`, `Trauer`, `Wut`, die als direkte Reaktion auf Ereignisse entstehen und mit der Zeit abklingen. Hohe `Trauer` kann z.B. die Aktion "Trauern" auslösen.
-- **Überzeugungen:** Ein Netzwerk von Überzeugungen (`beliefNetwork`), das die Weltsicht des Agenten darstellt (z.B. `natur_ist_gut: 0.8`). Erfolgreiche oder fehlgeschlagene Aktionen können diese Überzeugungen stärken oder schwächen.
-- **Kognitive Dissonanz:** Wenn ein Agent eine Handlung ausführt, die stark gegen seine Kernüberzeugungen verstößt (z.B. ein pazifistischer Agent kämpft), erleidet er psychologischen Stress.
-- **Ziele:** Agenten können dynamisch Ziele entwickeln (z.B. "Anführer werden", "Rache am Rivalen nehmen"). Diese Ziele geben ihrem Handeln eine langfristige Richtung und werden bei der Aktionsauswahl stark gewichtet.
+## 3. Beispiele für emergentes Verhalten entschlüsselt
 
-### Gefängnistagebuch: Die innere Welt der Inhaftierten
-Ein einzigartiges Feature, das die psychologische Tiefe der Simulation erweitert, ist das Gefängnistagebuch. Wenn ein Agent inhaftiert wird, beginnt er, ein Tagebuch zu führen.
-- **Automatische Generierung:** Für jeden Simulationsschritt (der einer Woche im Gefängnis entspricht), generiert die KI einen detaillierten, persönlichen Tagebucheintrag aus der Perspektive des Agenten.
-- **Kontextbezogene Inhalte:** Diese Einträge sind nicht zufällig. Sie spiegeln die `Persönlichkeit`, die `Psyche`, die aktuellen `Emotionen` und die `Erinnerungen` des Agenten an die Tat wider, die zu seiner Verhaftung führte. Ein optimistischer Agent schreibt vielleicht hoffnungsvoll, während ein zynischer Agent verbittert oder wütend klingen wird.
-- **Beobachtung & Export:** Das Tagebuch kann direkt auf der **Agentenkarte** eingesehen werden. Es bleibt auch nach der Freilassung des Agenten als permanenter Teil seiner Geschichte erhalten und kann jederzeit als formatierte Markdown-Datei **heruntergeladen** werden, um die vollständige Geschichte zu bewahren.
+Das Zusammenspiel der oben genannten Regeln führt zu komplexem, oft überraschendem Verhalten.
 
-### Soziales Gefüge
-- **Beziehungen:** Agenten bauen Beziehungen zu anderen auf, die von `Fremder` über `Freund` bis hin zu `Rivale` oder `Ehepartner` reichen. Jede Beziehung hat einen numerischen Wert, der durch Interaktionen und Nähe beeinflusst wird.
-- **Kultur & Religion:** Die Zugehörigkeit zu einer Kultur oder Religion stattet Agenten mit einem gemeinsamen Satz von Grundüberzeugungen aus und ermöglicht ihnen, an kollektiven Zielen wie der Erforschung neuer Technologien teilzuhaben.
+### 3.1 Warum stimmt Agent A für Agent B als Anführer? Die Macht der Ideologie
 
-## 5. Langzeitgedächtnis: Die Vektor-Datenbank
+Die Wahl-Logik basiert nicht mehr auf oberflächlichem Status, sondern auf tiefen ideologischen Überzeugungen.
+- **Jensen-Shannon-Divergenz (JSD):** Vor der Wahl berechnet ein Agent den JSD-Wert zwischen seinem eigenen `beliefNetwork` und dem jedes Kandidaten.
+- **Wahl des Gleichgesinnten:** Der Agent wird mit sehr hoher Wahrscheinlichkeit für den Kandidaten stimmen, dessen JSD-Wert am **niedrigsten** ist – also den Kandidaten, dessen Weltanschauung seiner eigenen am meisten ähnelt.
+- **Emergentes Ergebnis:** Dies führt zur Bildung von politischen Blöcken und zu Wahlen, die entlang ideologischer Linien entschieden werden, anstatt dass einfach die "beliebteste" Person gewinnt.
 
-Dies ist eines der fortschrittlichsten Features der Simulation und der Schlüssel zu wirklich intelligentem, kontextbewusstem Verhalten. Es ersetzt ein einfaches, chronologisches Protokoll durch ein semantisches, assoziatives Gedächtnis.
+### 3.2 Wie entsteht ein neues Gesetz?
 
-### Das Konzept des "Echten" Gedächtnisses
-Ein menschliches Gedächtnis funktioniert nicht wie eine Liste. Wir erinnern uns an Ereignisse basierend auf ihrer Relevanz für die aktuelle Situation. Wenn wir über "Urlaub" nachdenken, kommen uns Erinnerungen an Strände, Berge oder bestimmte Reisen in den Sinn – nicht die Erinnerung an das Zähneputzen von letzter Woche. Dieses System ahmt dieses Prinzip nach.
+Dies ist ein Paradebeispiel für die fortschrittliche KI-Integration:
+1.  **Auslöser:** Nur der aktuelle Anführer (`Leader`) mit der Technologie "Governance" kann ein Gesetz vorschlagen. Er wird dies eher tun, wenn seine Erinnerungen auf soziale Probleme hindeuten (z.B. viele Kämpfe).
+2.  **KI-Gesetzgeber:** Die Aktion `Propose New Law` ruft die Gemini-KI auf. Die KI analysiert die jüngsten Ereignisse aus den Erinnerungen des Anführers und die Grundwerte seiner Kultur. Basierend darauf **erfindet die KI ein komplett neues, passendes Gesetz**, z.B. ein "Ressourcenschutzgesetz", wenn Ressourcen knapp werden.
+3.  **Abstimmung im Clan:** Das vorgeschlagene Gesetz wird nicht einfach erlassen. Es wird eine Abstimmung unter allen Mitgliedern der Kultur des Anführers simuliert. Die Zustimmungswahrscheinlichkeit jedes Mitglieds hängt von seiner **Beziehung zum Anführer** und seiner eigenen **Verträglichkeit** (`agreeableness`) ab.
+4.  **Mehrheitsentscheid:** Nur wenn die Mehrheit zustimmt, wird das Gesetz Teil der Weltregeln.
 
-### Der Prozess: Von der Handlung zur Erinnerung
-1.  **Aktion & Ergebnis:** Ein Agent führt eine Aktion aus, z.B. "Sammle 5 Nahrung von Beerenbusch". Das Ergebnis wird als Textprotokoll erfasst.
-2.  **Embedding-Erstellung:** Dieser Text wird an die Gemini API (`text-embedding-004` Modell) gesendet. Die API wandelt den semantischen Inhalt des Textes in einen numerischen Vektor (ein "Embedding") um. Dieses Embedding ist eine mathematische Repräsentation der Bedeutung der Erinnerung.
-3.  **Speicherung:** Jede Erinnerung – bestehend aus dem Textinhalt, dem Vektor-Embedding und einem Zeitstempel – wird in der persönlichen **Vektor-Datenbank** des Agenten gespeichert (`VectorDB`-Klasse in `memoryService.ts`). Diese Datenbank ist das Langzeitgedächtnis des Agenten.
+### 3.3 Warum werden Agenten aggressiv und bekämpfen sich?
 
-### Intelligenter Abruf durch Ähnlichkeitssuche
-Wenn der Benutzer dem Agenten einen komplexen Befehl gibt (z.B. "Was hältst du von Bob?"), passiert Folgendes:
-1.  **Anfrage-Vektor:** Der Befehl des Benutzers wird ebenfalls in einen Anfrage-Vektor umgewandelt.
-2.  **Ähnlichkeitssuche:** Das System durchsucht die Vektor-Datenbank des Agenten und vergleicht den Anfrage-Vektor mit den Vektoren aller gespeicherten Erinnerungen mithilfe der **Kosinus-Ähnlichkeit**.
-3.  **Relevanz-Ranking:** Erinnerungen, deren Vektoren dem Anfrage-Vektor am ähnlichsten sind, werden als am relevantesten eingestuft. Dies bedeutet, dass Erinnerungen an vergangene Interaktionen mit "Bob" (sowohl positive als auch negative) eine hohe Ähnlichkeit aufweisen werden, während irrelevante Erinnerungen (wie das Sammeln von Holz) eine niedrige Ähnlichkeit haben.
+Aggression ist selten zufällig. Sie entsteht aus einer Kombination von Faktoren:
+- **Ziel `avengeRival`:** Ein Agent mit diesem Ziel wird aktiv die Konfrontation mit seinem Rivalen suchen.
+- **Hohe `vengefulness`:** Ein rachsüchtiger Agent hat eine niedrigere Hemmschwelle, einen Kampf zu beginnen.
+- **Niedrige `agreeableness`:** Ein wenig verträglicher Agent neigt eher zu Konflikten.
+- **Kognitive Dissonanz:** Ein Agent, der gegen seine friedlichen Überzeugungen handelt (z.B. gezwungen wird zu kämpfen), erleidet Stress, was ihn in Zukunft reizbarer machen kann.
+- **Direkter Befehl:** Der Benutzer kann einen Kampf über die Eingabeaufforderung provozieren.
 
-### Auswirkungen auf das Agentenverhalten
-Die Top 3-5 relevantesten Erinnerungen werden dem Haupt-KI-Modell (Gemini) als zusätzlicher Kontext für seine Entscheidung bereitgestellt. Statt nur zu fragen: "Was soll der Agent tun?", fragt das System nun:
+### 3.4 Warum versuchen Agenten etwas, wofür ihnen die Fähigkeiten fehlen?
 
-> "Basierend auf dem Zustand des Agenten, der aktuellen Welt UND diesen spezifischen, relevanten Erinnerungen aus seiner Vergangenheit – was ist die logischste Aktion oder Antwort?"
+Dies ist oft ein Zeichen für Verzweiflung oder Neugier:
+- **Verzweiflung:** Ein verhungernder Agent mit `farming: 0` wird trotzdem versuchen, `Gather Food` auszuführen, weil die Überlebenspriorität alle anderen Bedenken überstimmt.
+- **Neugier (Exploration):** Die `EPSILON_GREEDY`-Logik kann dazu führen, dass ein Agent eine zufällige Aktion wie `Craft Sword` ausprobiert, einfach um zu sehen, was passiert, auch wenn seine `crafting`-Fähigkeit miserabel ist.
 
-Dies ermöglicht ein unglaublich nuanciertes Verhalten:
-- Ein Agent wird sich an einen vergangenen, unfairen Handel erinnern, wenn er erneut mit demselben Partner interagiert.
-- Ein Agent kann seine Meinung über einen Ort bilden, basierend auf wiederholten positiven oder negativen Erfahrungen dort.
-- Ein Agent kann auf Fragen zu vergangenen Ereignissen antworten, die hunderte von Schritten zurückliegen, solange sie für die Frage relevant sind.
-- Die KI nutzt diesen Kontext auch, um **neue Gesetze oder Technologien zu erfinden**, die auf den "Erfahrungen" der Gesellschaft basieren.
-
-Das Vektor-Gedächtnis verwandelt die Agenten von rein reaktiven Wesen zu Wesen, die aus ihrer gesamten Lebenserfahrung lernen und reflektieren können.
+## 4. Die dynamische Wirtschaft: Fabriken und KI-gesteuerte Innovation
 
-## 6. Die Wirtschaftssimulation: Von Rohstoffen zu Produkten
-
-Die Simulation verfügt über ein tiefgreifendes Wirtschaftssystem, das über einfaches Überleben hinausgeht. Es modelliert Produktionsketten, Unternehmertum und die Erfindung neuer Güter.
-
-### Erweiterte Rohstoffe und Waren
-Die Welt ist reich an Ressourcen. Neben den Grundbedürfnissen wie **Nahrung** und **Holz** gibt es eine Vielzahl von Rohstoffen, die die Grundlage für eine komplexe Wirtschaft bilden:
-- **Grundrohstoffe:** `Holz`, `Stein`, `Kohle`, `Eisen`, `Sand`, `Lehm`.
-- **Zwischenprodukte:** Durch Verarbeitung entstehen Waren wie `Holzkohle`, `Ziegel`, `Glas` oder `Stahlbarren`.
-- **Endprodukte:** Diese Zwischenprodukte werden zu wertvollen Endprodukten wie `Werkzeugen`, `Möbeln` oder `Schwertern` weiterverarbeitet.
-
-### Fabriken und Produktionsketten
-- **Gründung:** Agenten mit der Rolle `Entrepreneur` können eine **Fabrik** gründen (`Found Factory`). Dies ist eine teure Investition, die Kapital und Baumaterialien erfordert. Bei der Gründung wird festgelegt, welches spezifische Produkt diese Fabrik herstellen soll (z.B. eine Werkzeugschmiede).
-- **Produktion:** Fabriken produzieren nicht von alleine. Ein Agent muss dort arbeiten (`Work in Factory`). Diese Aktion verbraucht Rohstoffe aus dem Inventar des Fabrikbesitzers und legt das fertige Produkt ebenfalls in dessen Inventar ab.
-- **Arbeitsmarkt:** Andere Agenten können in einer Fabrik arbeiten, um einen Lohn vom Besitzer zu erhalten. Dies schafft einen dynamischen Arbeitsmarkt, bei dem Unternehmer Arbeiter einstellen, um ihre Produktion zu steigern.
-
-## 7. Der Simulationszyklus & KI-Entscheidungsfindung
+Die Simulation verfügt über ein tiefgreifendes Wirtschaftssystem, das Produktionsketten und Innovation modelliert.
+- **Ressourcen & Waren:** Es gibt Rohstoffe (`Holz`, `Eisen`, `Kohle` etc.) und daraus herstellbare Waren (`Stahlbarren`, `Werkzeuge`, `Möbel`).
+- **Fabriken:** Agenten mit der Rolle `Entrepreneur` können `Factory`-Entitäten gründen, die auf die Produktion eines bestimmten Gutes spezialisiert sind.
+- **Arbeitsmarkt:** Andere Agenten können in diesen Fabriken arbeiten (`Work in Factory`), um einen Lohn vom Besitzer zu erhalten, während der Besitzer die produzierten Waren erhält.
+- **KI-gesteuerte Innovation:** Das Highlight ist die Aktion `Invent Technology`. Ein Wissenschaftler kann die KI nutzen, um basierend auf den bekannten Technologien und den "Erfahrungen" (Erinnerungen) der Kultur **eine völlig neue Technologie zu erfinden**. Diese neue Technologie schaltet dann wiederum neue Aktionen oder Handwerksrezepte frei und treibt so die gesellschaftliche Entwicklung auf unvorhersehbare Weise voran.
 
-Jeder "Schritt" der Simulation durchläuft einen festen Zyklus:
-1.  **Globale Updates:** Die Zeit schreitet voran, politische Ereignisse wie Wahlen werden geprüft.
-2.  **Agenten-Zyklus (für jeden Agenten):**
-    a. **Passive Updates:** Bedürfnisse steigen, Gesundheit verändert sich, Emotionen klingen ab. Wenn ein Agent inhaftiert ist, wird geprüft, ob ein Tagebucheintrag generiert werden muss.
-    b. **Aktionsauswahl (`chooseAction`):** Dies ist das "Gehirn" des Agenten. Ein ausgeklügeltes Bewertungssystem wägt verschiedene Faktoren ab, um die beste Aktion auszuwählen (siehe unten).
-    c. **Aktionsausführung:** Die gewählte Aktion wird ausgeführt.
-    d. **Gedächtnisbildung:** Das Ergebnis wird, wie oben beschrieben, in eine Erinnerung umgewandelt und im Vektor-Gedächtnis gespeichert.
-
-### Jensen-Shannon-Divergenz: Das Maß der ideologischen Distanz
-Ein neues, mathematisch fundiertes Konzept, die **Jensen-Shannon-Divergenz (JSD)**, wurde integriert, um das Verhalten der Agenten noch realistischer zu gestalten. JSD misst die Ähnlichkeit zwischen zwei Wahrscheinlichkeitsverteilungen – in diesem Fall den `beliefNetworks` der Agenten. Ein niedriger JSD-Wert bedeutet hohe ideologische Ähnlichkeit, ein hoher Wert große Unterschiede. Dies wird an mehreren Stellen genutzt:
-- **Soziale Cliquenbildung:** Bei der Wahl, mit wem sie sprechen (`Talk`), bevorzugen Agenten nun andere Agenten mit einem **niedrigen JSD-Wert**. Dies führt zur natürlichen Entstehung von ideologischen Gruppen und Fraktionen.
-- **Ideologie-basiertes Wahlverhalten:** Agenten stimmen nicht mehr nur für den Kandidaten mit dem höchsten Status. Stattdessen berechnen sie den JSD zwischen ihren eigenen Überzeugungen und denen jedes Kandidaten und wählen mit hoher Wahrscheinlichkeit denjenigen, dessen Ideologie ihrer eigenen am nächsten ist.
-- **Kognitive Dissonanz:** Wenn ein Agent eine Handlung ausführt, die seinen Überzeugungen widerspricht (z.B. "Stehlen" bei hoher Gewissenhaftigkeit), wird der JSD zwischen seinen Überzeugungen und den "moralischen Implikationen" der Tat berechnet. Ein hoher JSD-Wert führt direkt zu einem Anstieg von `Stress`.
-
-### Politische Autonomie: Wie Gesetze entstehen
-
-Ein Schlüsselelement des emergenten Verhaltens ist die Fähigkeit des Systems, seine eigenen Regeln zu schaffen. Anstatt dass Gesetze nur vom Benutzer vordefiniert werden, kann der Anführer der Gemeinschaft autonom neue Gesetze vorschlagen.
-
-1.  **Der Auslöser:** Ein Anführer mit der Technologie "Regierungsführung" (`governance`) kann die Aktion **`Propose New Law`** (Neues Gesetz vorschlagen) in Betracht ziehen. Dies geschieht oft, wenn seine Psyche einen hohen `Entscheidungsdruck` anzeigt oder seine Erinnerungen auf wiederkehrende Probleme in der Gesellschaft hindeuten.
-
-2.  **KI als Gesetzgeber:** Anstatt eines festen Gesetzes ruft diese Aktion die Gemini-KI auf. Die KI analysiert den Zustand der Welt:
-    - **Jüngste Ereignisse:** Gibt es viele Kämpfe, Diebstähle oder soziale Unruhen (aus den Erinnerungen des Anführers)?
-    - **Kulturelle Werte:** Welche Überzeugungen hat die Kultur des Anführers? Eine naturverbundene Kultur könnte Gesetze zum Ressourcenschutz vorschlagen, eine fortschrittsorientierte Kultur Gesetze zur Forschungsförderung.
-    - **Bestehende Gesetze:** Die KI stellt sicher, dass sie kein bereits existierendes Gesetz vorschlägt.
-    Basierend auf dieser Analyse generiert die KI ein **völlig neues, kontextuell passendes Gesetz** als JSON-Objekt, komplett mit Beschreibung, der zu bestrafenden Aktion (`violatingAction`) und einer angemessenen Strafe.
+## 5. Das Gedächtnis: Wie Agenten lernen und sich erinnern
 
-3.  **Kulturelle Beratung (Die Abstimmung):** Ein Anführer regiert nicht allein. Nachdem die KI ein Gesetz vorgeschlagen hat, wird eine **Abstimmung innerhalb des "Clans" (der Kultur des Anführers)** simuliert.
-    - Jedes Mitglied der Kultur stimmt ab. Die Wahrscheinlichkeit, dass ein Mitglied zustimmt, hängt von seiner **Beziehung zum Anführer** und seiner **Persönlichkeit** (insbesondere `Verträglichkeit`) ab.
-    - **Mehrheitsentscheid:** Nur wenn die Mehrheit der Kulturmitglieder zustimmt, wird das Gesetz offiziell erlassen und in der Simulation durchgesetzt.
+Das Gedächtnis ist der Schlüssel zu kontextbewusstem Verhalten. Es ist keine einfache Liste von Ereignissen.
+- **Vektor-Datenbank:** Jede wichtige Aktion und deren Ergebnis wird in einen Text umgewandelt (z.B. "Ich habe erfolgreich 5 Holz gesammelt"). Dieser Text wird mittels KI in einen numerischen Vektor ("Embedding") umgewandelt, der die semantische Bedeutung erfasst.
+- **Semantische Suche:** Wenn ein Agent eine komplexe Entscheidung treffen muss (z.B. auf die Frage "Was hältst du von Bob?"), wird die Frage ebenfalls in einen Vektor umgewandelt. Das System sucht dann im Langzeitgedächtnis nach den Erinnerungen, deren Vektoren dem Frage-Vektor am ähnlichsten sind.
+- **Kontext für die KI:** Die relevantesten Erinnerungen (z.B. vergangene Kämpfe oder freundliche Gespräche mit Bob) werden der KI als zusätzlicher Kontext gegeben. Dadurch kann der Agent "wie ein Mensch" auf Basis relevanter vergangener Erfahrungen antworten, anstatt nur auf seinen unmittelbaren Zustand zu reagieren. Dies wird auch als Kontext für die Erfindung neuer Gesetze und Technologien genutzt.
 
-Dieser Prozess schafft eine dynamische und plausible politische Landschaft, in der die Regeln der Gesellschaft eine direkte Reaktion auf die internen Probleme und Werte dieser Gesellschaft sind.
+## 6. Die innere und äußere Welt: Analysewerkzeuge
 
-## 8. Benutzerinteraktion
+### Psychoanalyse
+Auf Knopfdruck analysiert die KI den gesamten Zustand eines Agenten (Persönlichkeit, Erinnerungen, Traumata, Ziele) und erstellt einen detaillierten psychologischen Bericht. Dieser Bericht kann dem Agenten neue `unconscious_modifiers` (unbewusste Triebe) und ein `suggested_goal` (vorgeschlagenes Ziel) geben, was sein zukünftiges Verhalten subtil beeinflusst.
 
-### Steuerungspanel
-- **Step / Run:** Führt die Simulation für einen oder mehrere Schritte aus.
-- **Reset:** Setzt die Welt auf ihren ursprünglichen Zustand zurück.
-- **New World / Add...:** Nutzt die generative Kraft der KI, um die Welt mit einzigartigen Agenten und Entitäten zu bevölkern oder zur bestehenden Welt hinzuzufügen.
+### Gefängnistagebuch (`jailJournal`)
+Wenn ein Agent inhaftiert ist, generiert die KI für jeden Schritt einen Tagebucheintrag. Dieser Eintrag reflektiert die Persönlichkeit des Agenten, seine Erinnerungen an die Tat und seine Gefühle über die Gefangenschaft.
 
-### Agentensteuerung & KI-Interaktion
-Über die **Agentenkarte** können Sie direkt mit einem Agenten interagieren:
-- **Direkter Befehl:** Deaktivieren Sie "KI verwenden", um exakte Aktionsnamen einzugeben (z.B. "Move North").
-- **Natürliche Sprache (Use AI):** Geben Sie einen Befehl in natürlicher Sprache ein (z.B. "Geh etwas essen" oder "Räche dich an deinem Rivalen"). Dies aktiviert den intelligenten Entscheidungsprozess, einschließlich des Abrufs von Erinnerungen aus der Vektor-Datenbank.
+### Entitätenkarte
+Neben der detaillierten Ansicht für Agenten gibt es auch eine für Entitäten. Sie ermöglicht es, den Zustand der unbelebten Welt zu inspizieren: Wer besitzt ein Haus? Welche Waren werden auf dem Markt angeboten? Wer arbeitet in einer Fabrik? Dies ist ein wichtiges Werkzeug, um die wirtschaftlichen und sozialen Strukturen der Welt zu verstehen.
 
-### Welterschaffung & Psychoanalyse
-- **Generate World:** Erstellt eine komplett neue Weltbevölkerung basierend auf Ihren Vorgaben (Anzahl der Agenten/Entitäten). Die KI sorgt für einzigartige **vollständige Namen**, Persönlichkeiten und Hintergrundgeschichten. Wichtig hierbei ist, dass Vor- und Nachname als eine einzige Zeichenkette im `name`-Feld des Agenten gespeichert werden. Die KI ist angewiesen, diesen vollständigen Namen in einem Feld zu liefern und keine separaten Felder für Vor- und Nachname zu erstellen.
-- **Psychoanalyse:** Sie können eine tiefenpsychologische Analyse eines Agenten anfordern. Die KI analysiert den gesamten Zustand des Agenten (Persönlichkeit, Traumata, Beziehungen, Überzeugungen) und erstellt einen detaillierten Bericht, der sogar unbewusste Konflikte und therapeutische Empfehlungen enthält. Diese Ergebnisse können dann direkt in die Psyche des Agenten integriert werden, um z.B. neue Ziele zu schaffen.
+### Der Blick von oben: KI-generierte Weltanalyse
+Neben der tiefenpsychologischen Analyse einzelner Agenten bietet die Simulation auch eine makroskopische Sicht auf die gesamte Gesellschaft – ebenfalls durch die Kraft der KI. Über den "Analyze World"-Button wird ein Prozess angestoßen, bei dem der gesamte Weltzustand an die Gemini-KI gesendet wird.
+Die KI erhält die Anweisung, als Datenanalyst und UI/UX-Designer zu agieren und einen umfassenden, visuell ansprechenden HTML-Bericht zu erstellen. Dieser Bericht fasst die wichtigsten Kennzahlen zusammen:
+- **Politische Landschaft:** Wer ist der Anführer? Welche Gesetze sind in Kraft?
+- **Sozio-kulturelle Dynamik:** Wie sind die Kulturen verteilt? Welche Beziehungen herrschen vor?
+- **Wirtschaftlicher Ausblick:** Wie ist der Wohlstand verteilt? Gibt es auffällige Marktaktivitäten?
+- **Technologischer Fortschritt:** Ein Vergleich der Kulturen.
+Dies erzeugt eine narrative, qualitative Zusammenfassung, die die quantitativen Diagramme des Analytics Dashboards perfekt ergänzt. Es ist ein weiteres mächtiges Werkzeug zur Beobachtung emergenter Phänomene, da die KI möglicherweise Trends oder Konflikte hervorhebt, die dem Benutzer bisher entgangen sind. Diese Berichte werden historisch gespeichert und ermöglichen es, die Entwicklung der Welt nicht nur durch Zahlen, sondern durch eine Reihe von KI-erstellten "Geschichtsberichten" zu verfolgen.
 
-### Zustand, Gespräche & Statistiken verwalten
-In der rechten Seitenleiste befindet sich das Panel zum Verwalten des Simulationszustands und zum Exportieren von Daten:
-- **Zustand Speichern/Laden:** Ermöglicht das Exportieren der gesamten Simulation in eine JSON-Datei und das spätere erneute Laden.
-- **Gespräche exportieren:** Erstellt eine Markdown-Datei mit allen bisherigen Konversationen der Agenten.
-- **Statistiken exportieren:** Generiert einen zusammenfassenden Bericht im Markdown-Format über wichtige Ereignisse wie Eheschließungen (wer mit wem), Geburten (Eltern und Kind), Inhaftierungen (wer wie oft) und Kämpfe. Dies bietet eine hervorragende statistische Übersicht über die soziale Dynamik der Welt.
+## 7. Verifizierung im Code: Wo diese Logik lebt
 
-### Manuelle Erstellung (Create New Panel)
-Dieses Panel, sichtbar in der Standardansicht des rechten Bereichs (wenn kein Admin ausgewählt ist), erlaubt es Ihnen, manuell neue Elemente in die Simulation einzufügen, ohne KI-Generierung zu verwenden. Sie können erstellen:
-- **Agenten:** Definieren Sie einen neuen Agenten von Grund auf, einschließlich Name, Beschreibung, Überzeugungen und Persönlichkeitsmerkmale.
-- **Entitäten:** Fügen Sie neue Objekte oder Landmarken zur Welt hinzu.
-- **Aktionen:** Entwerfen Sie eine neue, benutzerdefinierte Aktion mit spezifischen mechanischen Effekten (Kosten, Statusänderungen, Fähigkeitsgewinne). Dies ist ein mächtiges Werkzeug zum Testen neuer Spielmechaniken.
+Um diese Verhaltensweisen selbst zu überprüfen und zu modifizieren, sind folgende Dateien entscheidend:
+- **`services/simulation.ts`:** Hier befindet sich die `chooseAction`-Methode, das "Gehirn" der Agenten. Sie enthält die gesamte Bewertungslogik, die in Abschnitt 2 beschrieben wird. Auch die Logik für kognitive Dissonanz ist hier zu finden.
+- **`services/actions.ts`:** Diese Datei enthält die Implementierung jeder einzelnen Aktion (`execute`-Funktion). Hier wird definiert, was genau passiert, wenn ein Agent wählt, handelt oder ein Gesetz erlässt.
+- **`services/geminiService.ts`:** Hier sind alle Prompts definiert, die an die KI gesendet werden, einschließlich der komplexen Anweisungen für die Gesetzeserfindung, Psychoanalyse und das Tagebuchschreiben.
+- **`services/statisticsUtils.ts`:** Enthält die mathematische Implementierung der Jensen-Shannon-Divergenz.
 
-### Das Admin-Panel (Gott-Modus)
-Wenn ein Agent mit dem Attribut `adminAgent: true` ausgewählt ist, wechselt die rechte Ansicht zum Admin-Panel. Dieses Panel bietet direkte "gottgleiche" Kontrolle über die Kernparameter der Simulation:
-- **Politische Verwaltung:** Starten Sie Wahlen, setzen Sie einen Anführer manuell ein, erlassen oder widerrufen Sie Gesetze.
-- **Technologie-Management:** Beobachten Sie den Forschungsfortschritt jeder Kultur und schalten Sie Technologien bei Bedarf manuell frei.
-- **Agenten-Management:** Passen Sie die Attribute jedes Agenten an – setzen Sie Gesundheit, Währung, Position oder infizieren Sie ihn mit einer Krankheit. Tote Agenten können wiederbelebt und Agenten für eine bestimmte Dauer inhaftiert werden.
+## 8. Fazit: Die Illusion des freien Willens
 
-## 9. Analyse & Beobachtung: Das Analytics Dashboard
+Das Verhalten der Agenten in RealitySim AI ist nicht vorprogrammiert. Es ist das **emergente Ergebnis** aus dem Zusammenspiel von:
+- **Deterministischen Regeln** (Bedürfnisse, Fähigkeiten, Mathematik des Kampfes).
+- **Komplexen internen Zuständen** (Persönlichkeit, Psyche, Ziele, Erinnerungen).
+- **Mathematischer Soziologie** (Jensen-Shannon-Divergenz zur Messung ideologischer Nähe).
+- **KI-gesteuerter Kreativität und Interpretation** (Dialog, Erfindungen, Gesetze).
 
-Das Analytics Dashboard (erreichbar über das Balkendiagramm-Icon) bietet einen Makro-Blick auf die Simulation und hilft, emergente Muster zu erkennen, die im normalen Ereignisprotokoll untergehen würden.
-
-### Soziales Netzwerk
-Dieser Tab visualisiert das Beziehungsgeflecht der Gesellschaft als interaktiven Graphen. Agenten sind Knoten, und Linien zwischen ihnen stellen Beziehungen dar.
-- **Interaktivität:** Die Visualisierung kann als **interaktive HTML-Datei heruntergeladen** werden, in der Sie zoomen, Knoten verschieben und Details zu Agenten und Beziehungen anzeigen können.
-- **Farbe & Art:** Die Farbe der Linie zeigt die Art der Beziehung an (z.B. pink für Partner, grün für Freunde, rot für Rivalen).
-- **Gruppen:** Agenten werden nach ihrer Kultur farblich gruppiert, was die Erkennung von kulturellen Clustern erleichtert.
-
-### Wirtschaftsflüsse
-Dieses Diagramm zeigt den Fluss von Währung (`currency`) zwischen den Agenten und der Welt (z.B. durch Arbeit).
-- **Sankey-ähnliche Darstellung:** Pfeile zeigen die Richtung des Geldflusses an, ihre Länge und ein Label repräsentieren das transferierte Volumen.
-- **Zeitfenster-Regler:** Sie können den Analysezeitraum anpassen, um kurzfristige Handelsmuster oder langfristige Wirtschaftsbeziehungen zu untersuchen.
-
-### Kulturelle Ausbreitung
-Diese Ansicht zeigt eine Heatmap der Weltkarte.
-- **Farbkodierung:** Jede Kultur hat eine eigene Farbe.
-- **Dichte:** Die Farbintensität in einem Gitterbereich zeigt die Konzentration von Mitgliedern einer bestimmten Kultur an. So lässt sich die Bildung von kulturellen Enklaven oder die Vermischung von Kulturen visuell nachvollziehen.
-
-### Technologie
-Hier wird der technologische Fortschritt jeder Kultur visualisiert.
-- **Fortschrittsbalken:** Für jede Technologie im Technologiebaum (`techTree`) wird der Forschungsfortschritt jeder Kultur als Prozentbalken dargestellt.
-- **Abhängigkeiten:** Technologien, deren Voraussetzungen noch nicht erfüllt sind, werden ausgegraut dargestellt, was die Entwicklungswege der Kulturen verdeutlicht.
-
-## 10. Erweiterbarkeit
-
-Die Simulation ist modular aufgebaut, um leicht erweitert werden zu können. Hier sind die wichtigsten Ansatzpunkte für Erweiterungen:
-
-### 10.1 Neue Aktionen hinzufügen
-Dies ist die häufigste Art der Erweiterung. Wie bereits erwähnt, können neue Aktionen in `services/actions.ts` definiert und zur `availableActions`-Liste hinzugefügt werden. Dies ermöglicht neue Verhaltensweisen, die sofort in das KI-Entscheidungssystem integriert werden. Alternativ können Aktionen auch zur Laufzeit über das "Create New"-Panel hinzugefügt werden.
-
-### 10.2 Neue Agenten-Attribute (Psyche, Bedürfnisse etc.)
-Die Simulation kann durch neue interne Zustände für Agenten erweitert werden.
-1.  **Typdefinition:** Fügen Sie das neue Attribut zur `Agent`-Schnittstelle in `types.ts` hinzu (z.B. ein neuer Psyche-Wert wie `courage` oder ein Bedürfnis wie `social`).
-2.  **Initialisierung:** Geben Sie einen Standardwert in `constants.ts` (z.B. in `defaultPsyche`) und in den Generierungsfunktionen (`sanitizeAndCreateAgents` in `hooks/useSimulation.ts`) an.
-3.  **Simulation-Engine:** Integrieren Sie die Logik für das neue Attribut in `services/simulation.ts`. Wie verändert es sich pro Schritt (`applyPerStepMechanisms`)?
-4.  **KI-Integration (entscheidend):** Damit die KI das neue Attribut versteht und berücksichtigt, müssen die Prompts in `services/geminiService.ts` aktualisiert werden. Fügen Sie das Attribut zur Agenten-Zustandsbeschreibung hinzu und erklären Sie in der `instructions`-Sektion, wie es die Aktionsauswahl beeinflussen soll (z.B. "Hoher `courage` erhöht die Wahrscheinlichkeit für die Aktion 'Fight'").
-
-### 10.3 Neue Technologien oder Rezepte
-1.  **Technologien:** Fügen Sie einen neuen Eintrag zum `TECH_TREE` in `constants.ts` hinzu. Definieren Sie die Kosten, Voraussetzungen und was die Technologie freischaltet (neue Aktionen, Rezepte).
-2.  **Rezepte:** Fügen Sie einen neuen Eintrag zur `RECIPES`-Liste in `constants.ts` hinzu. Definieren Sie das Ergebnis, die Zutaten und eventuelle Fähigkeits- oder Technologieanforderungen. Das System erstellt daraus automatisch eine `Craft...`-Aktion.
-
-### 10.4 Erweiterung der Benutzeroberfläche
-Neue Informationen können in den Komponenten in `components/` visualisiert werden, z.B. durch Hinzufügen eines neuen Diagramms in `AgentCard.tsx` oder einer neuen Visualisierung im `AnalyticsDashboard.tsx`.
-
-### 10.5 Agenten-erfundene Technologien & Religionen
-Dies ist ein zentrales Feature für emergentes Gameplay. Die Simulation ist nicht mehr auf den vordefinierten Technologie- oder Religionsbaum beschränkt.
-- **Die Aktionen "Technologie erfinden" & "Religion gründen":** Agenten (insbesondere Wissenschaftler mit hoher Inspiration oder charismatische Figuren) können versuchen, neue Konzepte zu schaffen.
-- **KI als Erfinder:** Wenn diese Aktion ausgelöst wird, wird die Gemini-API aufgerufen. Sie erhält den Kontext der aktuellen Welt, der bereits bekannten Technologien/Religionen und der Fähigkeiten des Agenten. Basierend darauf generiert die KI eine plausible neue Technologie oder eine neue Religion mit eigenem Dogma.
-- **Dynamische Entwicklung:** Diese neue Erfindung wird dem globalen Zustand der Simulation hinzugefügt. Dies führt zu einzigartigen und unvorhersehbaren technologischen, wirtschaftlichen und spirituellen Entwicklungen in jeder Simulation.
-
-## 11. Kerntechnologien & Architektur
-
-- **Frontend-Framework:** **React & TypeScript** werden für den Aufbau einer robusten, typsicheren und komponentenbasierten Benutzeroberfläche verwendet.
-
-- **Styling:** **TailwindCSS** ermöglicht ein schnelles, "Utility-First"-Styling direkt im HTML, was die Entwicklung beschleunigt und für ein konsistentes Design sorgt.
-
-- **Künstliche Intelligenz (KI):** Die **Google Gemini API** dient als kognitiver Kern der Simulation.
-  - `gemini-2.5-flash`: Wird für komplexe Entscheidungsfindung, Dialoggenerierung, Psychoanalyse und die prozedurale Erstellung von Welten und Agenten genutzt.
-  - `text-embedding-004`: Erstellt die Vektor-Embeddings, die das Fundament des semantischen Langzeitgedächtnisses bilden.
-
-- **Gedächtnissystem:** Eine **benutzerdefinierte, im Arbeitsspeicher laufende Vektor-Datenbank** (`VectorDB`). Sie verwendet Kosinus-Ähnlichkeit, um semantisch relevante Erinnerungen abzurufen, was ein kontextbezogenes Verhalten der Agenten ermöglicht.
-
-- **Zustandsverwaltung (State Management):** Die gesamte Anwendung nutzt **React Hooks** für die Zustandsverwaltung. Es gibt keine externen State-Management-Bibliotheken. Der zentrale `useSimulation`-Hook fungiert als Haupt-Controller, der die Simulations-Engine (`RealityEngine.ts`) mit der React-UI verbindet. `useContext` wird verwendet, um globale Zustände wie Einstellungen und Sprache bereitzustellen.
-
-- **Datenvisualisierung:**
-  - **Recharts:** Eine leichtgewichtige Diagrammbibliothek, die für die Visualisierung von Agenten-Attributen (Persönlichkeit, Fähigkeiten) und in Teilen des Analytics Dashboards verwendet wird.
-  - **Custom SVG:** Die Weltkarte (`WorldGraph.tsx`) ist eine vollständig benutzerdefinierte SVG-Komponente. Dies bietet maximale Kontrolle und Performance bei der Darstellung von Agenten, Entitäten und ihren Beziehungen auf dem Gitter.
-
-- **Modul-System & Build-Prozess:** Die Anwendung verfolgt einen modernen, **build-freien Ansatz** unter Verwendung von **nativen ES-Modulen mit Import Maps** (definiert in `index.html`). Alle Abhängigkeiten (wie React, Recharts) werden zur Laufzeit direkt aus einem CDN (`esm.sh`) geladen. Dies vereinfacht die Entwicklungsumgebung erheblich, da keine komplexen Tools wie Webpack oder Vite erforderlich sind.
-
-- **Datenpersistenz:**
-  - **`localStorage`:** Die Browser-API `localStorage` wird verwendet, um benutzerspezifische Einstellungen (wie den KI-Anbieter) dauerhaft zu speichern.
-  - **File API:** Die Funktionalität zum Speichern und Laden des gesamten Simulationszustands wird über die browserbasierte File API realisiert, die es dem Benutzer ermöglicht, JSON-Dateien zu exportieren und zu importieren.
+Diese Kombination schafft eine überzeugende Illusion von autonomen Wesen mit eigenem Willen, eigenen Motivationen und einer einzigartigen Lebensgeschichte.
