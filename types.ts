@@ -331,7 +331,7 @@ export interface ActionExecutionResult {
         createAction?: Partial<Action> & { name: string, description: string };
         createCulture?: Partial<Culture> & { name: string, sharedBeliefs: Beliefs, founderId: string };
         updateAgentCulture?: { agentId: string, newCultureId: string | null };
-        createReligion?: { name: string, dogma: Beliefs, cultureIdToAdopt: string };
+        createReligion?: { name: string; dogma: Beliefs; cultureIdToAdopt: string };
     }
 }
 
@@ -348,3 +348,33 @@ export interface PsychoReport {
 }
 
 export type TimedLogEntry = LogEntry & { timestamp: number };
+
+// --- Analysis Report Types ---
+export interface AnalysisData {
+    timestamp: number;
+    agentStats: {
+        total: number;
+        [key: string]: any;
+    };
+    economicStats: {
+        avgWealth: number;
+        [key: string]: any;
+    };
+    socialStats: {
+        friendshipNetwork: { name: string, friendCount: number }[];
+        [key: string]: any;
+    };
+    [key: string]: any;
+}
+
+export interface FullHistoricalReport {
+    id: number;
+    timestamp: number;
+    html: string;
+    analysisData: AnalysisData;
+}
+
+export interface HistoricalReportStub {
+    id: number;
+    timestamp: number;
+}

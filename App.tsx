@@ -9,13 +9,14 @@ import { CreateObjectPanel } from './components/CreateObjectPanel';
 import { ExporterPanel } from './components/ExporterPanel';
 import { AdminPanel } from './components/AdminPanel';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
-import { BrainCircuit, Cpu, Zap, Microscope, Boxes, Trash2, Settings, X, Globe, Users, PlusSquare, Apple, Droplet, Log, Hammer, Home, Vote, PanelLeft, PanelRight, Map, BarChart2, Mountain, Waves, Palmtree } from './components/IconComponents';
+import { BrainCircuit, Cpu, Zap, Microscope, Boxes, Trash2, Settings, X, Globe, Users, PlusSquare, Apple, Droplet, Log, Hammer, Home, Vote, PanelLeft, PanelRight, Map, BarChart2, Mountain, Waves, Palmtree, FileSearch } from './components/IconComponents';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { useSettings } from './contexts/SettingsContext';
 import { useTranslations } from './hooks/useTranslations';
 import { useSimulation } from './hooks/useSimulation';
 import { ProcessingIndicator } from './components/ProcessingIndicator';
 import { TranslationKey } from './translations';
+import { AnalysisReportModal } from './components/AnalysisReportModal';
 
 // --- View Toggle Panel ---
 interface ViewTogglePanelProps {
@@ -482,6 +483,7 @@ export default function App() {
         selectedEntity,
         isGenerating,
         isProcessingSteps,
+        isAnalyzing,
         isSettingsOpen,
         isGenerateWorldModalOpen,
         isGenerateContentModalOpen,
@@ -491,6 +493,9 @@ export default function App() {
         isGeneratingAnalysis,
         analyzedAgent,
         panelVisibility,
+        isAnalysisReportModalOpen,
+        currentAnalysisReportHtml,
+        historicalAnalyses,
         setSelectedAgent,
         setSelectedEntity,
         setIsSettingsOpen,
@@ -498,6 +503,7 @@ export default function App() {
         setIsGenerateContentModalOpen,
         setIsAnalyticsOpen,
         setIsPsychoanalysisModalOpen,
+        setIsAnalysisReportModalOpen,
         togglePanel,
         handlers,
     } = useSimulation();
@@ -535,7 +541,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-300 font-sans">
-      <ProcessingIndicator isOpen={isProcessingSteps} />
+      <ProcessingIndicator isOpen={isProcessingSteps || isAnalyzing} />
       <header className="bg-slate-950/70 backdrop-blur-sm p-4 border-b border-slate-700/50 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-3">
             <BrainCircuit className="h-8 w-8 text-sky-400" />
@@ -550,9 +556,10 @@ export default function App() {
                 onRunSteps={handlers.handleRunSteps} 
                 onReset={handlers.handleReset} 
                 onGenerateWorld={() => setIsGenerateWorldModalOpen(true)} 
-                onGenerateContent={() => setIsGenerateContentModalOpen(true)} 
+                onGenerateContent={() => setIsGenerateContentModalOpen(true)}
+                onAnalyzeWorld={handlers.handleAnalyzeWorld}
                 isGenerating={isGenerating} 
-                isProcessing={isProcessingSteps} 
+                isProcessing={isProcessingSteps || isAnalyzing} 
             />
              <button
                 onClick={() => setIsAnalyticsOpen(true)}
@@ -775,6 +782,16 @@ export default function App() {
         isOpen={isAnalyticsOpen}
         onClose={() => setIsAnalyticsOpen(false)}
         worldState={worldState}
+       />
+       <AnalysisReportModal
+        isOpen={isAnalysisReportModalOpen}
+        onClose={() => setIsAnalysisReportModalOpen(false)}
+        reportHtml={currentAnalysisReportHtml}
+        historicalReports={historicalAnalyses}
+        onViewReport={handlers.handleViewHistoricalReport}
+        onDownloadReport={handlers.handleDownloadHistoricalReport}
+        worldState={worldState}
+        isAnalyzing={isAnalyzing}
        />
     </div>
   );

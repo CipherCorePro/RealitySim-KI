@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Play, RotateCcw, FastForward, Globe, PlusSquare } from './IconComponents';
+import { Play, RotateCcw, FastForward, Globe, PlusSquare, FileSearch } from './IconComponents';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface ControlPanelProps {
@@ -9,11 +8,12 @@ interface ControlPanelProps {
     onReset: () => void;
     onGenerateWorld: () => void;
     onGenerateContent: () => void;
+    onAnalyzeWorld: () => void;
     isGenerating: boolean;
     isProcessing: boolean;
 }
 
-export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, onReset, onGenerateWorld, onGenerateContent, isGenerating, isProcessing }) => {
+export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, onReset, onGenerateWorld, onGenerateContent, onAnalyzeWorld, isGenerating, isProcessing }) => {
     const [runSteps, setRunSteps] = useState(10);
     const t = useTranslations();
     const generatingText = t('log_generating');
@@ -61,6 +61,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onStep, onRunSteps, 
                     {t('controlPanel_run')}
                 </button>
             </div>
+             <button
+                onClick={onAnalyzeWorld}
+                disabled={isGenerating || isProcessing}
+                className="bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center gap-2 disabled:bg-slate-600 disabled:cursor-wait"
+                title={t('controlPanel_analyze_tooltip')}
+            >
+                <FileSearch className="w-4 h-4" />
+                {t('controlPanel_analyze')}
+            </button>
             <button
                 onClick={onReset}
                 disabled={isGenerating || isProcessing}

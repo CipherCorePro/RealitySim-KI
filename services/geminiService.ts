@@ -11,6 +11,309 @@ export class LmStudioError extends Error {
     }
 }
 
+const worldAnalysisPrompts = {
+  en: {
+    system_instruction: `You are a world-class UI/UX designer and data analyst. Your task is to create a visually stunning and insightful analysis report of a simulated world.
+Your output MUST be a single, self-contained, valid HTML5 string. Do not use markdown. The visual presentation is as important as the content.
+
+**CRITICAL INSTRUCTIONS:**
+- Your entire response MUST start with \`<!DOCTYPE html>\` and end with \`</html>\`.
+- Do NOT include any text, markdown like \`\`\`html, or explanations before or after the HTML block.
+- Use the exact CSS provided below within a \`<style>\` tag in the \`<head>\`.
+
+**Report Structure & Content:**
+1.  Header: "World Analysis Report" and the current step.
+2.  Executive Summary: A concise, high-level overview.
+3.  Key Metrics: A grid of visually appealing cards for key figures (Leader, Wealthiest, Oldest, etc.).
+4.  Political Landscape: Analysis of leadership, laws, and stability.
+5.  Socio-Cultural Dynamics: Describe cultures, their members, and relationships.
+6.  Economic Outlook: Analyze wealth distribution and market activity.
+7.  Technological Advancement: Compare cultural tech progress.
+8.  Future Outlook: Predictions and potential conflicts.
+
+**Styling (Use this exact CSS):**
+<style>
+  :root {
+    --bg-color: #f0f2f5;
+    --card-bg: #ffffff;
+    --text-color: #333333;
+    --heading-color: #1a202c;
+    --primary-color: #2563eb;
+    --border-color: #e2e8f0;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 2rem;
+    line-height: 1.6;
+  }
+  .container {
+    max-width: 960px;
+    margin: auto;
+    background: var(--card-bg);
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+  }
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1.5rem;
+  }
+  header h1 {
+    font-size: 2.5em;
+    color: var(--heading-color);
+    margin: 0;
+  }
+  header p {
+    font-size: 1.1em;
+    color: #718096;
+  }
+  section {
+    margin-bottom: 2.5rem;
+  }
+  section p {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+  }
+  h2 {
+    font-size: 1.75em;
+    color: var(--heading-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+  }
+  .card {
+    background-color: #f7fafc;
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+  }
+  .card h3 {
+    font-size: 1.1em;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--heading-color);
+  }
+  .card p {
+    margin: 0;
+    font-size: 0.9em;
+    color: #4a5568;
+  }
+  ul {
+    list-style-position: inside;
+    padding-left: 0;
+  }
+  li {
+    margin-bottom: 0.75rem;
+  }
+  strong {
+    color: #2d3748;
+  }
+  .pill {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: #edf2f7;
+    color: #4a5568;
+  }
+  .pill.tech { background-color: #ebf8ff; color: #2c5282; }
+  .pill.law { background-color: #fff5f5; color: #9b2c2c; }
+</style>
+`,
+    user_prompt_template: `Here is the data for the world at step {step}. Generate the HTML report.
+
+**World State:**
+- Time: {time}
+- Leader: {leaderName}
+- Active Laws: {laws}
+
+**Cultures:**
+{cultures}
+
+**Key Agents Overview:**
+- Wealthiest: {wealthiestAgent}
+- Oldest: {oldestAgent}
+- Most Skilled (Combat): {mostSkilledCombat}
+- Most Connected: {mostConnectedAgent}
+
+**Economy:**
+- Average Wealth: {avgWealth}
+- Total Transactions in last 100 steps: {transactionCount}
+- Top 3 Most Traded Items (from listings): {topTraded}
+
+**Full Agent Data for context:**
+\`\`\`json
+{agents}
+\`\`\`
+`,
+  },
+  de: {
+    system_instruction: `Sie sind ein Weltklasse-UI/UX-Designer und Datenanalyst. Ihre Aufgabe ist es, einen visuell beeindruckenden und aufschlussreichen Analysebericht über eine simulierte Welt zu erstellen.
+Ihr Ergebnis MUSS ein einziger, in sich geschlossener, valider HTML5-String sein. Verwenden Sie kein Markdown. Die visuelle Präsentation ist genauso wichtig wie der Inhalt.
+
+**KRITISCHE ANWEISUNGEN:**
+- Ihre gesamte Antwort MUSS mit \`<!DOCTYPE html>\` beginnen und mit \`</html>\` enden.
+- Fügen Sie KEINEN Text, Markdown wie \`\`\`html oder Erklärungen vor oder nach dem HTML-Block ein.
+- Verwenden Sie das exakte CSS, das unten angegeben ist, innerhalb eines \`<style>\`-Tags im \`<head>\`.
+
+**Berichtsstruktur & Inhalt:**
+1.  Header: "Weltanalyse-Bericht" und der aktuelle Schritt.
+2.  Zusammenfassung: Ein prägnanter, übergeordneter Überblick.
+3.  Schlüsselmetriken: Ein Raster aus visuell ansprechenden Karten für Schlüsselfiguren (Anführer, Reichster, Ältester usw.).
+4.  Politische Landschaft: Analyse von Führung, Gesetzen und Stabilität.
+5.  Sozio-kulturelle Dynamik: Beschreibung der Kulturen, ihrer Mitglieder und Beziehungen.
+6.  Wirtschaftliche Aussichten: Analyse der Vermögensverteilung und Marktaktivität.
+7.  Technologischer Fortschritt: Vergleich des technologischen Fortschritts der Kulturen.
+8.  Zukunftsaussichten: Vorhersagen und potenzielle Konflikte.
+
+**Styling (Verwenden Sie dieses exakte CSS):**
+<style>
+  :root {
+    --bg-color: #f0f2f5;
+    --card-bg: #ffffff;
+    --text-color: #333333;
+    --heading-color: #1a202c;
+    --primary-color: #2563eb;
+    --border-color: #e2e8f0;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 2rem;
+    line-height: 1.6;
+  }
+  .container {
+    max-width: 960px;
+    margin: auto;
+    background: var(--card-bg);
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+  }
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1.5rem;
+  }
+  header h1 {
+    font-size: 2.5em;
+    color: var(--heading-color);
+    margin: 0;
+  }
+  header p {
+    font-size: 1.1em;
+    color: #718096;
+  }
+  section {
+    margin-bottom: 2.5rem;
+  }
+  section p {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+  }
+  h2 {
+    font-size: 1.75em;
+    color: var(--heading-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+  }
+  .card {
+    background-color: #f7fafc;
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+  }
+  .card h3 {
+    font-size: 1.1em;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--heading-color);
+  }
+  .card p {
+    margin: 0;
+    font-size: 0.9em;
+    color: #4a5568;
+  }
+  ul {
+    list-style-position: inside;
+    padding-left: 0;
+  }
+  li {
+    margin-bottom: 0.75rem;
+  }
+  strong {
+    color: #2d3748;
+  }
+  .pill {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: #edf2f7;
+    color: #4a5568;
+  }
+  .pill.tech { background-color: #ebf8ff; color: #2c5282; }
+  .pill.law { background-color: #fff5f5; color: #9b2c2c; }
+</style>
+`,
+    user_prompt_template: `Hier sind die Daten für die Welt zum Zeitpunkt {step}. Bitte generieren Sie den HTML-Bericht.
+
+**Weltzustand:**
+- Zeit: {time}
+- Anführer: {leaderName}
+- Aktive Gesetze: {laws}
+
+**Kulturen:**
+{cultures}
+
+**Übersicht wichtiger Agenten:**
+- Reichster: {wealthiestAgent}
+- Ältester: {oldestAgent}
+- Fähigster (Kampf): {mostSkilledCombat}
+- Am besten vernetzt: {mostConnectedAgent}
+
+**Wirtschaft:**
+- Durchschnittlicher Reichtum: {avgWealth}
+- Gesamte Transaktionen in den letzten 100 Schritten: {transactionCount}
+- Top 3 meistgehandelte Artikel (aus Angeboten): {topTraded}
+
+**Vollständige Agentendaten für den Kontext:**
+\`\`\`json
+{agents}
+\`\`\`
+`,
+  }
+};
+
 const prompts = {
   en: {
     system_base: `You are an assistant for a reality simulation. Your task is to interpret a user's prompt and select the most appropriate action for an AI agent to perform from a given list.
@@ -749,6 +1052,111 @@ export async function generatePsychoanalysis(
         return null;
     } catch (error) {
         console.error("Error generating psychoanalysis with AI:", error);
+        if (error instanceof LmStudioError) throw error;
+        throw new Error(`AI Error: ${(error as Error).message}`);
+    }
+}
+
+export async function generateWorldAnalysisReport(
+    worldState: WorldState,
+    language: Language
+): Promise<string | null> {
+    const t = worldAnalysisPrompts[language];
+
+    // --- Pre-process data for the prompt ---
+    const { agents, government, cultures, environment, markets, transactions } = worldState;
+
+    // Exclude the admin agent from all calculations to avoid skewing the results.
+    const regularAgents = agents.filter(a => !a.adminAgent);
+
+    const leader = regularAgents.find(a => a.id === government.leaderId);
+    
+    // Key agent identification
+    const aliveAgents = regularAgents.filter(a => a.isAlive);
+    const wealthiest = [...aliveAgents].sort((a, b) => b.currency - a.currency)[0];
+    const oldest = [...aliveAgents].sort((a, b) => b.age - a.age)[0];
+    const mostSkilledCombat = [...aliveAgents].sort((a, b) => (b.skills.combat || 0) - (a.skills.combat || 0))[0];
+    const mostConnected = [...aliveAgents].sort((a, b) => Object.keys(b.relationships || {}).length - Object.keys(a.relationships || {}).length)[0];
+    
+    // Economic stats
+    const avgWealth = aliveAgents.reduce((sum, a) => sum + a.currency, 0) / (aliveAgents.length || 1);
+    const recentTransactions = (transactions || []).filter(tx => tx.step >= environment.time - 100);
+    const itemCounts = (markets[0]?.listings || []).reduce((acc, offer) => {
+        acc[offer.item] = (acc[offer.item] || 0) + offer.quantity;
+        return acc;
+    }, {} as {[key: string]: number});
+    const topTraded = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([item]) => item).join(', ') || 'None';
+
+    // Format complex data into strings
+    const lawsStr = government.laws.map(l => l.name).join(', ') || 'None';
+    const culturesStr = cultures.map(c => {
+        const memberNames = c.memberIds.map(id => regularAgents.find(a => a.id === id)?.name).filter(Boolean).join(', ');
+        return `- **${c.name}**: Members: ${memberNames || 'None'}. Known Tech: ${c.knownTechnologies.join(', ') || 'None'}.`;
+    }).join('\n');
+    
+    // Create a slimmed-down version of agents for the prompt JSON
+    const agentsForPrompt = regularAgents.map(a => ({
+        name: a.name,
+        age: a.age,
+        isAlive: a.isAlive,
+        health: a.health,
+        role: a.role,
+        cultureId: a.cultureId,
+        currency: a.currency,
+        socialStatus: a.socialStatus,
+        skills: a.skills,
+        relationships: Object.keys(a.relationships || {}).length
+    }));
+    
+    const systemPrompt = `
+    <!DOCTYPE html>
+    <html lang="${language}">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>World Analysis Report</title>
+        ${t.system_instruction}
+    </head>
+    <body>
+        <div class="container">
+            <!-- AI will generate content here -->
+        </div>
+    </body>
+    </html>
+    `.replace('</style>', `</style><!-- The user prompt will be inserted by the system. Now, generate the report content starting with the <header> tag. -->`);
+
+    const userPrompt = t.user_prompt_template
+        .replace('{step}', String(environment.time))
+        .replace('{time}', String(environment.time))
+        .replace('{leaderName}', leader?.name || 'None')
+        .replace('{laws}', lawsStr)
+        .replace('{cultures}', culturesStr)
+        .replace('{wealthiestAgent}', wealthiest ? `${wealthiest.name} (${wealthiest.currency}$)` : 'N/A')
+        .replace('{oldestAgent}', oldest ? `${oldest.name} (${oldest.age.toFixed(1)} years)` : 'N/A')
+        .replace('{mostSkilledCombat}', mostSkilledCombat ? `${mostSkilledCombat.name} (Lvl ${mostSkilledCombat.skills.combat || 0})` : 'N/A')
+        .replace('{mostConnectedAgent}', mostConnected ? `${mostConnected.name} (${Object.keys(mostConnected.relationships || {}).length} relations)` : 'N/A')
+        .replace('{avgWealth}', avgWealth.toFixed(2) + '$')
+        .replace('{transactionCount}', String(recentTransactions.length))
+        .replace('{topTraded}', topTraded)
+        .replace('{agents}', JSON.stringify(agentsForPrompt, null, 2));
+
+    try {
+        const fullPrompt = systemPrompt.replace('<!-- AI will generate content here -->', userPrompt);
+        
+        const htmlReport = await callAi(fullPrompt, null, false);
+        
+        // Basic check to ensure it looks like HTML
+        if (htmlReport && htmlReport.trim().startsWith('<')) {
+            // The AI should return the full HTML doc, but in case it only returns the body content, wrap it.
+            if (!htmlReport.trim().toLowerCase().startsWith('<!doctype')) {
+                 return systemPrompt.replace('<!-- AI will generate content here -->', `<header><h1>World Analysis Report</h1><p>Step ${environment.time}</p></header>${htmlReport}`);
+            }
+            return htmlReport;
+        }
+        // Fallback if AI returns non-HTML
+        return `<html><body><h1>Analysis Failed</h1><p>The AI returned an invalid format.</p><pre>${htmlReport}</pre></body></html>`;
+    } catch (error) {
+        console.error("Error generating world analysis with AI:", error);
         if (error instanceof LmStudioError) throw error;
         throw new Error(`AI Error: ${(error as Error).message}`);
     }

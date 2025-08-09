@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RealityEngine } from '../services/simulation';
-import type { WorldState, Agent, Entity, EnvironmentState, LogEntry, Culture, Law, Personality, PsychoReport, Election, ActionEffect, LongTermMemory, Relationship, TimedLogEntry } from '../types';
+import type { WorldState, Agent, Entity, EnvironmentState, LogEntry, Culture, Law, Personality, PsychoReport, Election, ActionEffect, LongTermMemory, Relationship, TimedLogEntry, FullHistoricalReport, AnalysisData } from '../types';
 import { initialWorldState, GENOME_OPTIONS, INITIAL_CURRENCY, SKILL_TYPES, defaultPsyche, defaultQTable, RANDOM_FIRST_NAMES, RANDOM_LAST_NAMES } from '../constants';
-import { generateActionFromPrompt, generateWorld, generateAgents, generateEntities, LmStudioError, generatePsychoanalysis, generateEmbedding } from '../services/geminiService';
+import { generateActionFromPrompt, generateWorld, generateAgents, generateEntities, LmStudioError, generatePsychoanalysis, generateEmbedding, generateWorldAnalysisReport } from '../services/geminiService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from './useTranslations';
 import { useSettings } from '../contexts/SettingsContext';
@@ -174,7 +174,13 @@ export const useSimulation = () => {
     const [psychoanalysisReport, setPsychoanalysisReport] = useState<PsychoReport | null>(null);
     const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
     const [analyzedAgent, setAnalyzedAgent] = useState<Agent | null>(null);
-  
+    
+    // Analysis Report feature
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isAnalysisReportModalOpen, setIsAnalysisReportModalOpen] = useState(false);
+    const [currentAnalysisReportHtml, setCurrentAnalysisReportHtml] = useState<string | null>(null);
+    const [historicalAnalyses, setHistoricalAnalyses] = useState<FullHistoricalReport[]>([]);
+
     // Panel visibility
     const [panelVisibility, setPanelVisibility] = useState({
       left: true,
@@ -826,13 +832,94 @@ export const useSimulation = () => {
       setPanelVisibility(prev => ({ ...prev, [panel]: !prev[panel] }));
     }, []);
 
+    const handleAnalyzeWorld = useCallback(async () => {
+        if (!isAiConfigured()) {
+            addRawLog(t('log_configure_ai_full'));
+            setIsSettingsOpen(true);
+            return;
+        }
+
+        setIsAnalyzing(true);
+        setCurrentAnalysisReportHtml(null); // Clear previous report
+        setIsAnalysisReportModalOpen(true); // Open modal to show loading state
+
+        try {
+            // Generate the narrative report via AI
+            const html = await generateWorldAnalysisReport(worldState, language);
+            setCurrentAnalysisReportHtml(html);
+
+            // Generate the quantitative data for the development chart, excluding the admin agent
+            const regularAgents = worldState.agents.filter(a => !a.adminAgent);
+            const aliveAgents = regularAgents.filter(a => a.isAlive);
+
+            const agentStats = {
+                total: regularAgents.length,
+                alive: aliveAgents.length,
+            };
+            const economicStats = {
+                avgWealth: regularAgents.reduce((sum, a) => sum + a.currency, 0) / (regularAgents.length || 1),
+            };
+            const socialStats = {
+                friendshipNetwork: regularAgents.map(a => ({
+                    name: a.name,
+                    friendCount: Object.values(a.relationships).filter(r => r.type === 'friend' || r.type === 'spouse').length
+                }))
+            };
+            const analysisData: AnalysisData = {
+                timestamp: worldState.environment.time,
+                agentStats, economicStats, socialStats
+            };
+
+            const newReport: FullHistoricalReport = { 
+                id: Date.now(), 
+                timestamp: Date.now(), 
+                html: html || 'Error generating report.', 
+                analysisData 
+            };
+            setHistoricalAnalyses(prev => [...prev, newReport]);
+
+        } catch (error) {
+            const errorHtml = `<html><body><h1>Error</h1><p>Failed to generate analysis: ${error instanceof Error ? error.message : String(error)}</p></body></html>`;
+            setCurrentAnalysisReportHtml(errorHtml);
+            if (error instanceof LmStudioError && error.translationKey) addRawLog(t(error.translationKey as TranslationKey));
+            else addRawLog(t('log_aiError', { error: `World analysis failed: ${error instanceof Error ? error.message : String(error)}` }));
+        } finally {
+            setIsAnalyzing(false);
+        }
+    }, [worldState, language, isAiConfigured, addRawLog, t]);
+
+    const handleViewHistoricalReport = useCallback((id: number) => {
+        const report = historicalAnalyses.find(r => r.id === id);
+        if (report) {
+            setCurrentAnalysisReportHtml(report.html);
+            // Ensure the modal is open, but don't re-trigger analysis
+            setIsAnalysisReportModalOpen(true);
+        }
+    }, [historicalAnalyses]);
+
+    const handleDownloadHistoricalReport = useCallback((id: number | 'current') => {
+        let reportToDownload: { html: string | null } | undefined = { html: currentAnalysisReportHtml };
+        if (id !== 'current') {
+            reportToDownload = historicalAnalyses.find(r => r.id === id);
+        }
+        if (reportToDownload && reportToDownload.html) {
+            const blob = new Blob([reportToDownload.html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `analysis_report_${id}_${new Date().toISOString().split('T')[0]}.html`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    }, [historicalAnalyses, currentAnalysisReportHtml]);
+
     const handlers = {
         handleStep, handleRunSteps, handleReset, handlePrompt, handleExport, handleLoadState,
         handleExportConversations, handleCreate, handleDelete, handleUpdateEnvironment, 
         handleGenerateWorld, handleGenerateAgents, handleGenerateEntities,
         handleGeneratePsychoanalysis, handleSetAgentHealth, handleInflictSickness, handleResurrectAgent, handleSetAgentPosition,
         handleSetAgentCurrency, handleEnactLaw, handleRepealLaw, handleStartElection, handleSetLeader, handleUnlockTech,
-        handleImprisonAgent, handleExportStatistics
+        handleImprisonAgent, handleExportStatistics, handleAnalyzeWorld, handleViewHistoricalReport, handleDownloadHistoricalReport
     };
     
     return {
@@ -842,6 +929,7 @@ export const useSimulation = () => {
         selectedEntity,
         isGenerating,
         isProcessingSteps,
+        isAnalyzing,
         isSettingsOpen,
         isGenerateWorldModalOpen,
         isGenerateContentModalOpen,
@@ -851,6 +939,9 @@ export const useSimulation = () => {
         isGeneratingAnalysis,
         analyzedAgent,
         panelVisibility,
+        isAnalysisReportModalOpen,
+        currentAnalysisReportHtml,
+        historicalAnalyses,
         setSelectedAgent,
         setSelectedEntity,
         setIsSettingsOpen,
@@ -858,6 +949,7 @@ export const useSimulation = () => {
         setIsGenerateContentModalOpen,
         setIsAnalyticsOpen,
         setIsPsychoanalysisModalOpen,
+        setIsAnalysisReportModalOpen,
         togglePanel,
         handlers,
     };

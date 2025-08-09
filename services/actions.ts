@@ -672,15 +672,26 @@ export const availableActions: Action[] = [
             
             const partner = allAgents.get(partnerEntry[0]);
             if (!partner || !partner.isAlive) return { log: { key: 'log_action_reproduce_no_partner', params: { agentName: agent.name }}, status: 'failure', reward: -1 };
+    
+            const distance = Math.sqrt(Math.pow(agent.x - partner.x, 2) + Math.pow(agent.y - partner.y, 2));
+            if (distance > 3) {
+                return { log: { key: 'log_action_reproduce_no_partner', params: { agentName: agent.name }}, status: 'failure', reward: -1 };
+            }
             
             if (agent.age < MIN_REPRODUCTION_AGE || agent.age > MAX_REPRODUCTION_AGE || partner.age < MIN_REPRODUCTION_AGE || partner.age > MAX_REPRODUCTION_AGE) {
                 return { log: { key: 'log_action_reproduce_fail_age', params: { agentName: agent.name, partnerName: partner.name }}, status: 'failure', reward: -1 };
             }
-            if (agent.offspringCount >= MAX_OFFSPRING) {
+            if (agent.offspringCount >= MAX_OFFSPRING || partner.offspringCount >= MAX_OFFSPRING) {
                  return { log: { key: 'log_action_reproduce_fail_max_offspring', params: { agentName: agent.name, partnerName: partner.name }}, status: 'failure', reward: 0 };
             }
 
-            if (Math.random() > 0.5) {
+            let successChance = 0.75; // Base 75% chance
+            if (agent.genome.includes('G-FERTILE')) successChance += 0.15;
+            if (partner.genome.includes('G-FERTILE')) successChance += 0.15;
+            if (agent.health < 50) successChance -= 0.2;
+            if (partner.health < 50) successChance -= 0.2;
+    
+            if (Math.random() < successChance) {
                 agent.offspringCount++;
                 partner.offspringCount++;
                 return { 

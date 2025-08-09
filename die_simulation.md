@@ -12,7 +12,7 @@
     - [Warum versuchen Agenten etwas, wofür ihnen die Fähigkeiten fehlen?](#34-warum-versuchen-agenten-etwas-wofür-ihnen-die-fähigkeiten-fehlen)
 4. [Die dynamische Wirtschaft: Fabriken und KI-gesteuerte Innovation](#4-die-dynamische-wirtschaft-fabriken-und-ki-gesteuerte-innovation)
 5. [Das Gedächtnis: Wie Agenten lernen und sich erinnern](#5-das-gedächtnis-wie-agenten-lernen-und-sich-erinnern)
-6. [Die innere Welt: Psychoanalyse und Tagebücher](#6-die-innere-welt-psychoanalyse-und-tagebücher)
+6. [Die innere Welt: Psychoanalyse, Tagebücher und Entitätenkarten](#6-die-innere-welt-psychoanalyse-tagebücher-und-entitätenkarten)
 7. [Verifizierung im Code: Wo diese Logik lebt](#7-verifizierung-im-code-wo-diese-logik-lebt)
 8. [Fazit: Die Illusion des freien Willens](#8-fazit-die-illusion-des-freien-willens)
 
@@ -115,11 +115,12 @@ Das Gedächtnis ist der Schlüssel zu kontextbewusstem Verhalten. Es ist keine e
 - **Semantische Suche:** Wenn ein Agent eine komplexe Entscheidung treffen muss (z.B. auf die Frage "Was hältst du von Bob?"), wird die Frage ebenfalls in einen Vektor umgewandelt. Das System sucht dann im Langzeitgedächtnis nach den Erinnerungen, deren Vektoren dem Frage-Vektor am ähnlichsten sind.
 - **Kontext für die KI:** Die relevantesten Erinnerungen (z.B. vergangene Kämpfe oder freundliche Gespräche mit Bob) werden der KI als zusätzlicher Kontext gegeben. Dadurch kann der Agent "wie ein Mensch" auf Basis relevanter vergangener Erfahrungen antworten, anstatt nur auf seinen unmittelbaren Zustand zu reagieren. Dies wird auch als Kontext für die Erfindung neuer Gesetze und Technologien genutzt.
 
-## 6. Die innere Welt: Psychoanalyse und Tagebücher
+## 6. Die innere Welt: Psychoanalyse, Tagebücher und Entitätenkarten
 
-Um die psychologische Tiefe zu erhöhen, gibt es zwei besondere Features:
+Um die psychologische Tiefe zu erhöhen, gibt es besondere Features, die Einblick in die Simulation geben:
 - **Psychoanalyse:** Auf Knopfdruck analysiert die KI den gesamten Zustand eines Agenten (Persönlichkeit, Erinnerungen, Traumata, Ziele) und erstellt einen detaillierten psychologischen Bericht. Dieser Bericht kann dem Agenten neue `unconscious_modifiers` (unbewusste Triebe) und ein `suggested_goal` (vorgeschlagenes Ziel) geben, was sein zukünftiges Verhalten subtil beeinflusst.
-- **Gefängnistagebuch (`jailJournal`):** Wenn ein Agent inhaftiert ist, generiert die KI für jeden Schritt einen Tagebucheintrag. Dieser Eintrag reflektiert die Persönlichkeit des Agenten, seine Erinnerungen an die Tat und seine Gefühle über die Gefangenschaft. Dies bietet einen faszinierenden Einblick in die "Gedankenwelt" des Agenten.
+- **Gefängnistagebuch (`jailJournal`):** Wenn ein Agent inhaftiert ist, generiert die KI für jeden Schritt einen Tagebucheintrag. Dieser Eintrag reflektiert die Persönlichkeit des Agenten, seine Erinnerungen an die Tat und seine Gefühle über die Gefangenschaft.
+- **Entitätenkarte:** Neben der detaillierten Ansicht für Agenten gibt es auch eine für Entitäten. Sie ermöglicht es, den Zustand der unbelebten Welt zu inspizieren: Wer besitzt ein Haus? Welche Waren werden auf dem Markt angeboten? Wer arbeitet in einer Fabrik? Dies ist ein wichtiges Werkzeug, um die wirtschaftlichen und sozialen Strukturen der Welt zu verstehen.
 
 ## 7. Verifizierung im Code: Wo diese Logik lebt
 

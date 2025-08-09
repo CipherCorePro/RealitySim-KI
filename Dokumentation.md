@@ -24,6 +24,7 @@
     - [Politische Autonomie: Wie Gesetze entstehen](#politische-autonomie-wie-gesetze-entstehen)
 8. [Benutzerinteraktion](#8-benutzerinteraktion)
     - [Steuerungspanel](#steuerungspanel)
+    - [Agenten- & Entitätenkarten](#agenten--entitätenkarten)
     - [Agentensteuerung & KI-Interaktion](#agentensteuerung--ki-interaktion)
     - [Welterschaffung & Psychoanalyse](#welterschaffung--psychoanalyse)
     - [Zustand, Gespräche & Statistiken verwalten](#zustand-gespräche--statistiken-verwalten)
@@ -199,6 +200,11 @@ Dieser Prozess schafft eine dynamische und plausible politische Landschaft, in d
 - **Step / Run:** Führt die Simulation für einen oder mehrere Schritte aus.
 - **Reset:** Setzt die Welt auf ihren ursprünglichen Zustand zurück.
 - **New World / Add...:** Nutzt die generative Kraft der KI, um die Welt mit einzigartigen Agenten und Entitäten zu bevölkern oder zur bestehenden Welt hinzuzufügen.
+
+### Agenten- & Entitätenkarten
+Das zentrale Panel der Benutzeroberfläche zeigt detaillierte Informationen über das aktuell ausgewählte Objekt an.
+- **Agentenkarte:** Bietet einen tiefen Einblick in die Psyche und den Zustand eines Agenten, einschließlich Persönlichkeit, Fähigkeiten, Beziehungen und mehr. Hier findet die direkte Interaktion mit dem Agenten statt.
+- **Entitätenkarte (NEU):** Wenn eine Entität (z.B. ein Gebäude, eine Ressource) ausgewählt wird, zeigt diese Karte spezifische Details an. Sie können sehen, wer eine Ressource besitzt, welche Agenten in einem Gefängnis inhaftiert sind, welche Gegenstände auf einem Marktplatz gehandelt werden oder wer in einer Fabrik arbeitet. Entitäten können über die linke Seitenleiste oder durch einen direkten Klick auf die Weltkarte ausgewählt werden.
 
 ### Agentensteuerung & KI-Interaktion
 Über die **Agentenkarte** können Sie direkt mit einem Agenten interagieren:
