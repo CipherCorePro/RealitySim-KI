@@ -672,6 +672,7 @@ export default function App() {
                         techTree={worldState.techTree || []}
                         onUpdateEnvironment={handlers.handleUpdateEnvironment}
                         onCreateAction={(data) => handlers.handleCreate('action', data)}
+                        onUpdateAction={handlers.handleUpdateAction}
                         onDeleteAction={(name) => handlers.handleDelete('action', name)}
                         onSetAgentHealth={handlers.handleSetAgentHealth}
                         onInflictSickness={handlers.handleInflictSickness}
@@ -684,6 +685,7 @@ export default function App() {
                         onStartElection={handlers.handleStartElection}
                         onSetLeader={handlers.handleSetLeader}
                         onUnlockTech={handlers.handleUnlockTech}
+                        onCreateBroadcast={handlers.handleCreateBroadcast}
                     />
                 ) : (
                     <>
@@ -751,7 +753,7 @@ export default function App() {
                 )}
 
                 <LogPanel logs={logs} />
-                <ExporterPanel onExport={handlers.handleExport} onLoad={handlers.handleLoadState} onExportConversations={handlers.handleExportConversations} onExportStatistics={handlers.handleExportStatistics} />
+                <ExporterPanel onExport={handlers.handleExport} onLoad={handlers.handleLoadState} onExportConversations={handlers.handleExportConversations} onExportStatistics={handlers.handleExportStatistics} onExportAgentCards={handlers.handleExportAgentCards} />
             </div>
         )}
       </main>

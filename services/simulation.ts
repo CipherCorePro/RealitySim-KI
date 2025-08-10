@@ -1,5 +1,4 @@
-
-import type { WorldState, Agent, Entity, Action, EnvironmentState, Beliefs, Resonance, LogEntry, Relationship, Culture, ActionExecutionResult, Religion, Personality, Skills, Trauma, Goal, Law, TradeOffer, ItemType, SocialMemoryEntry, PsychoReport, Psyche, ActionContext, Transaction, ActionEffect, Technology } from '../types';
+import type { WorldState, Agent, Entity, Action, EnvironmentState, Beliefs, Resonance, LogEntry, Relationship, Culture, ActionExecutionResult, Religion, Personality, Skills, Trauma, Goal, Law, TradeOffer, ItemType, SocialMemoryEntry, PsychoReport, Psyche, ActionContext, Transaction, ActionEffect, Technology, MediaBroadcast, StatisticType, Statistics, QuantumConsciousnessModule } from '../types';
 import { 
     RESONANCE_DECAY_RATE, RESONANCE_THRESHOLD, RESONANCE_UPDATE_AMOUNT, MAX_LAST_ACTIONS,
     AGE_INCREMENT, MAX_AGE, AGE_RELATED_HEALTH_DECLINE,
@@ -13,16 +12,76 @@ import {
     MAX_SOCIAL_MEMORIES, SKILL_TYPES, BOREDOM_INCREASE_RATE, PSYCHE_DECAY_RATE, defaultPsyche,
     defaultQTable, Q_LEARNING_RATE, Q_DISCOUNT_FACTOR, EPSILON_GREEDY,
     PERSONALITY_SHIFT_RATE, STRESS_THRESHOLD_FOR_PERSONALITY_SHIFT, MAX_TRANSACTIONS, MAX_LONG_TERM_MEMORIES,
-    RANDOM_FIRST_NAMES, RANDOM_LAST_NAMES
+    RANDOM_FIRST_NAMES, RANDOM_LAST_NAMES, initialStatistics, MIN_REPRODUCTION_AGE, MAX_REPRODUCTION_AGE, MAX_OFFSPRING, defaultConsciousness
 } from '../constants';
 import { availableActions } from './actions';
 import { wander, findNearestEntity, findNearestAgent } from './simulationUtils';
 import type { Language } from '../contexts/LanguageContext';
 import { VectorDB } from './memoryService';
-import { generateEmbedding, generateJailJournalEntry } from './geminiService';
+import { generateEmbedding, generateJailJournalEntry, generateMediaBroadcast, generatePsychoanalysis } from './geminiService';
 import type { Settings } from '../contexts/SettingsContext';
 import { translations } from '../translations';
 import { jensenShannonDivergence } from './statisticsUtils';
+
+class SubquantumField {
+    private field: number[][];
+    width: number;
+    height: number;
+
+    constructor(width: number, height: number) {
+        this.width = width;
+        this.height = height;
+        this.field = Array.from({ length: height }, () => 
+            Array.from({ length: width }, () => Math.random() * 2 - 1)
+        );
+    }
+
+    step() {
+        const newField = JSON.parse(JSON.stringify(this.field));
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                let neighborSum = 0;
+                let neighborCount = 0;
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        if (dx === 0 && dy === 0) continue;
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                            neighborSum += this.field[ny][nx];
+                            neighborCount++;
+                        }
+                    }
+                }
+                const avgNeighbor = neighborCount > 0 ? neighborSum / neighborCount : 0;
+                let newValue = this.field[y][x] * 0.8 + avgNeighbor * 0.2 + (Math.random() - 0.5) * 0.1;
+                newField[y][x] = Math.max(-1, Math.min(1, newValue));
+            }
+        }
+        this.field = newField;
+    }
+
+    getField(): number[][] {
+        return this.field;
+    }
+
+    getValue(x: number, y: number): number {
+        const intX = Math.floor(x);
+        const intY = Math.floor(y);
+        if (intY >= 0 && intY < this.height && intX >= 0 && intX < this.width) {
+            return this.field[intY][intX];
+        }
+        return 0;
+    }
+
+    loadField(data: number[][]) {
+        if (data && data.length === this.height && data[0]?.length === this.width) {
+            this.field = data;
+        } else {
+            console.warn('Could not load SubquantumField data due to dimension mismatch.');
+        }
+    }
+}
 
 const getRandomItem = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -56,15 +115,24 @@ export class RealityEngine {
     private settings: Settings;
     public language: Language = 'de'; // Default, will be updated by step
     public marketPrices: { [key: string]: number } = {};
+    private subquantumField: SubquantumField;
 
 
     constructor(initialState: WorldState, settings: Settings) {
         this.worldState = initialState; 
         this.settings = settings;
 
+        this.subquantumField = new SubquantumField(this.worldState.environment.width, this.worldState.environment.height);
+        if (initialState.environment.subquantumField) {
+            this.subquantumField.loadField(initialState.environment.subquantumField);
+        }
+        this.worldState.environment.subquantumField = this.subquantumField.getField();
+
         this.worldState.cultures.forEach(culture => this.cultures.set(culture.id, culture));
         this.worldState.religions.forEach(religion => this.religions.set(religion.id, religion));
         this.worldState.transactions = this.worldState.transactions || [];
+        this.worldState.mediaBroadcasts = this.worldState.mediaBroadcasts || [];
+        this.worldState.statistics = this.worldState.statistics || { ...initialStatistics };
 
         this.worldState.agents.forEach(agent => {
              const agentWithDefaults: Agent = {
@@ -79,7 +147,8 @@ export class RealityEngine {
                 hunger: agent.hunger || 0, thirst: agent.thirst || 0, fatigue: agent.fatigue || 0, inventory: agent.inventory || {},
                 currency: agent.currency || 50,
                 unconsciousState: agent.unconsciousState || {},
-                psyche: agent.psyche || defaultPsyche(),
+                psyche: { ...defaultPsyche(), ...(agent.psyche || {}) },
+                consciousness: { ...defaultConsciousness(), ...(agent.consciousness || {}) },
                 qTable: agent.qTable || defaultQTable(),
                 lastStressLevel: agent.stress || 0,
                 ...agent, 
@@ -128,6 +197,37 @@ export class RealityEngine {
         this.worldState.transactions.push({ ...transaction, step: this.worldState.environment.time });
         if (this.worldState.transactions.length > MAX_TRANSACTIONS) {
             this.worldState.transactions.shift();
+        }
+    }
+
+    public logStatistic(type: StatisticType, data: any) {
+        if (!this.worldState.statistics) {
+            this.worldState.statistics = { ...initialStatistics };
+        }
+        const stats = this.worldState.statistics;
+
+        switch (type) {
+            case 'marriage': {
+                const pair = [data.agentName1, data.agentName2].sort().join(' & ');
+                stats.marriages[pair] = (stats.marriages[pair] || 0) + 1;
+                break;
+            }
+            case 'birth': {
+                stats.births.push({
+                    parents: [data.parent1Name, data.parent2Name].sort().join(' & '),
+                    child: data.childName,
+                });
+                break;
+            }
+            case 'imprisonment': {
+                stats.imprisonments[data.agentName] = (stats.imprisonments[data.agentName] || 0) + 1;
+                break;
+            }
+            case 'fight': {
+                const pair = [data.agentName1, data.agentName2].sort().join(' & ');
+                stats.fights[pair] = (stats.fights[pair] || 0) + 1;
+                break;
+            }
         }
     }
 
@@ -335,6 +435,16 @@ export class RealityEngine {
         }
         return childPsyche as Psyche;
     }
+
+    private inheritConsciousness(parent1: Agent, parent2: Agent): QuantumConsciousnessModule {
+        const avg_self_awareness = (parent1.consciousness.self_awareness + parent2.consciousness.self_awareness) / 2;
+        const avg_agency = (parent1.consciousness.agency + parent2.consciousness.agency) / 2;
+        const mutation = (Math.random() - 0.5) * 0.1; // Small mutation
+        return {
+            self_awareness: Math.max(0, Math.min(1, avg_self_awareness + mutation)),
+            agency: Math.max(0, Math.min(1, avg_agency + mutation)),
+        };
+    }
     
     private addNewbornAgent(data: Partial<Agent> & { description: string, parents: [Agent, Agent] }): LogEntry[] {
         const [parent1, parent2] = data.parents;
@@ -355,6 +465,7 @@ export class RealityEngine {
             trauma: [],
             unconsciousState: {},
             psyche: this.inheritPsyche(parent1, parent2),
+            consciousness: this.inheritConsciousness(parent1, parent2),
             currency: 10,
             qTable: defaultQTable(),
             lastStressLevel: stress,
@@ -379,6 +490,7 @@ export class RealityEngine {
         this.agents.set(newAgent.id, newAgent);
         this.memoryDBs.set(newAgent.id, new VectorDB());
         this.updateCultureMembership(newAgent);
+        this.logStatistic('birth', { parent1Name: parent1.name, parent2Name: parent2.name, childName: newAgent.name });
         return [{ key: 'log_new_child', params: { childName: newAgent.name, parent1Name: parent1.name, parent2Name: parent2.name } }];
     }
     
@@ -424,6 +536,7 @@ export class RealityEngine {
             goals: [], stress: stress, socialStatus: 50,
             skills: { healing: 1, woodcutting: 1, rhetoric: 1, combat: 1, construction: 1, farming: 1 }, trauma: [], currency: 50,
             psyche: defaultPsyche(),
+            consciousness: defaultConsciousness(),
             qTable: defaultQTable(),
             lastStressLevel: stress,
         };
@@ -522,6 +635,31 @@ export class RealityEngine {
         this.actions.set(name, newAction);
     }
 
+    public updateAction(actionName: string, newData: Partial<Action>): void {
+        const action = this.actions.get(actionName);
+        if (!action) return;
+    
+        const updatedAction: Action = { 
+            ...action, 
+            ...newData,
+            effects: newData.effects || action.effects
+        };
+    
+        if (updatedAction.effects && Object.keys(updatedAction.effects).length > 0) {
+            updatedAction.execute = this.createCustomActionExecute(updatedAction);
+        }
+    
+        this.actions.set(actionName, updatedAction);
+        this.updateActionLegality();
+    }
+
+    public addBroadcast(broadcast: MediaBroadcast) {
+        if (!this.worldState.mediaBroadcasts) {
+            this.worldState.mediaBroadcasts = [];
+        }
+        this.worldState.mediaBroadcasts.push(broadcast);
+    }
+
     public removeAgent(agentId: string): void { this.agents.delete(agentId); this.memoryDBs.delete(agentId); }
     public removeEntity(entityId: string): void { this.entities.delete(entityId); }
     public removeAction(actionName: string): void { this.actions.delete(actionName); }
@@ -567,8 +705,8 @@ export class RealityEngine {
     public imprisonAgent(agentId: string, duration: number): boolean {
         const agent = this.agents.get(agentId);
         const jail = Array.from(this.entities.values()).find(e => e.isJail);
-        if (agent && jail && duration > 0) {
-            agent.imprisonedUntil = this.worldState.environment.time + duration;
+        if (agent && agent.age >= 14 && jail && duration > 0) {
+            agent.imprisonment = { startsAt: this.worldState.environment.time, endsAt: this.worldState.environment.time + duration };
             agent.x = jail.x;
             agent.y = jail.y;
             if (!jail.inmates) {
@@ -577,6 +715,7 @@ export class RealityEngine {
             if (!jail.inmates.includes(agentId)) {
                 jail.inmates.push(agentId);
             }
+            this.logStatistic('imprisonment', { agentName: agent.name });
             return true;
         }
         return false;
@@ -709,7 +848,7 @@ export class RealityEngine {
     }
     
     private applyPerStepMechanisms(agent: Agent): LogEntry[] {
-        if (!agent.isAlive || agent.adminAgent) return [];
+        if (!agent.isAlive || agent.adminAgent || agent.role === 'Journalist') return [];
 
         const logs: LogEntry[] = [];
 
@@ -721,13 +860,6 @@ export class RealityEngine {
             Math.sqrt(Math.pow(agent.x - other.x, 2) + Math.pow(agent.y - other.y, 2)) < PROXIMITY_DISTANCE_THRESHOLD
         );
 
-        if (agent.imprisonedUntil && agent.imprisonedUntil <= this.worldState.environment.time) {
-            agent.imprisonedUntil = undefined;
-            const jail = Array.from(this.entities.values()).find(e => e.isJail);
-            if (jail) jail.inmates = jail.inmates?.filter(id => id !== agent.id);
-            logs.push({ key: 'log_action_release_from_jail', params: { agentName: agent.name } });
-        }
-        
         // --- Needs Update ---
         agent.hunger = Math.min(110, agent.hunger + HUNGER_INCREASE_RATE);
         agent.thirst = Math.min(110, agent.thirst + THIRST_INCREASE_RATE);
@@ -775,9 +907,49 @@ export class RealityEngine {
                     if(rel.score > 50) { // If it was a meaningful relationship
                         otherAgent.emotions.grief = Math.min(1, (otherAgent.emotions.grief || 0) + rel.score / 100);
                         logs.push({key: 'log_grief', params: { agentName: otherAgent.name, deceasedName: agent.name }});
+                        otherAgent.trauma.push({
+                            event: `Death of ${rel.type} ${agent.name}`,
+                            timestamp: this.worldState.environment.time,
+                            intensity: Math.min(1.0, rel.score / 100)
+                        });
                     }
                 }
             });
+
+            // --- Inheritance Logic ---
+            const livingChildren = (agent.childrenIds || [])
+                .map(id => this.agents.get(id))
+                .filter((child): child is Agent => !!(child && child.isAlive));
+
+            if (livingChildren.length > 0) {
+                // 1. Inherit Currency
+                if (agent.currency > 0) {
+                    const currencyShare = Math.floor(agent.currency / livingChildren.length);
+                    if (currencyShare > 0) {
+                        livingChildren.forEach(child => {
+                            child.currency += currencyShare;
+                            this.logTransaction({ from: agent.id, to: child.id, item: 'currency', quantity: currencyShare });
+                            logs.push({ key: 'log_inheritance_currency' as any, params: { heirName: child.name, deceasedName: agent.name, amount: currencyShare } });
+                        });
+                    }
+                }
+
+                // 2. Inherit Property
+                const properties = Array.from(this.entities.values()).filter(e => e.ownerId === agent.id);
+                if (properties.length > 0) {
+                    const oldestChild = livingChildren.sort((a, b) => b.age - a.age)[0];
+                    properties.forEach(prop => {
+                        prop.ownerId = oldestChild.id;
+                    });
+                    if (properties.length === 1) {
+                        logs.push({ key: 'log_inheritance_property' as any, params: { heirName: oldestChild.name, deceasedName: agent.name, propertyName: properties[0].name } });
+                    } else {
+                        logs.push({ key: 'log_inheritance_property_multiple' as any, params: { heirName: oldestChild.name, deceasedName: agent.name, count: properties.length } });
+                    }
+                }
+            }
+            // --- End Inheritance Logic ---
+
             return logs; 
         }
 
@@ -787,7 +959,7 @@ export class RealityEngine {
         agent.stress *= STRESS_DECAY_RATE;
 
         // If still imprisoned, skip social/movement mechanics
-        if (agent.imprisonedUntil) {
+        if (agent.imprisonment) {
             return logs;
         }
 
@@ -854,6 +1026,24 @@ export class RealityEngine {
            logs.push(...this.updateAgentGoals(agent));
            logs.push(...this.updateAgentRole(agent));
         }
+        
+        // --- Subquantum Field Influence ---
+        const fieldValue = this.subquantumField.getValue(agent.x, agent.y);
+        const agitationDelta = (Math.abs(fieldValue) - 0.5) * 0.02; // Increases at extremes
+        const serenityDelta = (0.6 - Math.abs(fieldValue)) * 0.01; // Increases in stable mid-range
+
+        if (agitationDelta > 0) agent.psyche.agitation = Math.min(1, agent.psyche.agitation + agitationDelta);
+        if (serenityDelta > 0) agent.psyche.serenity = Math.min(1, agent.psyche.serenity + serenityDelta);
+
+        // Meta-cognition: Log significant psychic changes
+        const psychicChangeThreshold = 0.008; // How much change is needed to trigger a log
+        if (agitationDelta > psychicChangeThreshold) {
+            logs.push({ key: 'log_psyche_agitated', params: { agentName: agent.name } });
+        }
+        if (serenityDelta > psychicChangeThreshold) {
+            logs.push({ key: 'log_psyche_calmed', params: { agentName: agent.name } });
+        }
+        
         return logs;
     }
 
@@ -867,8 +1057,22 @@ export class RealityEngine {
         return `h:${hungerState},t:${thirstState},f:${fatigueState},food:${isNearFood},rival:${isNearRival}`;
     }
 
-    private chooseAction(agent: Agent): Action | null {
-        if (agent.imprisonedUntil) return this.actions.get("Rest") || null;
+    private chooseAction(agent: Agent, allAgents: Map<string, Agent>, allEntities: Map<string, Entity>): Action | null {
+        if (agent.imprisonment) {
+            // Inmates can talk to each other.
+            const jail = Array.from(allEntities.values()).find(e => e.isJail && e.inmates?.includes(agent.id));
+            const hasCompany = jail?.inmates?.some(inmateId => inmateId !== agent.id && allAgents.get(inmateId)?.isAlive);
+    
+            if (hasCompany) {
+                // Prioritize talking if not too fatigued
+                if (agent.fatigue < 80) {
+                    const talkAction = this.actions.get("Talk");
+                    if (talkAction) return talkAction;
+                }
+            }
+            // If alone, or too tired to talk, or talk action doesn't exist, just rest.
+            return this.actions.get("Rest") || null;
+        }
 
         const availableActions = this.getAvailableActions().filter(a => {
             const agentCulture = this.cultures.get(agent.cultureId || '');
@@ -879,7 +1083,6 @@ export class RealityEngine {
         });
         if (availableActions.length === 0) return null;
 
-        // Epsilon-greedy exploration: 10% chance to choose a random action
         if (Math.random() < EPSILON_GREEDY) {
             return availableActions[Math.floor(Math.random() * availableActions.length)];
         }
@@ -890,14 +1093,22 @@ export class RealityEngine {
             let score = Math.random() * 5; 
             if (action.isIllegal) score -= 1000 * agent.personality.conscientiousness;
             
-            // Add Q-value from reinforcement learning
             const stateActionKey = `${stateKey}-${action.name}`;
-            score += (agent.qTable[stateActionKey] || 0) * 2; // Weight the learned value
+            score += (agent.qTable[stateActionKey] || 0) * 2; 
+
+            // Influence from new Psyche states
+            if (agent.psyche.serenity > 0.6) {
+                if (['Meditate', 'Research', 'Craft Advanced Medicine', 'Provide Counseling'].includes(action.name)) score += agent.psyche.serenity * 50;
+                if (['Fight', 'Steal'].includes(action.name)) score -= agent.psyche.serenity * 100;
+            }
+            if (agent.psyche.agitation > 0.6) {
+                if (['Fight', 'Steal', 'Move North', 'Move South', 'Move East', 'Move West'].includes(action.name)) score += agent.psyche.agitation * 60;
+                if (['Meditate', 'Research'].includes(action.name)) score -= agent.psyche.agitation * 80;
+            }
 
             actionScores.set(action, score);
         }
 
-        // --- SURVIVAL, PSYCHE, GOALS ---
         const survivalPriority = 500; 
         if (agent.thirst > 50) { const drinkAction = this.actions.get("Drink Water"); if (drinkAction) actionScores.set(drinkAction, (actionScores.get(drinkAction) || 0) + survivalPriority + agent.thirst * 2); }
         if (agent.hunger > 60) { if ((agent.inventory['food'] || 0) > 0) { const eatAction = this.actions.get("Eat Food"); if (eatAction) actionScores.set(eatAction, (actionScores.get(eatAction) || 0) + survivalPriority + agent.hunger); } else { const gatherFoodAction = this.actions.get("Gather Food"); if (gatherFoodAction) actionScores.set(gatherFoodAction, (actionScores.get(gatherFoodAction) || 0) + survivalPriority + agent.hunger * 1.5); } }
@@ -905,10 +1116,29 @@ export class RealityEngine {
         if (agent.fatigue > 85 && restAction) actionScores.set(restAction, (actionScores.get(restAction) || 0) + agent.fatigue);
         if (agent.psyche.fearOfDeath > 0.6 && restAction) actionScores.set(restAction, (actionScores.get(restAction) || 0) + agent.psyche.fearOfDeath * 50);
 
+        const election = this.worldState.environment.election;
+        if (election && election.isActive) {
+            const voteAction = this.actions.get("Vote");
+            if (voteAction) {
+                let votingScore = 60; // Base desire to participate
+                votingScore += agent.personality.conscientiousness * 40; // Dutiful agents are more likely to vote
+                actionScores.set(voteAction, (actionScores.get(voteAction) || 0) + votingScore);
+            }
+        }
+
         if (agent.emotions.grief > 0.5) { const mournAction = this.actions.get("Mourn"); if (mournAction) actionScores.set(mournAction, (actionScores.get(mournAction) || 0) + agent.emotions.grief * 100); }
-        if (agent.psyche.boredom > 0.7) { const randomAction = availableActions[Math.floor(Math.random() * availableActions.length)]; actionScores.set(randomAction, (actionScores.get(randomAction) || 0) + agent.psyche.boredom * 80); }
+        if (agent.psyche.boredom > 0.7) { 
+            const consumeMediaAction = this.actions.get("Consume Media");
+            if (consumeMediaAction && this.worldState.mediaBroadcasts.length > 0) {
+                actionScores.set(consumeMediaAction, (actionScores.get(consumeMediaAction) || 0) + agent.psyche.boredom * 80);
+            } else {
+                const randomAction = availableActions[Math.floor(Math.random() * availableActions.length)]; 
+                actionScores.set(randomAction, (actionScores.get(randomAction) || 0) + agent.psyche.boredom * 80); 
+            }
+        }
         if (agent.psyche.spiritualNeed > 0.6) { const meditateAction = this.actions.get("Meditate"); if (meditateAction) actionScores.set(meditateAction, (actionScores.get(meditateAction) || 0) + agent.psyche.spiritualNeed * 70); }
         if (agent.psyche.jealousy > 0.6) { const confrontAction = this.actions.get("Confront Partner"); if (confrontAction) actionScores.set(confrontAction, (actionScores.get(confrontAction) || 0) + agent.psyche.jealousy * 90); }
+        if (agent.personality.openness > 0.7 && this.worldState.mediaBroadcasts.length > 0) { const mediaAction = this.actions.get("Consume Media"); if (mediaAction) actionScores.set(mediaAction, (actionScores.get(mediaAction) || 0) + agent.personality.openness * 50); }
 
         agent.goals.forEach(goal => {
             if (goal.type === 'avengeRival' && goal.targetId) { const rival = this.agents.get(goal.targetId); const fightAction = this.actions.get("Fight"); if (rival && fightAction && Math.sqrt(Math.pow(agent.x - rival.x, 2) + Math.pow(agent.y - rival.y, 2)) < PROXIMITY_DISTANCE_THRESHOLD) { actionScores.set(fightAction, (actionScores.get(fightAction) || 0) + 120 + agent.psyche.vengefulness * 50); } }
@@ -917,7 +1147,39 @@ export class RealityEngine {
             if (goal.type === 'forgiveRival') { const forgiveAction = this.actions.get("Offer Forgiveness"); if (forgiveAction) actionScores.set(forgiveAction, (actionScores.get(forgiveAction) || 0) + 110); }
         });
 
-        // --- SOCIAL & ROLE ---
+        const isMarried = Object.values(agent.relationships).some(r => r.type === 'spouse');
+        if (!isMarried && agent.age >= MIN_REPRODUCTION_AGE && agent.age <= MAX_REPRODUCTION_AGE) {
+            const suitablePartner = findNearestAgent(agent, this.agents, a => 
+                a.isAlive && 
+                !Object.values(a.relationships).some(r => r.type === 'spouse') &&
+                (agent.relationships[a.id]?.score || 0) > 70
+            );
+            if (suitablePartner) {
+                const proposeAction = this.actions.get("Propose Marriage");
+                if (proposeAction) {
+                    let marriageUrge = 50; // base urge
+                    marriageUrge += (agent.emotions.love || 0) * 50;
+                    actionScores.set(proposeAction, (actionScores.get(proposeAction) || 0) + marriageUrge);
+                }
+            }
+        }
+
+        const partnerEntry = Object.entries(agent.relationships).find(([, rel]) => rel.type === 'spouse');
+        if (partnerEntry) {
+            const partner = this.agents.get(partnerEntry[0]);
+            if (partner && partner.isAlive) {
+                const distance = Math.sqrt(Math.pow(agent.x - partner.x, 2) + Math.pow(agent.y - partner.y, 2));
+                if (distance < 3 && agent.offspringCount < MAX_OFFSPRING && agent.age >= MIN_REPRODUCTION_AGE && agent.age <= MAX_REPRODUCTION_AGE) {
+                        const reproduceAction = this.actions.get("Reproduce");
+                        if (reproduceAction) {
+                        let reproduceUrge = 80;
+                        reproduceUrge += (agent.emotions.love || 0) * 40;
+                        actionScores.set(reproduceAction, (actionScores.get(reproduceAction) || 0) + reproduceUrge);
+                        }
+                }
+            }
+        }
+
         const talkAction = this.actions.get("Talk");
         if (talkAction) {
             let socialScore = agent.personality.extraversion * 50;
@@ -928,8 +1190,6 @@ export class RealityEngine {
             const nearestAgent = findNearestAgent(agent, this.agents, a => a.isAlive && !a.adminAgent);
             if (nearestAgent) {
                 const jsd = jensenShannonDivergence(agent.beliefNetwork, nearestAgent.beliefNetwork);
-                // jsd is 0 for identical, ~0.69 for max different.
-                // Reward low jsd. (0.7 - jsd) is high for similar agents.
                 const ideologicalBonus = (0.7 - jsd) * 60; 
                 socialScore += ideologicalBonus;
             }
@@ -984,13 +1244,6 @@ export class RealityEngine {
         
         const actionLogs: LogEntry[] = [];
         
-        // This pre-emptive check is flawed for probabilistic crimes. The logic is now inside the action itself.
-        /*
-        if (action.isIllegal) {
-            ...
-        }
-        */
-
         const worldStateForAction: WorldState = { ...this.getState() };
         const actionContext: ActionContext = {
             language: this.language,
@@ -1003,13 +1256,13 @@ export class RealityEngine {
             addResearchPoints: this.addResearchPoints.bind(this),
             addSocialMemory: this.addSocialMemory.bind(this),
             logTransaction: this.logTransaction.bind(this),
+            logStatistic: this.logStatistic.bind(this),
         };
 
         const stateKeyBeforeAction = this.getAgentStateKey(agent, this.agents, this.entities);
         const { log, sideEffects, status, reward } = await action.execute!(agent, this.agents, this.entities, worldStateForAction, actionContext);
         actionLogs.push(log);
 
-        // --- Cognitive Dissonance ---
         if (status === 'success' && (action.name === 'Steal' || action.name === 'Fight')) {
             let actionBeliefs: { [key: string]: number } = {};
             if (action.name === 'Steal') {
@@ -1018,16 +1271,14 @@ export class RealityEngine {
                 actionBeliefs = { "aggression": 0.9, "community_first": 0.1 };
             }
             const jsd = jensenShannonDivergence(agent.beliefNetwork, actionBeliefs);
-            // High JSD means the agent's beliefs are very different from the action's implied beliefs -> cognitive dissonance.
-            const stressFromDissonance = jsd * 25; // Max stress ~ 0.69 * 25 = 17.25
-            if (stressFromDissonance > 5) { // Only add significant stress
+            const stressFromDissonance = jsd * 25; 
+            if (stressFromDissonance > 5) {
                 agent.stress = Math.min(100, agent.stress + stressFromDissonance);
                 actionLogs.push({ key: 'log_cognitive_dissonance', params: { agentName: agent.name } });
             }
         }
 
 
-        // --- LONG-TERM MEMORY CREATION ---
         const memoryContent = this.formatLogToString(log);
         try {
             const embedding = await generateEmbedding(memoryContent, this.settings);
@@ -1038,7 +1289,6 @@ export class RealityEngine {
             console.error("Failed to generate embedding for memory:", e);
         }
 
-        // Belief Update
         if (status === 'success' && action.onSuccess) {
             const { belief, delta } = action.onSuccess;
             agent.beliefNetwork[belief] = Math.max(0, Math.min(1, (agent.beliefNetwork[belief] || 0) + delta));
@@ -1047,7 +1297,6 @@ export class RealityEngine {
             agent.beliefNetwork[belief] = Math.max(0, Math.min(1, (agent.beliefNetwork[belief] || 0) + delta));
         }
         
-        // Q-Table Update
         const stateKeyAfterAction = this.getAgentStateKey(agent, this.agents, this.entities);
         this.updateQValue(agent, stateKeyBeforeAction, action.name, reward, stateKeyAfterAction);
 
@@ -1065,6 +1314,10 @@ export class RealityEngine {
         this.language = language;
         const allLogs: LogEntry[] = [];
         this.worldState.environment.time++;
+        this.subquantumField.step();
+        this.worldState.environment.subquantumField = this.subquantumField.getField();
+
+        this.worldState.mediaBroadcasts = this.worldState.mediaBroadcasts.filter(b => b.expires > this.worldState.environment.time);
         
         if (this.worldState.environment.time % 10 === 0) this.calculateMarketPrices();
 
@@ -1077,14 +1330,63 @@ export class RealityEngine {
                  allLogs.push({ key: 'log_election_started' });
              }
         }
-
+        
         allLogs.push(...this.checkTechnologyUnlocks());
         
         const agentsToProcess = Array.from(this.agents.values());
         for (const agent of agentsToProcess) {
-            if (agent.imprisonedUntil && agent.isAlive) {
-                // Since each step represents a week, generate a journal entry on every step they are imprisoned.
-                if (this.worldState.environment.time > 0 && this.worldState.environment.time < agent.imprisonedUntil) {
+             if (agent.imprisonment && agent.isAlive) {
+                const currentTime = this.worldState.environment.time;
+                const { startsAt, endsAt } = agent.imprisonment;
+
+                // Mid-sentence parole hearing
+                const midpoint = startsAt + Math.floor((endsAt - startsAt) / 2);
+                if (currentTime === midpoint && !agent.imprisonment.midSentenceAnalysisDone) {
+                    agent.imprisonment.midSentenceAnalysisDone = true; // Mark as done immediately
+                    try {
+                        const report = await generatePsychoanalysis(agent, this.getState(), this.language);
+                        if (report) {
+                            if (!agent.jailJournal) agent.jailJournal = [];
+                            const paroleEntryContent = `Parole Hearing Analysis:\nPsychodynamics: ${report.Psychodynamik}\nRecommendation: ${report['Therapeutische Empfehlung']}`;
+                            agent.jailJournal.push({ timestamp: currentTime, entry: paroleEntryContent, type: 'parole_hearing' });
+                            
+                            let paroleChance = 0.4; // Base 40% chance
+                            if (report.suggested_goal && report.suggested_goal.type !== 'avengeRival') paroleChance += 0.25;
+                            if ((agent.psyche.forgiveness || 0) > 0.5) paroleChance += 0.15;
+                            
+                            if (Math.random() < paroleChance) {
+                                const remaining = endsAt - currentTime;
+                                agent.imprisonment.endsAt -= Math.floor(remaining / 2);
+                                allLogs.push({ key: 'log_parole_granted' as any, params: { agentName: agent.name, newRelease: agent.imprisonment.endsAt } });
+                            } else {
+                                allLogs.push({ key: 'log_parole_denied' as any, params: { agentName: agent.name } });
+                            }
+                        }
+                    } catch (e) { console.error("Mid-sentence analysis failed", e); }
+                }
+
+                // Release from prison
+                if (currentTime >= endsAt) {
+                    try {
+                        const report = await generatePsychoanalysis(agent, this.getState(), this.language);
+                        if (report) {
+                            if (!agent.jailJournal) agent.jailJournal = [];
+                            const releaseEntryContent = `Release Analysis:\nFinal State: ${report.Persönlichkeitsbild}\nNew Path: ${report['Therapeutische Empfehlung']}`;
+                            agent.jailJournal.push({ timestamp: currentTime, entry: releaseEntryContent, type: 'release_analysis' });
+                            const { logs: psychoLogs } = this.applyPsychoanalysis(agent.id, report);
+                            allLogs.push(...psychoLogs);
+                        }
+                    } catch (e) { console.error("Release analysis failed", e); }
+
+                    agent.trauma.push({ event: 'Imprisonment', timestamp: currentTime, intensity: 0.6 });
+                    
+                    allLogs.push({ key: 'log_action_release_from_jail', params: { agentName: agent.name } });
+                    agent.imprisonment = undefined;
+                    const jail = Array.from(this.entities.values()).find(e => e.isJail);
+                    if (jail) jail.inmates = jail.inmates?.filter(id => id !== agent.id);
+                }
+
+                if (agent.imprisonment && currentTime > 0 && currentTime < agent.imprisonment.endsAt) {
                     const createJournalEntry = async () => {
                         const memoryDB = this.memoryDBs.get(agent.id);
                         let reason = translations[this.language].reason_for_imprisonment_unknown;
@@ -1095,47 +1397,30 @@ export class RealityEngine {
                                 if (relevantMemories.length > 0) {
                                     reason = relevantMemories.map(m => `[${m.timestamp}] ${m.content}`).join('\n');
                                 }
-                            } catch(e) {
-                                console.error("Could not generate embedding for jail journal reason:", e);
-                            }
+                            } catch(e) { console.error("Could not generate embedding for jail journal reason:", e); }
                         }
         
                         const entry = await generateJailJournalEntry(agent, this.worldState, this.language, reason);
                         if (entry) {
-                            if (!agent.jailJournal) {
-                                agent.jailJournal = [];
-                            }
-                            agent.jailJournal.push({
-                                timestamp: this.worldState.environment.time,
-                                entry: entry
-                            });
+                            if (!agent.jailJournal) agent.jailJournal = [];
+                            agent.jailJournal.push({ timestamp: currentTime, entry: entry, type: 'personal' });
                         }
                     };
-                    // Fire and forget, don't block the simulation step
-                    createJournalEntry();
+                    if (currentTime % 10 === 0) createJournalEntry(); // Create an entry every 10 steps
                 }
             }
             
             allLogs.push(...this.applyPerStepMechanisms(agent));
-            if (!agent.isAlive || agent.adminAgent || agent.imprisonedUntil) continue;
+            if (!agent.isAlive || agent.adminAgent || agent.role === 'Journalist') continue;
             
-            const action = this.chooseAction(agent);
+            const action = this.chooseAction(agent, this.agents, this.entities);
             if (action) {
                 const { logs, sideEffects } = await this.executeAction(agent.id, action);
                 allLogs.push(...logs);
                 if (sideEffects?.createAgent) allLogs.push(...this.addNewbornAgent(sideEffects.createAgent as any));
                 if (sideEffects?.createEntity) this.addEntityToSimulation(sideEffects.createEntity as Entity);
-                if (sideEffects?.inventTechnology) {
-                    this.worldState.techTree.push(sideEffects.inventTechnology);
-                    // Give the inventing culture a head-start
-                    const culture = this.cultures.get(agent.cultureId || '');
-                    if(culture) {
-                        culture.researchPoints += sideEffects.inventTechnology.researchCost * 0.25;
-                    }
-                }
-                 if (sideEffects?.createAction) {
-                    this.addAction(sideEffects.createAction.name, sideEffects.createAction.description, sideEffects.createAction.beliefKey, sideEffects.createAction.effects);
-                }
+                if (sideEffects?.inventTechnology) this.worldState.techTree.push(sideEffects.inventTechnology);
+                if (sideEffects?.createAction) this.addAction(sideEffects.createAction.name, sideEffects.createAction.description, sideEffects.createAction.beliefKey, sideEffects.createAction.effects);
                 if (sideEffects?.createCulture) {
                     const data = sideEffects.createCulture;
                     const newCulture: Culture = {
@@ -1185,16 +1470,13 @@ export class RealityEngine {
                     const { agentId, newCultureId } = sideEffects.updateAgentCulture;
                     const targetAgent = this.agents.get(agentId);
                     if (targetAgent) {
-                        // Leave old culture
                         if (targetAgent.cultureId) {
                             const oldCulture = this.cultures.get(targetAgent.cultureId);
                             if (oldCulture) {
                                 oldCulture.memberIds = oldCulture.memberIds.filter(id => id !== agentId);
                             }
                         }
-                        // Set new culture
                         targetAgent.cultureId = newCultureId;
-                        // Join new culture
                         if (newCultureId) {
                             const newCulture = this.cultures.get(newCultureId);
                             if (newCulture && !newCulture.memberIds.includes(agentId)) {
@@ -1206,13 +1488,35 @@ export class RealityEngine {
             }
         }
         
+        const journalist = Array.from(this.agents.values()).find(a => a.role === 'Journalist' && a.isAlive);
+        if (journalist) {
+            try {
+                const stepLogsForJournalist = allLogs.filter(l => !l.key.startsWith('log_journalist'));
+                if (stepLogsForJournalist.length > 0) {
+                    const article = await generateMediaBroadcast(journalist, this.getState(), this.language, stepLogsForJournalist);
+                    if (article) {
+                        const newBroadcast: MediaBroadcast = {
+                            id: `broadcast-${Date.now()}`,
+                            source: journalist.name,
+                            expires: this.worldState.environment.time + 100, // Lasts 100 steps
+                            ...article,
+                        };
+                        this.addBroadcast(newBroadcast);
+                        allLogs.push({ key: 'log_journalist_published' as any, params: { title: newBroadcast.title } });
+                    }
+                }
+            } catch (e) {
+                console.error("Journalist AI failed to generate article:", e);
+            }
+        }
+
         return { logs: allLogs };
     }
     
     public async processAgentPrompt(agentId: string, prompt: string): Promise<{ logs: LogEntry[] }> {
         const agent = this.agents.get(agentId);
         if (!agent || !agent.isAlive) return { logs: [] };
-        if (agent.imprisonedUntil) return { logs: [{ key: 'log_execution_imprisoned', params: { agentName: agent.name } }] };
+        if (agent.imprisonment) return { logs: [{ key: 'log_execution_imprisoned', params: { agentName: agent.name } }] };
 
         const action = this.promptParser.parse(prompt, this.getAvailableActions());
         

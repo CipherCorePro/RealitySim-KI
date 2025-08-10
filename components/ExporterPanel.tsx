@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, Upload, History, BarChart2 } from './IconComponents';
+import { Download, Upload, History, BarChart2, Users } from './IconComponents';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface ExporterPanelProps {
@@ -7,9 +7,10 @@ interface ExporterPanelProps {
     onLoad: () => void;
     onExportConversations: () => void;
     onExportStatistics: () => void;
+    onExportAgentCards: () => void;
 }
 
-export const ExporterPanel: React.FC<ExporterPanelProps> = ({ onExport, onLoad, onExportConversations, onExportStatistics }) => {
+export const ExporterPanel: React.FC<ExporterPanelProps> = ({ onExport, onLoad, onExportConversations, onExportStatistics, onExportAgentCards }) => {
     const t = useTranslations();
     return (
         <div className="bg-slate-850 p-4 rounded-lg border border-slate-700">
@@ -33,6 +34,10 @@ export const ExporterPanel: React.FC<ExporterPanelProps> = ({ onExport, onLoad, 
                 <button onClick={onExportStatistics} className="w-full text-left bg-teal-600 hover:bg-teal-500 p-2 rounded-md transition-colors font-semibold flex items-center gap-2">
                     <BarChart2 className="w-4 h-4" />
                     {t('export_statistics')}
+                </button>
+                 <button onClick={onExportAgentCards} className="w-full text-left bg-indigo-600 hover:bg-indigo-500 p-2 rounded-md transition-colors font-semibold flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    {t('export_agent_cards')}
                 </button>
                 <details className="pt-2">
                     <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">{t('stateManagement_advanced')}</summary>

@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import type { Action, Agent, EnvironmentState, WorldState, Culture, PsychoReport, Goal, Technology, Law, Beliefs } from '../types';
+import type { Action, Agent, EnvironmentState, WorldState, Culture, PsychoReport, Goal, Technology, Law, Beliefs, LogEntry } from '../types';
 import { Language } from "../contexts/LanguageContext";
 import { GENOME_OPTIONS, CHILDHOOD_MAX_AGE, ADOLESCENCE_MAX_AGE, ADULTHOOD_MAX_AGE, ROLES } from "../constants";
 import { translations, TranslationKey } from '../translations';
@@ -376,7 +376,7 @@ Consider the agent's current state, survival needs, personality, goals, stress, 
 - Analyze the user's prompt and the agent's situation deeply.
 Return ONLY the name of the chosen action (e.g., "Move North"). If no action is suitable, return "Keine Aktion".`,
     conversation_system_base: `You are a character in a reality simulation. You are playing the role of an AI agent named {agentName}.
-Your personality is: "{agentDescription}". Your personality traits are: {agentPersonality}. Your core drives are: {agentPsyche}.
+Your personality is: "{agentDescription}". Your personality traits are: {agentPersonality}. Your core drives are: {agentPsyche}. Your consciousness state is: {agentConsciousness}.
 Your current role is: {agentRole}. Your religion is: {agentReligion}. Your culture is '{agentCulture}'.
 Your age is {agentAge} ({agentLifeStage}). Health: {agentHealth}/100. Needs: Hunger {agentHunger}/100, Thirst {agentThirst}/100, Fatigue {agentFatigue}/100. Stress: {agentStress}/100. Currency: {agentCurrency}. Property: {agentProperty}.
 Your skills are: {agentSkills}. Your inventory: {agentInventory}. Your goals: {agentGoals}.
@@ -394,6 +394,7 @@ Generate a deep psychological analysis of this agent based on the following data
 
 - Personality (Big Five): {personality}
 - Emotional State: {emotions}
+- Consciousness Module: {consciousness}
 - Current Status: Health {health}, Hunger {hunger}, Fatigue {fatigue}, Social status {social_status}
 - Beliefs: {beliefs}
 - Skills: {skills}
@@ -423,22 +424,46 @@ Return a JSON object with the following fields. The first 7 fields are for human
     lifeStage_adolescent: 'Adolescent',
     lifeStage_adult: 'Adult',
     lifeStage_elder: 'Elder',
-    jail_journal_instruction: `You are the AI agent {agentName}. A week has passed in jail. Write a detailed, first-person journal entry reflecting on this past week.
+    jail_journal_instruction: `You are the AI agent {agentName}. A week has passed in jail. Write a detailed, first-person journal entry.
+
         **Your Current State:**
         - Personality: {agentPersonality}
         - Psyche/Drives: {agentPsyche}
         - Current Emotions: {agentEmotions}
         - Health: {agentHealth}/100, Stress: {agentStress}/100
         - Imprisoned until step: {imprisonedUntil} (Current step: {currentTime})
+
         **Reason for Imprisonment (based on your memories):**
         {reasonForImprisonment}
+
         **Instructions:**
         - Write in the first person ("I feel...", "I remember...").
+        - **CRITICAL: The core of your entry MUST be a reflection on why you are here.** Analyze the 'Reason for Imprisonment' and your memories of the crime. Do you feel remorse, anger, injustice, or something else based on your personality? How has this event changed you?
         - Let your personality and emotions color your writing. An agreeable, low-neuroticism agent might be hopeful, while a cynical, high-neuroticism agent might be despairing or angry.
-        - Reflect on why you are here. What do you remember about the crime?
-        - Describe your life in jail this week. Did you talk to anyone? Did you get into a fight? What are the conditions like?
+        - Briefly describe your life in jail this week. Did you talk to anyone? Get into a fight? How are the conditions?
         - Express your feelings about your sentence. How much longer do you have? What are your hopes or fears for when you get out?
         - Keep the entry to a few paragraphs. Return ONLY the text of the journal entry, without any titles or formatting.`,
+    media_broadcast_instruction: `You are a journalist AI for a reality simulation, role-playing as the agent "{journalistName}". Your task is to write a news article about recent events in the world.
+
+**Recent World Events:**
+{memories}
+
+**Instructions:**
+- Analyze the recent events and write a short, compelling news article (title and content).
+- The article should reflect your personality and the events you've "witnessed".
+- Determine the article's core message. Is it promoting progress, warning of danger, celebrating community?
+- Based on the core message, choose a target belief from this list to influence: {beliefKeys}.
+- Decide on an influence delta (-0.5 to 0.5) to shift that belief.
+- Assess the truthfulness of your article (0.0 for pure propaganda, 1.0 for objective fact).
+- Return ONLY a JSON object with the following structure. Do not add any extra text.
+{
+  "title": "Your catchy article title",
+  "content": "The body of your news article (2-4 sentences).",
+  "targetBelief": "belief_key_from_list",
+  "influenceDelta": 0.2,
+  "truthfulness": 0.85
+}
+If no interesting events have occurred, return null.`,
     invent_technology_instruction: `You are a creative historian and technologist for a reality simulation. Your task is to invent a plausible new technology for a specific culture.
 **Context:**
 - Inventor: {agentName}, a {agentRole} with skills in {agentSkills}.
@@ -572,7 +597,7 @@ Berücksichtigen Sie Zustand, Bedürfnisse, Persönlichkeit, Ziele, Stress, Fäh
 - Analysieren Sie die Benutzereingabe und die Situation des Agenten genau.
 Geben Sie NUR den Namen der gewählten Aktion zurück (z.B. "Move North"). Wenn keine Aktion geeignet ist, geben Sie "Keine Aktion" zurück.`,
     conversation_system_base: `Sie sind eine Figur in einer Realitätssimulation. Sie spielen die Rolle eines KI-Agenten namens {agentName}.
-Ihre Persönlichkeit ist: "{agentDescription}". Ihre Persönlichkeitsmerkmale sind: {agentPersonality}. Ihre Kerntriebe sind: {agentPsyche}.
+Ihre Persönlichkeit ist: "{agentDescription}". Ihre Persönlichkeitsmerkmale sind: {agentPersonality}. Ihre Kerntriebe sind: {agentPsyche}. Ihr Bewusstseinszustand ist: {agentConsciousness}.
 Ihre aktuelle Rolle ist: {agentRole}. Ihre Religion ist: {agentReligion}. Ihre Kultur ist '{agentCulture}'.
 Ihr Alter ist {agentAge} ({agentLifeStage}). Gesundheit: {agentHealth}/100. Bedürfnisse: Hunger {agentHunger}/100, Durst {agentThirst}/100, Müdigkeit {agentFatigue}/100. Stress: {agentStress}/100. Währung: {agentCurrency}. Eigentum: {agentProperty}.
 Ihre Fähigkeiten sind: {agentSkills}. Ihr Inventar: {agentInventory}. Ihre Ziele: {agentGoals}.
@@ -590,6 +615,7 @@ Erstelle eine tiefenpsychologische Analyse dieses Agenten basierend auf folgende
 
 - Persönlichkeit (Big Five): {personality}
 - Emotionale Verfassung: {emotions}
+- Bewusstseinsmodul: {consciousness}
 - Aktueller Status: Gesundheit {health}, Hunger {hunger}, Müdigkeit {fatigue}, Sozialstatus {social_status}
 - Überzeugungen: {beliefs}
 - Fähigkeiten: {skills}
@@ -619,22 +645,46 @@ Gib ein JSON-Objekt mit den folgenden Feldern zurück. Die ersten 7 Felder sind 
     lifeStage_adolescent: 'Jugendlicher',
     lifeStage_adult: 'Erwachsener',
     lifeStage_elder: 'Ältester',
-    jail_journal_instruction: `Du bist der KI-Agent {agentName}. Eine Woche ist im Gefängnis vergangen. Schreibe einen detaillierten Tagebucheintrag in der Ich-Perspektive, der über die vergangene Woche reflektiert.
+    jail_journal_instruction: `Du bist der KI-Agent {agentName}. Eine Woche ist im Gefängnis vergangen. Schreibe einen detaillierten Tagebucheintrag in der Ich-Perspektive.
+
         **Dein aktueller Zustand:**
         - Persönlichkeit: {agentPersonality}
         - Psyche/Triebe: {agentPsyche}
         - Aktuelle Emotionen: {agentEmotions}
         - Gesundheit: {agentHealth}/100, Stress: {agentStress}/100
         - Inhaftiert bis Schritt: {imprisonedUntil} (Aktueller Schritt: {currentTime})
+
         **Grund für die Inhaftierung (basierend auf deinen Erinnerungen):**
         {reasonForImprisonment}
+
         **Anweisungen:**
         - Schreibe in der Ich-Perspektive ("Ich fühle...", "Ich erinnere mich...").
+        - **KRITISCH: Der Kern deines Eintrags MUSS eine Reflexion darüber sein, warum du hier bist.** Analysiere den 'Grund für die Inhaftierung' und deine Erinnerungen an das Verbrechen. Empfindest du Reue, Wut, Ungerechtigkeit oder etwas anderes basierend auf deiner Persönlichkeit? Wie hat dich dieses Ereignis verändert?
         - Lass deine Persönlichkeit und deine Emotionen deinen Schreibstil prägen. Ein verträglicher Agent mit niedrigem Neurotizismus könnte hoffnungsvoll sein, während ein zynischer Agent mit hohem Neurotizismus verzweifelt oder wütend sein könnte.
-        - Reflektiere darüber, warum du hier bist. Woran erinnerst du dich bezüglich des Verbrechens?
-        - Beschreibe dein Leben im Gefängnis diese Woche. Hast du mit jemandem gesprochen? Hattest du einen Kampf? Wie sind die Bedingungen?
+        - Beschreibe kurz dein Leben im Gefängnis diese Woche. Hast du mit jemandem gesprochen? Hattest du einen Kampf? Wie sind die Bedingungen?
         - Drücke deine Gefühle bezüglich deiner Strafe aus. Wie lange hast du noch? Was sind deine Hoffnungen oder Ängste für die Zeit nach deiner Entlassung?
         - Halte den Eintrag auf wenige Absätze beschränkt. Gib NUR den Text des Tagebucheintrags zurück, ohne Titel oder Formatierungen.`,
+    media_broadcast_instruction: `Sie sind eine Journalisten-KI für eine Realitätssimulation und spielen die Rolle des Agenten "{journalistName}". Ihre Aufgabe ist es, einen Nachrichtenartikel über die jüngsten Ereignisse in der Welt zu schreiben.
+
+**Jüngste Ereignisse in der Welt:**
+{memories}
+
+**Anweisungen:**
+- Analysieren Sie die jüngsten Ereignisse und schreiben Sie einen kurzen, fesselnden Nachrichtenartikel (Titel und Inhalt).
+- Der Artikel sollte Ihre Persönlichkeit und die Ereignisse, die Sie "beobachtet" haben, widerspiegeln.
+- Bestimmen Sie die Kernbotschaft des Artikels. Fördert er den Fortschritt, warnt er vor Gefahren, feiert er die Gemeinschaft?
+- Wählen Sie basierend auf der Kernbotschaft eine Zielüberzeugung aus dieser Liste aus, die Sie beeinflussen möchten: {beliefKeys}.
+- Legen Sie ein Einflussdelta (-0,5 bis 0,5) fest, um diese Überzeugung zu verschieben.
+- Bewerten Sie den Wahrheitsgehalt Ihres Artikels (0,0 für reine Propaganda, 1,0 für objektive Fakten).
+- Geben Sie NUR ein JSON-Objekt mit der folgenden Struktur zurück. Fügen Sie keinen zusätzlichen Text hinzu.
+{
+  "title": "Ihr einprägsamer Artikeltitel",
+  "content": "Der Text Ihres Nachrichtenartikels (2-4 Sätze).",
+  "targetBelief": "glaubensschlüssel_aus_liste",
+  "influenceDelta": 0.2,
+  "truthfulness": 0.85
+}
+Wenn keine interessanten Ereignisse stattgefunden haben, geben Sie null zurück.`,
     invent_technology_instruction: `Sie sind ein kreativer Historiker und Technologe für eine Realitätssimulation. Ihre Aufgabe ist es, eine plausible neue Technologie für eine bestimmte Kultur zu erfinden.
 **Kontext:**
 - Erfinder: {agentName}, ein {agentRole} mit Fähigkeiten in {agentSkills}.
@@ -872,7 +922,7 @@ ${t.agent_state}
 - ${t.agent_name}: ${a.name} (${t.agent_age}: ${a.age.toFixed(1)}, ${t.agent_role}: ${a.role || 'None'})
 - ${t.agent_culture}: ${a.cultureId || 'None'} (${t.agent_religion}: ${(religions || []).find(r => r.id === a.religionId)?.name || 'None'})
 - ${t.agent_position}: (${a.x}, ${a.y}) | ${t.agent_health}: ${a.health.toFixed(0)}/100 | ${t.agent_currency}: ${a.currency}$
-${a.imprisonedUntil ? `- **${t.agent_imprisoned.replace('{until}', String(a.imprisonedUntil))}**` : ''}
+${a.imprisonment ? `- **${t.agent_imprisoned.replace('{until}', String(a.imprisonment.endsAt))}**` : ''}
 - ${t.agent_needs}: ${t.agent_hunger} ${a.hunger.toFixed(0)}, ${t.agent_thirst} ${a.thirst.toFixed(0)}, ${t.agent_fatigue} ${a.fatigue.toFixed(0)}
 - ${t.agent_stress}: ${a.stress.toFixed(0)} | ${t.agent_status}: ${a.socialStatus.toFixed(0)}
 - ${t.agent_inventory}: ${inventoryStr}
@@ -935,6 +985,7 @@ export async function generateAgentConversation(
     const relationshipWithListener = speaker.relationships[listener.id] || { type: 'stranger', score: 0, disposition: {} };
     const personalityStr = JSON.stringify(speaker.personality, (k,v) => v.toFixed ? Number(v.toFixed(2)) : v);
     const psycheStr = JSON.stringify(speaker.psyche, (k,v) => v.toFixed ? Number(v.toFixed(2)) : v);
+    const consciousnessStr = JSON.stringify(speaker.consciousness, (k,v) => v.toFixed ? Number(v.toFixed(2)) : v);
     const leaderName = government.leaderId ? worldState.agents.find(a => a.id === government.leaderId)?.name : 'None';
     const lawsStr = government.laws.map(l => l.name).join(', ') || 'None';
     const ownedPropertiesStr = entities.filter(e => e.ownerId === speaker.id).map(e => e.name).join(', ') || t.agent_property_none;
@@ -959,6 +1010,7 @@ export async function generateAgentConversation(
         .replace('{agentDescription}', speaker.description)
         .replace('{agentPersonality}', personalityStr)
         .replace('{agentPsyche}', psycheStr)
+        .replace('{agentConsciousness}', consciousnessStr)
         .replace('{agentRole}', String(speaker.role || 'None'))
         .replace('{agentReligion}', String(worldState.religions.find(r => r.id === speaker.religionId)?.name || 'None'))
         .replace('{agentLifeStage}', getLifeStage(speaker.age, t))
@@ -1029,6 +1081,7 @@ export async function generatePsychoanalysis(
     const systemPrompt = t.agent_analysis_instruction
         .replace('{personality}', JSON.stringify(agent.personality, (k, v) => typeof v === 'number' ? v.toFixed(2) : v))
         .replace('{emotions}', JSON.stringify(agent.emotions, (k, v) => typeof v === 'number' ? v.toFixed(2) : v))
+        .replace('{consciousness}', JSON.stringify(agent.consciousness, (k,v) => typeof v === 'number' ? v.toFixed(2) : v))
         .replace('{health}', agent.health.toFixed(0))
         .replace('{hunger}', agent.hunger.toFixed(0))
         .replace('{fatigue}', agent.fatigue.toFixed(0))
@@ -1107,24 +1160,9 @@ export async function generateWorldAnalysisReport(
         skills: a.skills,
         relationships: Object.keys(a.relationships || {}).length
     }));
-    
-    const systemPrompt = `
-    <!DOCTYPE html>
-    <html lang="${language}">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>World Analysis Report</title>
-        ${t.system_instruction}
-    </head>
-    <body>
-        <div class="container">
-            <!-- AI will generate content here -->
-        </div>
-    </body>
-    </html>
-    `.replace('</style>', `</style><!-- The user prompt will be inserted by the system. Now, generate the report content starting with the <header> tag. -->`);
 
+    const systemInstruction = t.system_instruction;
+    
     const userPrompt = t.user_prompt_template
         .replace('{step}', String(environment.time))
         .replace('{time}', String(environment.time))
@@ -1141,20 +1179,38 @@ export async function generateWorldAnalysisReport(
         .replace('{agents}', JSON.stringify(agentsForPrompt, null, 2));
 
     try {
-        const fullPrompt = systemPrompt.replace('<!-- AI will generate content here -->', userPrompt);
-        
-        const htmlReport = await callAi(fullPrompt, null, false);
+        const htmlReport = await callAi(systemInstruction, userPrompt, false);
         
         // Basic check to ensure it looks like HTML
         if (htmlReport && htmlReport.trim().startsWith('<')) {
             // The AI should return the full HTML doc, but in case it only returns the body content, wrap it.
             if (!htmlReport.trim().toLowerCase().startsWith('<!doctype')) {
-                 return systemPrompt.replace('<!-- AI will generate content here -->', `<header><h1>World Analysis Report</h1><p>Step ${environment.time}</p></header>${htmlReport}`);
+                const reportTitle = language === 'de' ? 'Weltanalyse-Bericht' : 'World Analysis Report';
+                const styleTagMatch = t.system_instruction.match(/<style>[\s\S]*?<\/style>/);
+                const styleTag = styleTagMatch ? styleTagMatch[0] : '<style></style>';
+
+                return `
+<!DOCTYPE html>
+<html lang="${language}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${reportTitle}</title>
+    ${styleTag}
+</head>
+<body>
+    <div class="container">
+        ${htmlReport}
+    </div>
+</body>
+</html>`;
             }
             return htmlReport;
         }
         // Fallback if AI returns non-HTML
-        return `<html><body><h1>Analysis Failed</h1><p>The AI returned an invalid format.</p><pre>${htmlReport}</pre></body></html>`;
+        const fallbackTitle = language === 'de' ? 'Analyse fehlgeschlagen' : 'Analysis Failed';
+        const fallbackMessage = language === 'de' ? 'Die KI hat ein ungültiges Format zurückgegeben.' : 'The AI returned an invalid format.';
+        return `<html><body><h1>${fallbackTitle}</h1><p>${fallbackMessage}</p><pre>${htmlReport}</pre></body></html>`;
     } catch (error) {
         console.error("Error generating world analysis with AI:", error);
         if (error instanceof LmStudioError) throw error;
@@ -1472,7 +1528,7 @@ export async function generateJailJournalEntry(
         .replace('{agentEmotions}', emotionsStr)
         .replace('{agentHealth}', agent.health.toFixed(0))
         .replace('{agentStress}', agent.stress.toFixed(0))
-        .replace('{imprisonedUntil}', String(agent.imprisonedUntil))
+        .replace('{imprisonedUntil}', String(agent.imprisonment?.endsAt ?? 'N/A'))
         .replace('{currentTime}', String(worldState.environment.time))
         .replace('{reasonForImprisonment}', reasonForImprisonment);
     
@@ -1482,5 +1538,67 @@ export async function generateJailJournalEntry(
     } catch (error) {
         console.error("Error generating jail journal entry with AI:", error);
         return null;
+    }
+}
+
+export async function generateMediaBroadcast(
+    journalist: Agent,
+    worldState: WorldState,
+    language: Language,
+    recentLogs: LogEntry[]
+): Promise<{ title: string; content: string; targetBelief: keyof Beliefs; influenceDelta: number; truthfulness: number; } | null> {
+    const t = prompts[language];
+
+    const formatLog = (log: LogEntry): string => {
+        let message = log.key;
+        if (log.params) {
+            const paramsStr = Object.entries(log.params)
+                .map(([key, value]) => `${key}: ${value}`)
+                .join(', ');
+            message += ` (${paramsStr})`;
+        }
+        return message;
+    };
+    
+    const memories = recentLogs
+        .map(formatLog)
+        .join('\n');
+        
+    if (!memories.trim()) {
+        return null; // Not enough happened to write an article
+    }
+
+    const beliefKeys = ['progress_good', 'nature_good', 'wealth_is_power', 'community_first', 'tradition_important', 'knowledge_is_sacred', 'law_is_absolute'];
+
+    const systemPrompt = t.media_broadcast_instruction
+        .replace('{journalistName}', journalist.name)
+        .replace('{memories}', memories)
+        .replace('{beliefKeys}', beliefKeys.join(', '));
+
+    try {
+        const jsonText = await callAi(systemPrompt, null, true);
+        if (!jsonText || jsonText.toLowerCase() === 'null') {
+            return null;
+        }
+
+        const result = JSON.parse(jsonText);
+
+        // Basic validation
+        if (typeof result.title !== 'string' || 
+            typeof result.content !== 'string' || 
+            typeof result.targetBelief !== 'string' || 
+            typeof result.influenceDelta !== 'number' ||
+            typeof result.truthfulness !== 'number' ||
+            !beliefKeys.includes(result.targetBelief)) {
+            console.error("AI returned invalid media broadcast structure:", result);
+            return null;
+        }
+
+        return result;
+
+    } catch (error) {
+        console.error("Error generating media broadcast with AI:", error);
+        if (error instanceof LmStudioError) throw error;
+        throw new Error(`AI Error: ${(error as Error).message}`);
     }
 }

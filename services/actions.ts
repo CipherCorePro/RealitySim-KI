@@ -1,5 +1,4 @@
-
-import type { Action, Agent, Entity, WorldState, ActionContext, Law, Technology } from '../types';
+import type { Action, Agent, Entity, WorldState, ActionContext, Law, Technology, MediaBroadcast } from '../types';
 import { findNearestEntity, findNearestAgent, moveTowards, wander } from './simulationUtils';
 import { 
     EAT_HUNGER_REDUCTION, DRINK_THIRST_REDUCTION, GATHER_AMOUNT, FATIGUE_RECOVERY_RATE, 
@@ -106,11 +105,14 @@ export const availableActions: Action[] = [
     {
         name: 'Build Shelter',
         description: 'Build a small shelter using 10 wood.',
-        execute: async (agent) => {
+        execute: async (agent, allAgents, allEntities, worldState, context) => {
             const woodCost = 10;
             if ((agent.inventory['wood'] || 0) >= woodCost) {
                 agent.inventory['wood'] -= woodCost;
                 agent.skills.construction = (agent.skills.construction || 0) + 2;
+                if (agent.cultureId) {
+                    context.addResearchPoints(agent.cultureId, 5);
+                }
                 const newShelter: Partial<Entity> = {
                     name: `${agent.name}'s Shelter`,
                     description: 'A simple, self-made shelter.',
@@ -243,7 +245,7 @@ export const availableActions: Action[] = [
     ...RECIPES.map((recipe): Action => ({
         name: recipe.name,
         description: `Crafts ${recipe.output.item} from ingredients.`,
-        execute: async (agent, allAgents, allEntities, worldState) => {
+        execute: async (agent, allAgents, allEntities, worldState, context) => {
             const agentCulture = worldState.cultures.find(c => c.id === agent.cultureId);
             if (recipe.requiredTech && (!agentCulture || !agentCulture.knownTechnologies.includes(recipe.requiredTech))) {
                 return { log: { key: 'log_action_craft_fail_tech', params: { agentName: agent.name, tech: worldState.techTree.find(t=>t.id === recipe.requiredTech)?.name || recipe.requiredTech }}, status: 'failure', reward: -1 };
@@ -258,6 +260,9 @@ export const availableActions: Action[] = [
                 });
                 agent.inventory[recipe.output.item] = (agent.inventory[recipe.output.item] || 0) + recipe.output.quantity;
                 agent.skills.crafting = (agent.skills.crafting || 0) + 1.0;
+                if (agent.cultureId) {
+                    context.addResearchPoints(agent.cultureId, 2);
+                }
                 return { log: { key: 'log_action_craft_success', params: { agentName: agent.name, itemName: recipe.output.item }}, status: 'success', reward: 15 };
             }
             return { log: { key: 'log_action_craft_fail_ingredients', params: { agentName: agent.name, itemName: recipe.output.item }}, status: 'failure', reward: -3 };
@@ -385,21 +390,23 @@ export const availableActions: Action[] = [
     
             // Simulate consultation with the culture/clan
             const cultureMembers = Array.from(allAgents.values()).filter(a => a.cultureId === agent.cultureId && a.id !== agent.id);
-            let approvals = 0;
-            let totalVoters = 0;
-    
+            
+            // The leader (proposer) always votes 'yes', and their vote counts as 2.
+            let approvals = 2;
+            let totalVotesCast = 2;
+
             for (const member of cultureMembers) {
-                totalVoters++;
+                totalVotesCast++; // Each member has 1 vote
                 const relationshipScore = member.relationships[agent.id]?.score || 0;
                 const agreeableness = member.personality.agreeableness;
-                const approvalChance = (relationshipScore / 150) + (agreeableness / 2); // Max score ~1.16, min ~0.
+                const approvalChance = (relationshipScore / 150) + (agreeableness / 2);
                 if (Math.random() < approvalChance) {
                     approvals++;
                 }
             }
             
-            // Majority approval needed (leader doesn't vote, but their proposal stands)
-            const wasApproved = totalVoters === 0 || (approvals / totalVoters) > 0.5;
+            // Majority approval needed.
+            const wasApproved = (approvals / totalVotesCast) > 0.5;
     
             if (wasApproved) {
                 context.enactLaw(newLaw);
@@ -424,20 +431,20 @@ export const availableActions: Action[] = [
         description: 'Attempt to establish a new religion for your culture.',
         execute: async (agent, allAgents, allEntities, worldState, context) => {
             if (!agent.cultureId) {
-                return { log: { key: 'log_action_found_religion_fail_no_culture', params: { agentName: agent.name } }, status: 'failure', reward: -1 };
+                return { log: { key: 'log_action_found_religion_fail_no_culture' as any, params: { agentName: agent.name } }, status: 'failure', reward: -1 };
             }
             if (agent.socialStatus < 50) {
-                return { log: { key: 'log_action_found_religion_fail_status', params: { agentName: agent.name } }, status: 'failure', reward: -2 };
+                return { log: { key: 'log_action_found_religion_fail_status' as any, params: { agentName: agent.name } }, status: 'failure', reward: -2 };
             }
             
             const culture = worldState.cultures.find(c => c.id === agent.cultureId);
             if (!culture) {
-                 return { log: { key: 'log_action_found_religion_fail_no_culture', params: { agentName: agent.name } }, status: 'failure', reward: -1 };
+                 return { log: { key: 'log_action_found_religion_fail_no_culture' as any, params: { agentName: agent.name } }, status: 'failure', reward: -1 };
             }
     
             const religiousMembers = culture.memberIds.map(id => allAgents.get(id)).filter(a => a && a.isAlive && a.religionId).length;
             if ((religiousMembers / culture.memberIds.length) > 0.5) {
-                return { log: { key: 'log_action_found_religion_fail_has_religion', params: { agentName: agent.name, cultureName: culture.name } }, status: 'failure', reward: -1 };
+                return { log: { key: 'log_action_found_religion_fail_has_religion' as any, params: { agentName: agent.name, cultureName: culture.name } }, status: 'failure', reward: -1 };
             }
             
             let religionProposal: { name: string; dogma: any } | null = null;
@@ -445,11 +452,11 @@ export const availableActions: Action[] = [
                 religionProposal = await generateNewReligion(agent, worldState, context.language);
             } catch (error) {
                 console.error("AI religion generation failed:", error);
-                return { log: { key: 'log_action_found_religion_fail_ai', params: { agentName: agent.name } }, status: 'failure', reward: -5 };
+                return { log: { key: 'log_action_found_religion_fail_ai' as any, params: { agentName: agent.name } }, status: 'failure', reward: -5 };
             }
             
             if (!religionProposal) {
-                return { log: { key: 'log_action_found_religion_fail_ai', params: { agentName: agent.name } }, status: 'failure', reward: -5 };
+                return { log: { key: 'log_action_found_religion_fail_ai' as any, params: { agentName: agent.name } }, status: 'failure', reward: -5 };
             }
     
             // Simulate vote
@@ -471,7 +478,7 @@ export const availableActions: Action[] = [
             
             if (wasApproved) {
                 return {
-                    log: { key: 'log_action_found_religion_success', params: { religionName: religionProposal.name, cultureName: culture.name } },
+                    log: { key: 'log_action_found_religion_success' as any, params: { religionName: religionProposal.name, cultureName: culture.name } },
                     status: 'success',
                     reward: 50,
                     sideEffects: {
@@ -484,7 +491,7 @@ export const availableActions: Action[] = [
                 };
             } else {
                 return {
-                    log: { key: 'log_action_found_religion_fail_vote', params: { religionName: religionProposal.name, cultureName: culture.name } },
+                    log: { key: 'log_action_found_religion_fail_vote' as any, params: { religionName: religionProposal.name, cultureName: culture.name } },
                     status: 'failure',
                     reward: -10
                 };
@@ -512,11 +519,11 @@ export const availableActions: Action[] = [
         description: 'Attempt to invent a new technology based on current knowledge.',
         execute: async (agent, allAgents, allEntities, worldState, context) => {
             if (agent.role !== 'Scientist' || (agent.psyche.inspiration || 0) < 0.6) {
-                return { log: { key: 'log_action_invent_fail_role', params: { agentName: agent.name } }, status: 'failure', reward: -2 };
+                return { log: { key: 'log_action_invent_fail_role' as any, params: { agentName: agent.name } }, status: 'failure', reward: -2 };
             }
             const culture = worldState.cultures.find(c => c.id === agent.cultureId);
             if (!culture || culture.knownTechnologies.length === 0) {
-                return { log: { key: 'log_action_invent_fail_no_basis', params: { agentName: agent.name } }, status: 'failure', reward: -1 };
+                return { log: { key: 'log_action_invent_fail_no_basis' as any, params: { agentName: agent.name } }, status: 'failure', reward: -1 };
             }
             try {
                 const newTech = await generateNewTechnology(agent, worldState, context.language);
@@ -524,7 +531,7 @@ export const availableActions: Action[] = [
                     agent.psyche.inspiration = 0; // The spark of genius is spent
                     // The simulation engine will handle adding the tech to the tree
                     return {
-                        log: { key: 'log_action_invent_success', params: { agentName: agent.name, techName: newTech.name } },
+                        log: { key: 'log_action_invent_success' as any, params: { agentName: agent.name, techName: newTech.name } },
                         status: 'success',
                         reward: 100,
                         sideEffects: {
@@ -532,10 +539,10 @@ export const availableActions: Action[] = [
                         }
                     };
                 }
-                 return { log: { key: 'log_action_invent_fail_ai', params: { agentName: agent.name } }, status: 'failure', reward: -5 };
+                 return { log: { key: 'log_action_invent_fail_ai' as any, params: { agentName: agent.name } }, status: 'failure', reward: -5 };
             } catch (error) {
                 console.error("AI technology invention failed:", error);
-                return { log: { key: 'log_action_invent_fail_ai', params: { agentName: agent.name } }, status: 'failure', reward: -5 };
+                return { log: { key: 'log_action_invent_fail_ai' as any, params: { agentName: agent.name } }, status: 'failure', reward: -5 };
             }
         }
     },
@@ -635,11 +642,15 @@ export const availableActions: Action[] = [
     {
         name: 'Propose Marriage',
         description: 'Propose marriage to a suitable nearby agent.',
-        execute: async (agent, allAgents) => {
+        execute: async (agent, allAgents, allEntities, worldState, context) => {
+            if (agent.age < 14) {
+                return { log: { key: 'log_action_propose_fail_age' as any, params: { agentName: agent.name } }, status: 'failure', reward: -1 };
+            }
             const isMarried = Object.values(agent.relationships).some(r => r.type === 'spouse');
             if (isMarried) return { log: { key: 'log_action_propose_fail_already_married', params: { agentName: agent.name } }, status: 'failure', reward: -2 };
             const target = findNearestAgent(agent, allAgents, a => 
                 a.isAlive && 
+                a.age >= 14 &&
                 !Object.values(a.relationships).some(r => r.type === 'spouse') &&
                 (agent.relationships[a.id]?.score || 0) > 70
             );
@@ -648,6 +659,7 @@ export const availableActions: Action[] = [
                 if (Math.random() < 0.7) { 
                      agent.relationships[target.id].type = 'spouse';
                      target.relationships[agent.id] = { type: 'spouse', score: 100, disposition: {} };
+                     context.logStatistic('marriage', { agentName1: agent.name, agentName2: target.name });
                      return { log: { key: 'log_action_accept_proposal_success', params: { agentName: target.name, targetName: agent.name }}, status: 'success', reward: 50 };
                 }
                 return { log: { key: 'log_action_propose_marriage_fail', params: { agentName: agent.name, targetName: target.name }}, status: 'failure', reward: -10 };
@@ -714,7 +726,7 @@ export const availableActions: Action[] = [
             }
             const cost = 500;
             if (agent.currency < cost) {
-                return { log: { key: 'log_action_insemination_fail_funds', params: { agentName: agent.name, cost }}, status: 'failure', reward: -5 };
+                return { log: { key: 'log_action_insemination_fail_funds' as any, params: { agentName: agent.name, cost }}, status: 'failure', reward: -5 };
             }
             agent.currency -= cost;
             context.logTransaction({ from: agent.id, to: 'WORLD', item: 'currency', quantity: cost });
@@ -736,12 +748,12 @@ export const availableActions: Action[] = [
         execute: async (agent, allAgents) => {
             const student = findNearestAgent(agent, allAgents, a => a.isAlive && a.age < ADOLESCENCE_MAX_AGE);
             const bestSkill = Object.entries(agent.skills).sort((a,b) => b[1] - a[1])[0];
-            if (!student || !bestSkill) return { log: { key: 'log_action_mentor_no_one', params: { agentName: agent.name }}, status: 'failure', reward: -1 };
-            if (bestSkill[1] < 20) return { log: { key: 'log_action_mentor_fail_skill', params: { agentName: agent.name }}, status: 'failure', reward: -1 };
+            if (!student || !bestSkill) return { log: { key: 'log_action_mentor_no_one' as any, params: { agentName: agent.name }}, status: 'failure', reward: -1 };
+            if (bestSkill[1] < 20) return { log: { key: 'log_action_mentor_fail_skill' as any, params: { agentName: agent.name }}, status: 'failure', reward: -1 };
 
             student.skills[bestSkill[0]] = (student.skills[bestSkill[0]] || 0) + 1.5;
             agent.socialStatus += 1;
-            return { log: { key: 'log_action_mentor_success', params: { mentorName: agent.name, studentName: student.name, skill: bestSkill[0] }}, status: 'success', reward: 15 };
+            return { log: { key: 'log_action_mentor_success' as any, params: { mentorName: agent.name, studentName: student.name, skill: bestSkill[0] }}, status: 'success', reward: 15 };
         }
     },
     {
@@ -751,9 +763,9 @@ export const availableActions: Action[] = [
             const counselor = findNearestAgent(agent, allAgents, a => a.isAlive && a.role === 'Counselor');
             if (counselor) {
                  moveTowards(agent, counselor, worldState.environment);
-                 return { log: { key: 'log_action_seek_counseling', params: { agentName: agent.name, counselorName: counselor.name }}, status: 'neutral', reward: 0.5 };
+                 return { log: { key: 'log_action_seek_counseling' as any, params: { agentName: agent.name, counselorName: counselor.name }}, status: 'neutral', reward: 0.5 };
             }
-            return { log: { key: 'log_action_seek_counseling_fail', params: { agentName: agent.name }}, status: 'failure', reward: -1 };
+            return { log: { key: 'log_action_seek_counseling_fail' as any, params: { agentName: agent.name }}, status: 'failure', reward: -1 };
         }
     },
     {
@@ -766,13 +778,13 @@ export const availableActions: Action[] = [
                 const stressBefore = patient.stress;
                 patient.stress = Math.max(0, patient.stress - 30);
                 agent.skills.healing = (agent.skills.healing || 0) + 0.5;
-                const payment = 5;
+                const payment = 25;
                 patient.currency -= payment;
                 agent.currency += payment;
                 context.logTransaction({ from: patient.id, to: agent.id, item: 'currency', quantity: payment });
-                return { log: { key: 'log_action_provide_counseling_success', params: { counselorName: agent.name, patientName: patient.name }}, status: 'success', reward: (stressBefore - patient.stress) / 2 };
+                return { log: { key: 'log_action_provide_counseling_success' as any, params: { counselorName: agent.name, patientName: patient.name }}, status: 'success', reward: (stressBefore - patient.stress) / 2 };
             }
-            return { log: { key: 'log_action_provide_counseling_fail', params: { agentName: agent.name }}, status: 'failure', reward: -1 };
+            return { log: { key: 'log_action_provide_counseling_fail' as any, params: { agentName: agent.name }}, status: 'failure', reward: -1 };
         }
     },
     {
@@ -826,6 +838,7 @@ export const availableActions: Action[] = [
             }
             
             const initiator = agent;
+            context.logStatistic('fight', { agentName1: initiator.name, agentName2: target.name });
             const agentHealthBefore = initiator.health;
             const targetHealthBefore = target.health;
 
@@ -847,9 +860,22 @@ export const availableActions: Action[] = [
                 const jail = findNearestEntity(initiator, allEntities, e => e.isJail);
                 const arrestChance = 0.4 + (interveningGuard.personality.conscientiousness - 0.5) * 0.4; // Base 40%, modified by guard's conscientiousness
 
+                if (initiator.age < 14) {
+                    return { log: { key: 'log_guard_warning', params: { guardName: interveningGuard.name, criminalName: initiator.name, crime: 'fighting (minor)' } }, status: 'neutral', reward: -5 };
+                }
+
                 if (jail && law.punishment.type === 'arrest' && Math.random() < arrestChance) {
-                    const duration = law.punishment.amount;
-                    initiator.imprisonedUntil = worldState.environment.time + duration;
+                    const baseDuration = Math.max(20, law.punishment.amount);
+                    const personalityModifier = (1 - initiator.personality.agreeableness) * 10;
+                    const psycheModifier = (initiator.psyche.vengefulness || 0) * 10 - (initiator.psyche.forgiveness || 0) * 5;
+                    const finalDuration = Math.round(baseDuration + personalityModifier + psycheModifier);
+
+                    initiator.imprisonment = {
+                        startsAt: worldState.environment.time,
+                        endsAt: worldState.environment.time + finalDuration,
+                        midSentenceAnalysisDone: false,
+                    };
+
                     initiator.x = jail.x;
                     initiator.y = jail.y;
                     if (!jail.inmates) jail.inmates = [];
@@ -857,6 +883,7 @@ export const availableActions: Action[] = [
 
                     initiator.socialStatus = Math.max(0, initiator.socialStatus - 15);
                     initiator.emotions.shame = Math.min(1, (initiator.emotions.shame || 0) + 0.5);
+                    context.logStatistic('imprisonment', { agentName: initiator.name });
 
                     return { log: { key: 'log_law_violation_arrest_witnessed', params: { criminalName: initiator.name, guardName: interveningGuard.name } }, status: 'failure', reward: -25 };
                 } else {
@@ -892,6 +919,11 @@ export const availableActions: Action[] = [
                      const guard = nearbyGuards[0];
                      agent.socialStatus = Math.max(0, agent.socialStatus - 15);
                      agent.emotions.shame = Math.min(1, (agent.emotions.shame || 0) + 0.5);
+
+                     if (agent.age < 14) {
+                        return { log: { key: 'log_guard_warning', params: { guardName: guard.name, criminalName: agent.name, crime: 'stealing (minor)' } }, status: 'neutral', reward: -5 };
+                     }
+
                      if (law.punishment.type === 'fine') {
                          context.logTransaction({ from: agent.id, to: 'WORLD', item: 'currency', quantity: law.punishment.amount });
                          agent.currency = Math.max(0, agent.currency - law.punishment.amount);
@@ -899,11 +931,22 @@ export const availableActions: Action[] = [
                      } else if (law.punishment.type === 'arrest') {
                          const jail = findNearestEntity(agent, allEntities, e => e.isJail);
                          if (jail) {
-                             agent.imprisonedUntil = worldState.environment.time + law.punishment.amount;
+                            const baseDuration = Math.max(20, law.punishment.amount);
+                            const personalityModifier = (1 - agent.personality.agreeableness) * 10;
+                            const psycheModifier = (agent.psyche.vengefulness || 0) * 10 - (agent.psyche.forgiveness || 0) * 5;
+                            const finalDuration = Math.round(baseDuration + personalityModifier + psycheModifier);
+
+                            agent.imprisonment = {
+                                startsAt: worldState.environment.time,
+                                endsAt: worldState.environment.time + finalDuration,
+                                midSentenceAnalysisDone: false,
+                            };
+                             
                              agent.x = jail.x;
                              agent.y = jail.y;
                              if (!jail.inmates) jail.inmates = [];
                              if (!jail.inmates.includes(agent.id)) jail.inmates.push(agent.id);
+                             context.logStatistic('imprisonment', { agentName: agent.name });
                          }
                          return { log: { key: 'log_law_violation_arrest', params: { criminalName: agent.name, guardName: guard.name } }, status: 'failure', reward: -25 };
                      }
@@ -940,9 +983,9 @@ export const availableActions: Action[] = [
             agent.stress = Math.max(0, agent.stress - 15);
             if (Math.random() < 0.2) {
                 agent.psyche.inspiration = Math.min(1, (agent.psyche.inspiration || 0) + 0.3);
-                return { log: { key: 'log_action_meditate_inspiration', params: { agentName: agent.name }}, status: 'success', reward: 15 };
+                return { log: { key: 'log_action_meditate_inspiration' as any, params: { agentName: agent.name }}, status: 'success', reward: 15 };
             }
-            return { log: { key: 'log_action_meditate', params: { agentName: agent.name }}, status: 'success', reward: 5 };
+            return { log: { key: 'log_action_meditate' as any, params: { agentName: agent.name }}, status: 'success', reward: 5 };
         }
     },
     {
@@ -951,7 +994,7 @@ export const availableActions: Action[] = [
         execute: async (agent) => {
             agent.emotions.grief = Math.max(0, (agent.emotions.grief || 0) - 0.2);
             agent.emotions.sadness = Math.min(1, (agent.emotions.sadness || 0) + 0.1);
-            return { log: { key: 'log_action_mourn', params: { agentName: agent.name }}, status: 'success', reward: 10 };
+            return { log: { key: 'log_action_mourn' as any, params: { agentName: agent.name }}, status: 'success', reward: 10 };
         }
     },
     {
@@ -959,15 +1002,15 @@ export const availableActions: Action[] = [
         description: 'Offer forgiveness to a rival, potentially ending the rivalry.',
         execute: async (agent, allAgents) => {
             const rivalEntry = Object.entries(agent.relationships).find(([, rel]) => rel.type === 'rival');
-            if (!rivalEntry) return { log: { key: 'log_action_forgive_no_rival', params: { agentName: agent.name }}, status: 'failure', reward: -1 };
+            if (!rivalEntry) return { log: { key: 'log_action_forgive_no_rival' as any, params: { agentName: agent.name }}, status: 'failure', reward: -1 };
 
             const rival = allAgents.get(rivalEntry[0]);
             if (rival) {
                 agent.relationships[rival.id].type = 'acquaintance';
                 rival.relationships[agent.id].type = 'acquaintance';
-                return { log: { key: 'log_action_forgive_success', params: { agentName: agent.name, rivalName: rival.name }}, status: 'success', reward: 20 };
+                return { log: { key: 'log_action_forgive_success' as any, params: { agentName: agent.name, rivalName: rival.name }}, status: 'success', reward: 20 };
             }
-             return { log: { key: 'log_action_forgive_no_rival', params: { agentName: agent.name }}, status: 'failure', reward: -1 };
+             return { log: { key: 'log_action_forgive_no_rival' as any, params: { agentName: agent.name }}, status: 'failure', reward: -1 };
         }
     },
     {
@@ -975,18 +1018,80 @@ export const availableActions: Action[] = [
         description: 'Confront your spouse/partner due to jealousy.',
         execute: async (agent, allAgents) => {
              const partnerEntry = Object.entries(agent.relationships).find(([, rel]) => rel.type === 'spouse' || rel.type === 'partner');
-             if (!partnerEntry) return { log: { key: 'log_action_confront_no_partner', params: { agentName: agent.name }}, status: 'failure', reward: -1 };
+             if (!partnerEntry) return { log: { key: 'log_action_confront_no_partner' as any, params: { agentName: agent.name }}, status: 'failure', reward: -1 };
 
              const partner = allAgents.get(partnerEntry[0]);
              if (partner) {
                 agent.relationships[partner.id].score = Math.max(0, agent.relationships[partner.id].score - 10);
                 agent.psyche.jealousy = Math.max(0, agent.psyche.jealousy - 0.3);
-                return { log: { key: 'log_action_confront_success', params: { agentName: agent.name, partnerName: partner.name }}, status: 'success', reward: -5 };
+                return { log: { key: 'log_action_confront_success' as any, params: { agentName: agent.name, partnerName: partner.name }}, status: 'success', reward: -5 };
              }
-              return { log: { key: 'log_action_confront_no_partner', params: { agentName: agent.name }}, status: 'failure', reward: -1 };
+              return { log: { key: 'log_action_confront_no_partner' as any, params: { agentName: agent.name }}, status: 'failure', reward: -1 };
         }
     },
+    {
+        name: 'Consume Media',
+        description: 'Read, watch, or listen to a media broadcast available in the world.',
+        execute: async (agent, allAgents, allEntities, worldState, context) => {
+            if (!worldState.mediaBroadcasts || worldState.mediaBroadcasts.length === 0) {
+                return { log: { key: 'log_action_consume_media_none_available', params: { agentName: agent.name } }, status: 'failure', reward: -1 };
+            }
+    
+        // Agent picks a broadcast to consume, for now, just the latest one.
+        const broadcast = worldState.mediaBroadcasts[worldState.mediaBroadcasts.length - 1];
 
+        // --- Credibility Check ---
+        let credibilityScore = 1.0;
+
+        // 1. Base Skepticism (Personality)
+        // High Conscientiousness -> more critical. Low Openness -> more skeptical.
+        const skepticism = (agent.personality.conscientiousness * 0.5) + ((1 - agent.personality.openness) * 0.5); // Max skepticism: 1.0
+        credibilityScore *= 1 - (skepticism * (1 - broadcast.truthfulness));
+
+        // 2. Confirmation Bias (Beliefs)
+        const currentBeliefValue = agent.beliefNetwork[broadcast.targetBelief] || 0.5;
+        const isAligning = (broadcast.influenceDelta > 0 && currentBeliefValue > 0.5) || (broadcast.influenceDelta < 0 && currentBeliefValue < 0.5);
+        if (isAligning) {
+            credibilityScore *= 1.2; // 20% boost if it confirms existing bias
+        } else {
+            credibilityScore *= 0.7; // 30% reduction if it challenges beliefs
+        }
+
+        // 3. Social Proof (Friends' Beliefs)
+        const friends = Object.entries(agent.relationships)
+            .filter(([, rel]) => rel.type === 'friend' && rel.score > 70)
+            .map(([id]) => allAgents.get(id))
+            .filter((a): a is Agent => !!a && a.isAlive);
+        
+        if (friends.length > 0) {
+            const avgFriendBelief = friends.reduce((sum, friend) => sum + (friend.beliefNetwork[broadcast.targetBelief] || 0.5), 0) / friends.length;
+            const friendBeliefAligns = (broadcast.influenceDelta > 0 && avgFriendBelief > 0.6) || (broadcast.influenceDelta < 0 && avgFriendBelief < 0.4);
+            if (friendBeliefAligns) {
+                credibilityScore *= 1.3; // 30% boost for social proof
+            }
+        }
+
+        credibilityScore = Math.max(0, Math.min(1.5, credibilityScore));
+        
+        const finalInfluence = broadcast.influenceDelta * credibilityScore;
+        const oldBeliefValue = agent.beliefNetwork[broadcast.targetBelief] || 0.5;
+        agent.beliefNetwork[broadcast.targetBelief] = Math.max(0, Math.min(1, oldBeliefValue + finalInfluence));
+        
+        agent.psyche.boredom = Math.max(0, agent.psyche.boredom - 0.5);
+
+        return {
+            log: { key: 'log_action_consume_media_success', params: { 
+                agentName: agent.name, 
+                broadcastTitle: broadcast.title,
+                belief: broadcast.targetBelief,
+                change: finalInfluence.toFixed(2),
+                new_value: agent.beliefNetwork[broadcast.targetBelief].toFixed(2)
+            }},
+            status: 'success',
+            reward: 2
+        };
+        }
+    },
     // --- Movement Actions ---
     moveAction('North'),
     moveAction('South'),

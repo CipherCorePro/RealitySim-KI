@@ -1,13 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RealityEngine } from '../services/simulation';
-import type { WorldState, Agent, Entity, EnvironmentState, LogEntry, Culture, Law, Personality, PsychoReport, Election, ActionEffect, LongTermMemory, Relationship, TimedLogEntry, FullHistoricalReport, AnalysisData } from '../types';
-import { initialWorldState, GENOME_OPTIONS, INITIAL_CURRENCY, SKILL_TYPES, defaultPsyche, defaultQTable, RANDOM_FIRST_NAMES, RANDOM_LAST_NAMES } from '../constants';
+import type { WorldState, Agent, Entity, EnvironmentState, LogEntry, Culture, Law, Personality, PsychoReport, Election, ActionEffect, LongTermMemory, Relationship, TimedLogEntry, FullHistoricalReport, AnalysisData, MediaBroadcast, Action } from '../types';
+import { initialWorldState, GENOME_OPTIONS, INITIAL_CURRENCY, SKILL_TYPES, defaultPsyche, defaultQTable, RANDOM_FIRST_NAMES, RANDOM_LAST_NAMES, CHILDHOOD_MAX_AGE, ADOLESCENCE_MAX_AGE, ADULTHOOD_MAX_AGE, defaultConsciousness } from '../constants';
 import { generateActionFromPrompt, generateWorld, generateAgents, generateEntities, LmStudioError, generatePsychoanalysis, generateEmbedding, generateWorldAnalysisReport } from '../services/geminiService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from './useTranslations';
 import { useSettings } from '../contexts/SettingsContext';
 import { TranslationKey } from '../translations';
 
+// New interface for the save file structure
+interface FullSimulationSaveState {
+    version: number;
+    worldState: WorldState;
+    uiLogs: TimedLogEntry[];
+    historicalAnalyses: FullHistoricalReport[];
+}
 
 const generateUniqueFullName = (existingNames: Set<string>): string => {
     let fullName: string;
@@ -126,6 +133,7 @@ const sanitizeAndCreateAgents = (generatedAgents: any[], worldState: WorldState)
             skills,
             trauma: [],
             psyche: defaultPsyche(),
+            consciousness: defaultConsciousness(),
             currency,
             qTable: defaultQTable(),
             lastStressLevel: stress,
@@ -288,6 +296,7 @@ export const useSimulation = () => {
       setWorldState(newEngine.getState());
       setSelectedAgent(newEngine.getState().agents[0] || null);
       setLogs([{ key: 'log_simulationReset', timestamp: Date.now() }]);
+      setHistoricalAnalyses([]);
     }, [setSelectedAgent, settings]);
   
     const isAiConfigured = useCallback(() => {
@@ -496,26 +505,33 @@ export const useSimulation = () => {
     }, [engine, addLog, t, language, worldState, isAiConfigured, addRawLog, settings]);
   
     const handleExport = (type: 'environment' | 'agents' | 'entities' | 'all') => {
-      const state = engine.getState();
-      let data;
-      let filename = `reality_sim_export_${type}.json`;
-      if (type === 'all') {
-        data = state;
-        filename = `reality_sim_save_${new Date().toISOString()}.json`;
-      } else {
-        data = state[type];
-      }
-  
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      addLog({ key: type === 'all' ? 'log_stateSaved' : 'log_exported', params: { type } });
+        let data;
+        let filename = `reality_sim_export_${type}.json`;
+    
+        if (type === 'all') {
+            const stateToSave: FullSimulationSaveState = {
+                version: 1,
+                worldState: engine.getState(),
+                uiLogs: logs,
+                historicalAnalyses: historicalAnalyses,
+            };
+            data = stateToSave;
+            filename = `reality_sim_save_${new Date().toISOString().replace(/:/g, '-')}.json`;
+        } else {
+            const state = engine.getState();
+            data = state[type];
+        }
+    
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        addLog({ key: type === 'all' ? 'log_stateSaved' : 'log_exported', params: { type } });
     };
 
     const handleExportConversations = useCallback(() => {
@@ -543,46 +559,156 @@ export const useSimulation = () => {
         URL.revokeObjectURL(url);
         addLog({ key: 'export_conversations' as any });
     }, [engine, addLog]);
+
+    const handleExportAgentCards = useCallback(() => {
+        const state = engine.getState();
+        let markdownString = `# Agent Card Analysis Export\n\nGenerated at Step: ${state.environment.time}\n\n---\n\n`;
+    
+        const getLifeStage = (age: number) => {
+            if (age <= CHILDHOOD_MAX_AGE) return t('lifeStage_child');
+            if (age <= ADOLESCENCE_MAX_AGE) return t('lifeStage_adolescent');
+            if (age <= ADULTHOOD_MAX_AGE) return t('lifeStage_adult');
+            return t('lifeStage_elder');
+        };
+    
+        state.agents.forEach(agent => {
+            const isImprisoned = agent.imprisonment && agent.imprisonment.endsAt > state.environment.time;
+            const status = !agent.isAlive ? t('agentCard_deceased') : isImprisoned ? t('agentCard_imprisoned') : t('agentCard_healthy');
+            const cultureName = state.cultures.find(c => c.id === agent.cultureId)?.name || t('culture_none');
+            const religionName = state.religions.find(r => r.id === agent.religionId)?.name || t('religion_none');
+    
+            markdownString += `## Agent: ${agent.name}\n\n`;
+            markdownString += `> ${agent.description}\n\n`;
+    
+            markdownString += `### Core Stats\n\n`;
+            markdownString += `| Attribute       | Value |\n`;
+            markdownString += `| --------------- | ----- |\n`;
+            markdownString += `| **Status**      | ${status} ${isImprisoned ? `(til ${agent.imprisonment?.endsAt})` : ''} |\n`;
+            markdownString += `| **Age**         | ${agent.age.toFixed(1)} (${getLifeStage(agent.age)}) |\n`;
+            markdownString += `| **Role**        | ${t(`role_${(agent.role || 'none').toLowerCase()}` as any)} |\n`;
+            markdownString += `| **Culture**     | ${cultureName} |\n`;
+            markdownString += `| **Religion**    | ${religionName} |\n`;
+            markdownString += `| **Health**      | ${agent.health.toFixed(0)}/100 |\n`;
+            markdownString += `| **Hunger**      | ${agent.hunger.toFixed(0)}/100 |\n`;
+            markdownString += `| **Thirst**      | ${agent.thirst.toFixed(0)}/100 |\n`;
+            markdownString += `| **Fatigue**     | ${agent.fatigue.toFixed(0)}/100 |\n`;
+            markdownString += `| **Stress**      | ${agent.stress.toFixed(0)}/100 |\n`;
+            markdownString += `| **Social Status**| ${agent.socialStatus.toFixed(0)}/100 |\n`;
+            markdownString += `| **Currency**    | ${agent.currency}$ |\n\n`;
+    
+            const formatObjectList = (title: string, obj: { [key: string]: number }, keyPrefix: string) => {
+                if (!obj || Object.keys(obj).length === 0) return '';
+                let str = `### ${title}\n\n`;
+                Object.entries(obj).forEach(([key, value]) => {
+                    const translatedKey = t(`${keyPrefix}${key}` as any) || key;
+                    str += `- **${translatedKey}**: ${typeof value === 'number' ? value.toFixed(2) : value}\n`;
+                });
+                return str + '\n';
+            };
+    
+            markdownString += formatObjectList(t('personality_title'), agent.personality, 'personality_');
+            markdownString += formatObjectList(t('psyche_title'), agent.psyche, 'psyche_');
+            markdownString += formatObjectList(t('agentCard_beliefs'), agent.beliefNetwork, 'belief_');
+            markdownString += formatObjectList(t('agentCard_skills'), agent.skills, 'skill_');
+            
+            if (agent.inventory && Object.keys(agent.inventory).length > 0) {
+                markdownString += `### ${t('agentCard_inventory')}\n\n`;
+                Object.entries(agent.inventory).forEach(([item, quantity]) => {
+                    if (quantity > 0) {
+                        markdownString += `- **${t(`item_${item}` as any) || item}**: ${quantity}\n`;
+                    }
+                });
+                markdownString += '\n';
+            }
+    
+            if (agent.relationships && Object.keys(agent.relationships).length > 0) {
+                markdownString += `### ${t('agentCard_relationships')}\n\n`;
+                Object.entries(agent.relationships).forEach(([id, rel]) => {
+                    const otherAgent = state.agents.find(a => a.id === id);
+                    if (otherAgent) {
+                        markdownString += `- **${otherAgent.name} (${t(`relationship_${rel.type}` as any)}):** Score ${rel.score.toFixed(0)}\n`;
+                    }
+                });
+                markdownString += '\n';
+            }
+            
+            if (agent.goals && agent.goals.length > 0) {
+                markdownString += `### ${t('agentCard_goals')}\n\n`;
+                agent.goals.forEach(goal => {
+                    markdownString += `- **(${goal.status}) ${t(`goal_${goal.type}` as any)}:** "${goal.description}"\n`;
+                });
+                markdownString += '\n';
+            }
+    
+            if (agent.genome && agent.genome.length > 0) {
+                markdownString += `### ${t('agentCard_genome')}\n\n`;
+                agent.genome.forEach(gene => {
+                    markdownString += `- ${t(`gene_${gene}` as any)}\n`;
+                });
+                markdownString += '\n';
+            }
+    
+            markdownString += `---\n\n`;
+        });
+    
+        const blob = new Blob([markdownString], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `reality_sim_agent_cards_${new Date().toISOString().split('T')[0]}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        addLog({ key: 'export_agent_cards' as any });
+    }, [engine, addLog, t]);
   
     const handleLoadState = () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.json';
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            try {
-              const loadedState = JSON.parse(event.target?.result as string);
-              // Merge with initial state to ensure all keys are present for robustness with older save files
-              const mergedState: WorldState = {
-                  ...initialWorldState,
-                  ...loadedState,
-                  environment: { ...initialWorldState.environment, ...(loadedState.environment || {}) },
-                  government: { ...initialWorldState.government, ...(loadedState.government || {}) },
-                  agents: loadedState.agents || initialWorldState.agents,
-                  entities: loadedState.entities || initialWorldState.entities,
-                  actions: loadedState.actions || initialWorldState.actions,
-                  cultures: loadedState.cultures || initialWorldState.cultures,
-                  religions: loadedState.religions || initialWorldState.religions,
-                  markets: loadedState.markets || initialWorldState.markets,
-                  techTree: loadedState.techTree || initialWorldState.techTree,
-                  transactions: loadedState.transactions || initialWorldState.transactions,
-              };
-              const newEngine = new RealityEngine(mergedState, settings);
-              setEngine(newEngine);
-              setWorldState(newEngine.getState());
-              setSelectedAgent(newEngine.getState().agents[0] || null);
-              addLog({ key: 'log_stateLoaded' });
-            } catch (error) {
-              addLog({ key: 'log_loadError', params: { error: (error as Error).message } });
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const loadedData = JSON.parse(event.target?.result as string);
+
+                        // Backwards compatibility check
+                        const isNewFormat = loadedData.version === 1 && loadedData.worldState;
+                        const stateToLoad = isNewFormat ? loadedData.worldState : loadedData;
+
+                        const mergedState: WorldState = {
+                            ...initialWorldState,
+                            ...stateToLoad,
+                            environment: { ...initialWorldState.environment, ...(stateToLoad.environment || {}) },
+                            government: { ...initialWorldState.government, ...(stateToLoad.government || {}) },
+                            statistics: stateToLoad.statistics || initialWorldState.statistics,
+                        };
+
+                        const newEngine = new RealityEngine(mergedState, settings);
+                        setEngine(newEngine);
+                        setWorldState(newEngine.getState());
+                        setSelectedAgent(newEngine.getState().agents.find(a => !a.adminAgent) || newEngine.getState().agents[0] || null);
+                        
+                        if (isNewFormat) {
+                            setLogs(loadedData.uiLogs || []);
+                            setHistoricalAnalyses(loadedData.historicalAnalyses || []);
+                        } else {
+                            setLogs([]);
+                            setHistoricalAnalyses([]);
+                        }
+
+                        addLog({ key: 'log_stateLoaded' });
+                    } catch (error) {
+                        addLog({ key: 'log_loadError', params: { error: (error as Error).message } });
+                    }
+                };
+                reader.readAsText(file);
             }
-          };
-          reader.readAsText(file);
-        }
-      };
-      input.click();
+        };
+        input.click();
     };
 
     const handleGeneratePsychoanalysis = useCallback(async (agent: Agent) => {
@@ -614,40 +740,11 @@ export const useSimulation = () => {
     }, [engine, worldState, language, addLog, addRawLog, t, isAiConfigured]);
 
     const handleExportStatistics = useCallback(() => {
-        const stats = {
-            marriages: {} as { [pair: string]: number },
-            births: [] as { parents: string, child: string }[],
-            imprisonments: {} as { [agent: string]: number },
-            fights: {} as { [pair:string]: number },
-        };
-
-        // Iterate chronologically
-        [...logs].reverse().forEach(log => {
-            const p = log.params || {};
-            switch (log.key) {
-                case 'log_action_accept_proposal_success': {
-                    const pair = [p.agentName, p.targetName].sort().join(' & ');
-                    stats.marriages[pair] = (stats.marriages[pair] || 0) + 1;
-                    break;
-                }
-                case 'log_new_child': {
-                    stats.births.push({
-                        parents: [p.parent1Name, p.parent2Name].sort().join(' & '),
-                        child: p.childName,
-                    });
-                    break;
-                }
-                case 'log_action_arrest_success': {
-                    stats.imprisonments[p.criminalName] = (stats.imprisonments[p.criminalName] || 0) + 1;
-                    break;
-                }
-                case 'log_action_fight': {
-                    const pair = [p.agentName1, p.agentName2].sort().join(' & ');
-                    stats.fights[pair] = (stats.fights[pair] || 0) + 1;
-                    break;
-                }
-            }
-        });
+        const stats = worldState.statistics;
+        if (!stats) {
+            addLog({ key: 'stats_no_data' as any });
+            return;
+        }
 
         let md = `# ${t('stats_report_title')}\n\n`;
 
@@ -705,7 +802,7 @@ export const useSimulation = () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         addLog({ key: 'export_statistics' as any });
-    }, [logs, t, addLog]);
+    }, [worldState.statistics, t, addLog]);
 
     const handleCreate = useCallback((type: 'agent' | 'entity' | 'action', data: any) => {
       if (type === 'agent') {
@@ -747,6 +844,24 @@ export const useSimulation = () => {
       addLog({ key: 'log_adminModifiedEnv' });
     }, [engine, addLog]);
 
+    const handleUpdateAction = useCallback((actionName: string, data: Partial<Action>) => {
+        engine.updateAction(actionName, data);
+        setWorldState({ ...engine.getState() });
+        addLog({ key: 'log_adminUpdatedAction' as any, params: { actionName } });
+    }, [engine, addLog]);
+
+    const handleCreateBroadcast = useCallback((broadcast: Omit<MediaBroadcast, 'id' | 'expires' | 'source'>) => {
+        const newBroadcast: MediaBroadcast = {
+            ...broadcast,
+            source: 'Admin Broadcast',
+            id: `broadcast-${Date.now()}`,
+            expires: worldState.environment.time + 100, // Lasts for 100 steps
+        };
+        engine.addBroadcast(newBroadcast);
+        setWorldState({ ...engine.getState() });
+        addLog({ key: 'log_broadcast_created' as any, params: { title: newBroadcast.title } });
+    }, [engine, worldState.environment.time, addLog]);
+
     const handleSetAgentHealth = useCallback((agentId: string, health: number) => {
       engine.setAgentHealth(agentId, health);
       const agent = engine.getAgentById(agentId);
@@ -784,11 +899,15 @@ export const useSimulation = () => {
     }, [engine, addLog]);
 
     const handleImprisonAgent = useCallback((agentId: string, duration: number) => {
+        const agent = engine.getAgentById(agentId);
         const success = engine.imprisonAgent(agentId, duration);
         if (success) {
-            const agent = engine.getAgentById(agentId);
             setWorldState({ ...engine.getState() });
             addLog({ key: 'log_adminImprisoned', params: { name: agent?.name, duration } });
+        } else {
+            if (agent && agent.age < 14) {
+                addLog({ key: 'log_adminImprisoned_fail_age' as any, params: { name: agent?.name } });
+            }
         }
     }, [engine, addLog]);
     
@@ -919,7 +1038,8 @@ export const useSimulation = () => {
         handleGenerateWorld, handleGenerateAgents, handleGenerateEntities,
         handleGeneratePsychoanalysis, handleSetAgentHealth, handleInflictSickness, handleResurrectAgent, handleSetAgentPosition,
         handleSetAgentCurrency, handleEnactLaw, handleRepealLaw, handleStartElection, handleSetLeader, handleUnlockTech,
-        handleImprisonAgent, handleExportStatistics, handleAnalyzeWorld, handleViewHistoricalReport, handleDownloadHistoricalReport
+        handleImprisonAgent, handleExportStatistics, handleAnalyzeWorld, handleViewHistoricalReport, handleDownloadHistoricalReport,
+        handleCreateBroadcast, handleUpdateAction, handleExportAgentCards,
     };
     
     return {

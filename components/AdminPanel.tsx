@@ -1,9 +1,160 @@
-
-
 import React, { useState, useEffect } from 'react';
-import type { Action, EnvironmentState, Agent, Law, Culture, Technology } from '../types';
-import { Shield, Settings, Zap, Trash2, PlusCircle, Users, MapPin, Gavel, Vote, BookOpenCheck, CircleDollarSign, HeartPulse } from './IconComponents';
+import type { Action, EnvironmentState, Agent, Law, Culture, Technology, ActionEffect, Skills } from '../types';
+import { Shield, Settings, Zap, Trash2, Users, MapPin, Gavel, Vote, BookOpenCheck, CircleDollarSign, HeartPulse, Megaphone } from './IconComponents';
 import { useTranslations } from '../hooks/useTranslations';
+import { SKILL_TYPES } from '../constants';
+
+// --- Environment Editor ---
+const EnvironmentEditor: React.FC<{ environment: EnvironmentState; onSave: (env: EnvironmentState) => void }> = ({ environment, onSave }) => {
+    const t = useTranslations();
+    const [envState, setEnvState] = useState(environment);
+
+    useEffect(() => {
+        setEnvState(environment);
+    }, [environment]);
+
+    const handleChange = (key: string, value: string) => {
+        const isNumeric = !isNaN(parseFloat(environment[key])) && isFinite(environment[key]);
+        setEnvState(prev => ({
+            ...prev,
+            [key]: isNumeric ? (value === '' ? 0 : parseFloat(value)) : value
+        }));
+    };
+
+    return (
+        <div className="space-y-2">
+            <h4 className="text-md font-semibold text-slate-100">{t('admin_environmentEditor')}</h4>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+                {Object.entries(envState).map(([key, value]) => {
+                    if (typeof value === 'object' && value !== null) return null; // Don't show complex objects like election
+                    return (
+                        <div key={key} className="flex flex-col gap-1">
+                            <label className="capitalize text-slate-400">{key}</label>
+                            <input
+                                type={typeof value === 'number' ? 'number' : 'text'}
+                                value={String(value)}
+                                onChange={e => handleChange(key, e.target.value)}
+                                className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1"
+                            />
+                        </div>
+                    )
+                })}
+            </div>
+            <button onClick={() => onSave(envState)} className="w-full text-xs py-1.5 mt-2 bg-emerald-600 hover:bg-emerald-500 rounded">{t('admin_saveEnvironment')}</button>
+        </div>
+    )
+};
+
+// --- Action Editor ---
+const ActionEditor: React.FC<{ actions: Action[]; onUpdate: (name: string, data: Partial<Action>) => void }> = ({ actions, onUpdate }) => {
+    const t = useTranslations();
+    const [selectedActionName, setSelectedActionName] = useState('');
+    const [description, setDescription] = useState('');
+    const [costs, setCosts] = useState('{}');
+    const [statChanges, setStatChanges] = useState({ health: '', hunger: '', thirst: '', fatigue: '', stress: '', currency: '' });
+    const [skillGain, setSkillGain] = useState({ skill: SKILL_TYPES[0], amount: '' });
+
+    useEffect(() => {
+        const action = actions.find(a => a.name === selectedActionName);
+        if (action) {
+            setDescription(action.description);
+            setCosts(JSON.stringify(action.effects?.costs || {}, null, 2));
+            setStatChanges({
+                health: String(action.effects?.statChanges?.health || ''),
+                hunger: String(action.effects?.statChanges?.hunger || ''),
+                thirst: String(action.effects?.statChanges?.thirst || ''),
+                fatigue: String(action.effects?.statChanges?.fatigue || ''),
+                stress: String(action.effects?.statChanges?.stress || ''),
+                currency: String(action.effects?.statChanges?.currency || ''),
+            });
+            setSkillGain({
+                skill: String(action.effects?.skillGain?.skill || SKILL_TYPES[0]),
+                amount: String(action.effects?.skillGain?.amount || '')
+            });
+        } else {
+            setDescription('');
+            setCosts('{}');
+            setStatChanges({ health: '', hunger: '', thirst: '', fatigue: '', stress: '', currency: '' });
+            setSkillGain({ skill: SKILL_TYPES[0], amount: '' });
+        }
+    }, [selectedActionName, actions]);
+
+    const handleUpdate = () => {
+        if (!selectedActionName) return;
+
+        let parsedCosts;
+        try {
+            parsedCosts = JSON.parse(costs);
+        } catch (e) {
+            alert('Invalid JSON in costs field.');
+            return;
+        }
+
+        const updatedEffects: ActionEffect = {};
+
+        if (Object.keys(parsedCosts).length > 0) updatedEffects.costs = parsedCosts;
+
+        const parsedStatChanges = Object.entries(statChanges).reduce((acc, [key, value]) => {
+            if (value.trim() !== '') {
+                const numVal = parseFloat(value);
+                if (!isNaN(numVal)) {
+                    acc[key as keyof typeof statChanges] = numVal;
+                }
+            }
+            return acc;
+        }, {} as { [key: string]: number });
+        if (Object.keys(parsedStatChanges).length > 0) updatedEffects.statChanges = parsedStatChanges;
+        
+        const skillAmount = parseFloat(skillGain.amount);
+        if (skillGain.skill && !isNaN(skillAmount) && skillAmount > 0) {
+            updatedEffects.skillGain = { skill: skillGain.skill as keyof Skills, amount: skillAmount };
+        }
+
+        onUpdate(selectedActionName, { description, effects: updatedEffects });
+    };
+
+    return (
+        <div className="space-y-2 pt-4 border-t border-slate-700">
+            <h4 className="text-md font-semibold text-slate-100">{t('admin_actionEditor')}</h4>
+            <select
+                value={selectedActionName}
+                onChange={e => setSelectedActionName(e.target.value)}
+                className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-xs"
+            >
+                <option value="">{t('admin_selectActionToEdit')}</option>
+                {actions.map(action => <option key={action.name} value={action.name}>{action.name}</option>)}
+            </select>
+
+            {selectedActionName && (
+                <div className="space-y-3">
+                    <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={t('create_description')} className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-xs" rows={2}/>
+                    <textarea value={costs} onChange={e => setCosts(e.target.value)} placeholder={t('create_costs_placeholder')} className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-xs font-mono" rows={3}/>
+                     <div>
+                        <h5 className="text-xs font-semibold mb-1">{t('create_stat_changes_label')}</h5>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                            {Object.keys(statChanges).map(key => (
+                                <div key={key} className="flex items-center gap-2">
+                                    <label className="text-xs text-slate-400 capitalize w-16">{t(`stat_${key}` as any)}</label>
+                                    <input type="number" value={statChanges[key as keyof typeof statChanges]} onChange={e => setStatChanges(p => ({...p, [key]: e.target.value}))} className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-xs"/>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                     <div>
+                        <h5 className="text-xs font-semibold mb-1">{t('create_skill_gain_label')}</h5>
+                        <div className="flex items-center gap-2">
+                            <select value={skillGain.skill} onChange={e => setSkillGain(p => ({...p, skill: e.target.value}))} className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-xs">
+                                {SKILL_TYPES.map(s => <option key={s} value={s}>{t(`skill_${s}` as any)}</option>)}
+                            </select>
+                            <input type="number" step="0.1" value={skillGain.amount} onChange={e => setSkillGain(p => ({...p, amount: e.target.value}))} placeholder={t('create_amount')} className="w-32 bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-xs"/>
+                        </div>
+                    </div>
+                    <button onClick={handleUpdate} className="w-full text-xs py-1.5 mt-2 bg-emerald-600 hover:bg-emerald-500 rounded">{t('admin_updateAction')}</button>
+                </div>
+            )}
+        </div>
+    );
+};
 
 interface AdminPanelProps {
     environment: EnvironmentState;
@@ -14,6 +165,7 @@ interface AdminPanelProps {
     techTree: Technology[];
     onUpdateEnvironment: (newEnvironment: EnvironmentState) => void;
     onCreateAction: (data: { name: string; description: string; beliefKey?: string }) => void;
+    onUpdateAction: (actionName: string, data: Partial<Action>) => void;
     onDeleteAction: (name: string) => void;
     onSetAgentHealth: (agentId: string, health: number) => void;
     onSetAgentCurrency: (agentId: string, currency: number) => void;
@@ -21,6 +173,7 @@ interface AdminPanelProps {
     onResurrectAgent: (agentId: string) => void;
     onSetAgentPosition: (agentId: string, x: number, y: number) => void;
     onImprisonAgent: (agentId: string, duration: number) => void;
+    onCreateBroadcast: (data: { title: string; content: string; targetBelief: string; influenceDelta: number; truthfulness: number; }) => void;
     // New admin actions
     onEnactLaw: (law: Law) => void;
     onRepealLaw: (lawId: string) => void;
@@ -32,13 +185,12 @@ interface AdminPanelProps {
 export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     const { 
         environment, actions, agents, government, cultures, techTree,
-        onUpdateEnvironment, onCreateAction, onDeleteAction, onSetAgentHealth, onSetAgentCurrency,
-        onInflictSickness, onResurrectAgent, onSetAgentPosition, onImprisonAgent,
+        onUpdateEnvironment, onCreateAction, onUpdateAction, onDeleteAction, onSetAgentHealth, onSetAgentCurrency,
+        onInflictSickness, onResurrectAgent, onSetAgentPosition, onImprisonAgent, onCreateBroadcast,
         onEnactLaw, onRepealLaw, onStartElection, onSetLeader, onUnlockTech
     } = props;
 
     const t = useTranslations();
-    const [envState, setEnvState] = useState(environment);
     const [agentHealthInputs, setAgentHealthInputs] = useState<{ [key: string]: string }>({});
     const [agentCurrencyInputs, setAgentCurrencyInputs] = useState<{ [key: string]: string }>({});
     const [agentSicknessInputs, setAgentSicknessInputs] = useState<{ [key: string]: string }>({});
@@ -46,8 +198,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     const [agentImprisonInputs, setAgentImprisonInputs] = useState<{ [key: string]: string }>({});
     const [selectedLeaderId, setSelectedLeaderId] = useState('');
     
+    // Media Broadcast State
+    const [broadcastTitle, setBroadcastTitle] = useState('');
+    const [broadcastContent, setBroadcastContent] = useState('');
+    const [broadcastTarget, setBroadcastTarget] = useState('progress_good');
+    const [broadcastInfluence, setBroadcastInfluence] = useState(0.1);
+    const [broadcastTruth, setBroadcastTruth] = useState(1.0);
+
     useEffect(() => {
-        setEnvState(environment);
         const initialHealths: { [key: string]: string } = {};
         const initialSicknesses: { [key: string]: string } = {};
         const initialPositions: { [key: string]: { x: string, y: string } } = {};
@@ -66,7 +224,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         setAgentCurrencyInputs(initialCurrencies);
         setAgentImprisonInputs(initialImprison);
         setSelectedLeaderId(government.leaderId || '');
-    }, [environment, agents, government]);
+    }, [agents, government]);
 
     const handleHealthInputChange = (agentId: string, value: string) => setAgentHealthInputs(p => ({ ...p, [agentId]: value }));
     const handleSicknessInputChange = (agentId: string, value: string) => setAgentSicknessInputs(p => ({ ...p, [agentId]: value }));
@@ -79,7 +237,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     const handleSetCurrency = (agentId: string) => onSetAgentCurrency(agentId, parseInt(agentCurrencyInputs[agentId], 10));
     const handleSetPosition = (agentId: string) => onSetAgentPosition(agentId, parseInt(agentPositionInputs[agentId].x, 10), parseInt(agentPositionInputs[agentId].y, 10));
     const handleImprison = (agentId: string) => onImprisonAgent(agentId, parseInt(agentImprisonInputs[agentId], 10));
-
 
     const [newLawName, setNewLawName] = useState('');
     const [newLawAction, setNewLawAction] = useState('');
@@ -98,12 +255,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         setNewLawAction('');
     };
 
+    const handleSendBroadcast = () => {
+        if (broadcastTitle.trim() && broadcastContent.trim()) {
+            onCreateBroadcast({
+                title: broadcastTitle,
+                content: broadcastContent,
+                targetBelief: broadcastTarget,
+                influenceDelta: broadcastInfluence,
+                truthfulness: broadcastTruth,
+            });
+            setBroadcastTitle('');
+            setBroadcastContent('');
+        }
+    };
+
+    const beliefKeys = ['progress_good', 'nature_good', 'wealth_is_power', 'community_first', 'tradition_important', 'knowledge_is_sacred', 'law_is_absolute', 'aggression', 'immorality_ok'];
+
     return (
         <div className="bg-slate-850 p-4 rounded-lg border border-red-500/30 space-y-6 max-h-[85vh] overflow-y-auto">
             <h2 className="text-lg font-semibold text-red-300 mb-3 flex items-center gap-2">
                 <Shield className="w-5 h-5"/>
                 {t('admin_title')}
             </h2>
+
+             {/* Media Management */}
+            <div className="space-y-3">
+                <h3 className="text-md font-semibold text-slate-100 mb-2 flex items-center gap-2"><Megaphone className="w-5 h-5 text-emerald-400"/>{t('admin_mediaManagement')}</h3>
+                <div className="text-sm space-y-3 bg-slate-900/50 p-3 rounded-lg">
+                    <input type="text" value={broadcastTitle} onChange={e => setBroadcastTitle(e.target.value)} placeholder={t('admin_broadcast_title_label')} className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-xs" />
+                    <textarea value={broadcastContent} onChange={e => setBroadcastContent(e.target.value)} placeholder={t('admin_broadcast_content_label')} className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-xs" rows={3}/>
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">{t('admin_broadcast_target_belief_label')}</label>
+                        <select value={broadcastTarget} onChange={e => setBroadcastTarget(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-xs">
+                            {beliefKeys.map(key => <option key={key} value={key}>{key}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">{t('admin_broadcast_influence_label')}: {broadcastInfluence.toFixed(2)}</label>
+                        <input type="range" min="-1" max="1" step="0.05" value={broadcastInfluence} onChange={e => setBroadcastInfluence(parseFloat(e.target.value))} className="w-full" />
+                    </div>
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">{t('admin_broadcast_truthfulness_label')}: {broadcastTruth.toFixed(2)}</label>
+                        <input type="range" min="0" max="1" step="0.05" value={broadcastTruth} onChange={e => setBroadcastTruth(parseFloat(e.target.value))} className="w-full" />
+                    </div>
+                    <button onClick={handleSendBroadcast} className="w-full text-xs py-1.5 bg-sky-600 hover:bg-sky-500 rounded">{t('admin_broadcast_send_btn')}</button>
+                </div>
+            </div>
 
             {/* Political Management */}
             <div className="space-y-3">
@@ -209,9 +406,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
             {/* World Rule Editor */}
             <div className="space-y-3">
                 <h3 className="text-md font-semibold text-slate-100 mb-2 flex items-center gap-2"><Settings className="w-5 h-5 text-emerald-400"/>{t('admin_ruleEditor')}</h3>
-                <div className="text-sm space-y-2 bg-slate-900/50 p-3 rounded-lg">
-                    <p className="text-xs text-slate-400">Environment override, action editor, etc. would go here.</p>
-                    {/* Placeholder for future functionality */}
+                <div className="text-sm space-y-4 bg-slate-900/50 p-3 rounded-lg">
+                    <EnvironmentEditor environment={environment} onSave={onUpdateEnvironment} />
+                    <ActionEditor actions={actions} onUpdate={onUpdateAction} />
                 </div>
             </div>
         </div>

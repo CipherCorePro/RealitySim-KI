@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Agent, Entity, EnvironmentState, Culture } from '../types';
-import { Share2, Home, User, Skull, Award, HeartPulse, FlaskConical, Apple, Droplet, Log, PlusSquare, Hammer, Users, Gavel, Mountain, Waves, Palmtree, Factory } from './IconComponents';
+import { Share2, Home, User, Skull, Award, HeartPulse, FlaskConical, Apple, Droplet, Log, PlusSquare, Hammer, Users, Gavel, Mountain, Waves, Palmtree, Factory, Megaphone } from './IconComponents';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface WorldGraphProps {
@@ -51,6 +51,7 @@ const getRoleIcon = (role: string | null) => {
         case 'Leader': return Award;
         case 'Healer': return HeartPulse;
         case 'Scientist': return FlaskConical;
+        case 'Journalist': return Megaphone;
         default: return null;
     }
 }
@@ -159,6 +160,31 @@ const WorldGraphComponent: React.FC<WorldGraphProps> = ({ agents, entities, envi
             </div>
             <div className="bg-slate-900/50 rounded-md max-h-[70vh] overflow-auto">
                 <svg width={svgDisplaySize} height={svgDisplaySize} viewBox={viewBoxStr}>
+                    {/* Subquantum Field background */}
+                    <g id="subquantum-field">
+                        {environment.subquantumField?.map((row, y) =>
+                            row.map((value, x) => {
+                                // value is between -1 and 1
+                                const intensity = (value + 1) / 2; // scale to 0-1
+                                const hue = 240 + intensity * 120; // 240 (blue) -> 300 (purple) -> 360/0 (red)
+                                const opacity = intensity * 0.20 + 0.05; // from 5% to 25%
+                                const fill = `hsl(${hue}, 70%, 50%)`;
+
+                                return (
+                                    <rect
+                                        key={`field-${y}-${x}`}
+                                        x={x * cellWidth}
+                                        y={y * cellHeight}
+                                        width={cellWidth}
+                                        height={cellHeight}
+                                        fill={fill}
+                                        opacity={opacity}
+                                        style={{ transition: 'fill 0.5s ease, opacity 0.5s ease' }}
+                                    />
+                                );
+                            })
+                        )}
+                    </g>
                     {/* Grid Lines for the entire canvas */}
                     {Array.from({ length: width + 1 }).map((_, i) => (
                         <line key={`v-${i}`} x1={i * cellWidth} y1="0" x2={i * cellWidth} y2={height * cellHeight} stroke="#334155" strokeWidth="0.5" />
@@ -226,7 +252,7 @@ const WorldGraphComponent: React.FC<WorldGraphProps> = ({ agents, entities, envi
                         const roleIconSize = agentIconSize * 0.5;
 
                         return (
-                            <g key={agent.id} transform={`translate(${x}, ${y})`} opacity={agent.imprisonedUntil ? 0.5 : 1} onClick={() => onSelectAgent(agent)} className="cursor-pointer">
+                            <g key={agent.id} transform={`translate(${x}, ${y})`} opacity={agent.imprisonment && agent.imprisonment.endsAt > environment.time ? 0.5 : 1} onClick={() => onSelectAgent(agent)} className="cursor-pointer">
                                 <title>{agent.name} ({agent.health.toFixed(0)} HP, {agent.age.toFixed(1)} yrs)</title>
                                 {agent.isAlive && agent.cultureId && (
                                      <circle cx={agentIconSize/2} cy={agentIconSize/2} r={agentIconSize/2 + 3} fill={cultureColor} opacity="0.3" />

@@ -1,6 +1,7 @@
 import type { Language } from "./contexts/LanguageContext";
 
 export interface Psyche {
+    [key: string]: number;
     empathy: number; // 0-1
     vengefulness: number; // 0-1
     forgiveness: number; // 0-1
@@ -12,6 +13,8 @@ export interface Psyche {
     fanaticism: number; // 0-1
     spiritualNeed: number; // 0-1
     jealousy: number; // 0-1
+    serenity: number; // 0-1
+    agitation: number; // 0-1
 }
 
 
@@ -24,6 +27,7 @@ export interface Emotions {
 }
 
 export interface Personality {
+    [key: string]: number;
     openness: number; // 0-1
     conscientiousness: number; // 0-1
     extraversion: number; // 0-1
@@ -42,6 +46,7 @@ export interface Goal {
     progress: number; // 0-100
     description: string;
     targetId?: string;
+    awarenessBoostGiven?: boolean;
 }
 
 export interface Trauma {
@@ -150,11 +155,29 @@ export interface LongTermMemory {
     timestamp: number;
 }
 
+export type JailJournalEntryType = 'personal' | 'parole_hearing' | 'release_analysis';
+
 export interface JailJournalEntry {
   timestamp: number;
   entry: string;
+  type: JailJournalEntryType;
 }
 
+export interface MediaBroadcast {
+    id: string;
+    title: string;
+    content: string;
+    source: string;
+    truthfulness: number; // 0.0 (total lie) to 1.0 (objective truth)
+    targetBelief: keyof Beliefs;
+    influenceDelta: number; // e.g., -0.5 to reduce a belief, 0.5 to increase it
+    expires: number; // Simulation time step when this broadcast is removed
+}
+
+export interface QuantumConsciousnessModule {
+    self_awareness: number; // Agent's understanding of their own state and goals
+    agency: number; // Agent's belief in their ability to act and change the world
+}
 
 export interface Agent {
   id: string;
@@ -192,15 +215,17 @@ export interface Agent {
   skills: Skills;
   trauma: Trauma[];
   psyche: Psyche;
+  consciousness: QuantumConsciousnessModule;
   unconsciousState?: { [key: string]: number };
   // --- NEW ECONOMIC PROPERTIES ---
   currency: number;
-  imprisonedUntil?: number;
+  imprisonment?: { startsAt: number; endsAt: number; midSentenceAnalysisDone?: boolean; };
   jailJournal?: JailJournalEntry[];
   job?: { factoryId: string, role: 'worker' | 'owner' };
   // --- NEW LEARNING PROPERTIES ---
   qTable: { [stateAction: string]: number; };
   lastStressLevel?: number;
+  lastHealth?: number;
 }
 
 export interface Entity {
@@ -232,6 +257,7 @@ export interface EnvironmentState {
   time: number;
   // --- NEW POLITICAL PROPERTIES ---
   election: Election | null;
+  subquantumField: number[][] | null;
 }
 
 export interface Religion {
@@ -259,6 +285,15 @@ export interface Transaction {
     step: number;
 }
 
+export type StatisticType = 'marriage' | 'birth' | 'imprisonment' | 'fight';
+
+export interface Statistics {
+    marriages: { [pair: string]: number };
+    births: { parents: string, child: string }[];
+    imprisonments: { [agentName: string]: number };
+    fights: { [pair: string]: number };
+}
+
 export interface ActionContext {
     language: Language;
     marketPrices: { [item: string]: number };
@@ -270,6 +305,7 @@ export interface ActionContext {
     addResearchPoints: (cultureId: string, points: number) => void;
     addSocialMemory: (agentId: string, memory: SocialMemoryEntry) => void;
     logTransaction: (transaction: Omit<Transaction, 'step'>) => void;
+    logStatistic: (type: StatisticType, data: any) => void;
 }
 
 export interface ActionEffect {
@@ -311,8 +347,10 @@ export interface WorldState {
   markets: Market[];
   techTree: Technology[];
   recipes: Recipe[];
+  mediaBroadcasts: MediaBroadcast[];
   marketPrices?: { [item: string]: number };
   transactions?: Transaction[];
+  statistics?: Statistics;
 }
 
 

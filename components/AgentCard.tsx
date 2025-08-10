@@ -79,8 +79,10 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, allAgents, entities
 
         let markdownContent = `# ${t('agentCard_jailJournal')} - ${agent.name}\n\n`;
         [...agent.jailJournal].sort((a,b) => a.timestamp - b.timestamp).forEach(entry => {
-            markdownContent += `## ${t('agentCard_release_at')} ${entry.timestamp}\n\n`;
-            markdownContent += `${entry.entry}\n\n---\n\n`;
+            const entryTypeKey = `agentCard_journalEntryType_${entry.type}` as TranslationKey;
+            const entryTitle = t(entryTypeKey) || entry.type;
+            markdownContent += `## ${entryTitle} - ${t('agentCard_release_at')} ${entry.timestamp}\n\n`;
+            markdownContent += `${entry.entry.replace(/\*\*/g, '')}\n\n---\n\n`; // Remove bold markdown for cleaner text
         });
         
         const blob = new Blob([markdownContent], { type: 'text/markdown' });
@@ -94,7 +96,16 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, allAgents, entities
         URL.revokeObjectURL(url);
     };
 
-    const isImprisoned = agent.imprisonedUntil && agent.imprisonedUntil > environment.time;
+    const isImprisoned = agent.imprisonment && agent.imprisonment.endsAt > environment.time;
+    
+    const parents = allAgents.filter(p => p.childrenIds?.includes(agent.id));
+    const children = agent.childrenIds?.map(id => allAgents.find(a => a.id === id)).filter((a): a is Agent => !!a);
+    const hasFamily = parents.length > 0 || (children && children.length > 0);
+    
+    const consciousnessData = agent.consciousness ? [
+        { name: t('consciousness_self_awareness'), value: agent.consciousness.self_awareness },
+        { name: t('consciousness_agency'), value: agent.consciousness.agency }
+    ] : [];
 
     return (
         <div className="space-y-4 max-h-[85vh] overflow-y-auto pr-2 pb-4">
@@ -112,13 +123,13 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, allAgents, entities
                                 {!agent.isAlive ? <span className="text-red-500">{t('agentCard_deceased')}</span> :
                                 isImprisoned ? <span className="text-yellow-400">{t('agentCard_imprisoned')}</span> :
                                 <span className="text-green-400">{t('agentCard_healthy')}</span>}
-                                {isImprisoned && <p className="text-xs font-normal text-slate-400">{t('agentCard_release_at')} {agent.imprisonedUntil}</p>}
+                                {isImprisoned && <p className="text-xs font-normal text-slate-400">{t('agentCard_release_at')} {agent.imprisonment?.endsAt}</p>}
                             </div>
                             <DetailItem label={t('agentCard_age')} value={`${agent.age.toFixed(1)} (${getLifeStage(agent.age)})`} icon={<PersonStanding className="w-4 h-4"/>} />
                             <DetailItem label={t('agentCard_culture')} value={cultureName} icon={<Users className="w-4 h-4"/>} />
                             <DetailItem label={t('agentCard_religion')} value={religionName} icon={<Church className="w-4 h-4"/>} />
                             <DetailItem label={t('agentCard_role')} value={t(`role_${(agent.role || 'none').toLowerCase()}` as any)} icon={<Award className="w-4 h-4"/>} />
-                            <DetailItem label={t('world_leader')} value={leaderName} icon={<Gavel className="w-4 h-4"/>} />
+                            <DetailItem label={t('agentCard_leader')} value={leaderName} icon={<Gavel className="w-4 h-4"/>} />
                             <ProgressBar value={agent.health} max={100} color="bg-red-500" label={t('agentCard_health')} />
                             <ProgressBar value={agent.hunger} max={100} color="bg-orange-500" label={t('agentCard_hunger')} />
                             <ProgressBar value={agent.thirst} max={100} color="bg-blue-500" label={t('agentCard_thirst')} />
@@ -138,31 +149,13 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, allAgents, entities
                             <BrainCircuit className="w-4 h-4" /> {t('psychoanalysis_generate_button')}
                          </button>
                     </Card>
-                    <Card title={t('agentCard_interact')} icon={<MessageSquare className="w-5 h-5 text-sky-400"/>}>
-                        <form onSubmit={handlePromptSubmit} className="space-y-2">
-                             <textarea
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                placeholder={!agent.isAlive ? t('agentCard_promptPlaceholderDeceased') : useAi ? t('agentCard_promptPlaceholder', { name: agent.name }) : t('agentCard_promptPlaceholderRaw')}
-                                disabled={!agent.isAlive}
-                                className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none transition"
-                                rows={3}
-                            />
-                            <div className="flex justify-between items-center">
-                                <label className="flex items-center text-xs gap-2 cursor-pointer">
-                                    <input type="checkbox" checked={useAi} onChange={() => setUseAi(!useAi)} className="form-checkbox h-4 w-4 rounded bg-slate-700 text-sky-500 border-slate-600 focus:ring-sky-500" />
-                                    {t('agentCard_useAi')}
-                                </label>
-                                <button type="submit" disabled={!agent.isAlive || !prompt} className="bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 px-3 rounded-md transition-colors flex items-center gap-2 disabled:bg-slate-600 disabled:cursor-not-allowed">
-                                    {useAi ? <Sparkles className="w-4 h-4"/> : <Send className="w-4 h-4"/>} Send
-                                </button>
-                            </div>
-                        </form>
-                    </Card>
                 </div>
 
                 {/* --- Column 2: Mental & Skill States --- */}
                 <div className="space-y-4">
+                     <Card title={t('consciousness_module_title')} icon={<BrainCircuit className="w-5 h-5 text-sky-400"/>}>
+                        <div className="h-24"><BeliefsChart data={consciousnessData} barColor="#22d3ee" /></div>
+                    </Card>
                     <Card title={t('agentCard_beliefs')} icon={<BookOpenCheck className="w-5 h-5 text-sky-400"/>}>
                         {Object.keys(agent.beliefNetwork).length > 0 ? (
                            <div className="h-40"><BeliefsChart data={Object.entries(agent.beliefNetwork).map(([name, value]) => ({name, value}))} barColor="#818cf8" keyPrefix="belief_" /></div>
@@ -188,17 +181,31 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, allAgents, entities
                             </ul>
                         ) : <p className="text-sm text-slate-400">{t('agentCard_noGoals')}</p>}
                     </Card>
-                     <Card title={t('agentCard_trauma')} icon={<ShieldAlert className="w-5 h-5 text-sky-400"/>}>
-                         {agent.trauma.length > 0 ? (
-                             <ul className="space-y-2 text-sm text-slate-300">
-                                {agent.trauma.map((t, i) => <li key={i} className="p-2 bg-slate-700/50 rounded-md">Trigger: "{t.event}" (Intensity: {t.intensity})</li>)}
-                            </ul>
-                         ) : <p className="text-sm text-slate-400">{t('agentCard_noTrauma')}</p>}
-                    </Card>
                 </div>
                 
                 {/* --- Column 3: Social & Material States --- */}
                 <div className="space-y-4">
+                    <Card title={t('agentCard_interact')} icon={<MessageSquare className="w-5 h-5 text-sky-400"/>}>
+                        <form onSubmit={handlePromptSubmit} className="space-y-2">
+                             <textarea
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder={!agent.isAlive ? t('agentCard_promptPlaceholderDeceased') : useAi ? t('agentCard_promptPlaceholder', { name: agent.name }) : t('agentCard_promptPlaceholderRaw')}
+                                disabled={!agent.isAlive}
+                                className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none transition"
+                                rows={3}
+                            />
+                            <div className="flex justify-between items-center">
+                                <label className="flex items-center text-xs gap-2 cursor-pointer">
+                                    <input type="checkbox" checked={useAi} onChange={() => setUseAi(!useAi)} className="form-checkbox h-4 w-4 rounded bg-slate-700 text-sky-500 border-slate-600 focus:ring-sky-500" />
+                                    {t('agentCard_useAi')}
+                                </label>
+                                <button type="submit" disabled={!agent.isAlive || !prompt} className="bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 px-3 rounded-md transition-colors flex items-center gap-2 disabled:bg-slate-600 disabled:cursor-not-allowed">
+                                    {useAi ? <Sparkles className="w-4 h-4"/> : <Send className="w-4 h-4"/>} Send
+                                </button>
+                            </div>
+                        </form>
+                    </Card>
                     <Card title={t('agentCard_relationships')} icon={<Users className="w-5 h-5 text-sky-400"/>}>
                          {Object.keys(agent.relationships).length > 0 ? (
                             <ul className="space-y-1 text-sm max-h-40 overflow-y-auto pr-1">
@@ -236,18 +243,23 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, allAgents, entities
                             </ul>
                          ) : <p className="text-sm text-slate-400">{t('agentCard_noInventory')}</p>}
                     </Card>
-                     <Card title={t('agentCard_family')} icon={<Baby className="w-5 h-5 text-sky-400"/>}>
-                        {(agent.childrenIds && agent.childrenIds.length > 0) ? (
-                             <ul className="space-y-1 text-sm">
-                                {agent.childrenIds.map(childId => {
-                                    const child = allAgents.find(a => a.id === childId);
-                                    return <li key={childId} className="flex justify-between p-1.5 bg-slate-700/50 rounded-md">
-                                        <span>{child?.name || 'Unknown Child'} {!child?.isAlive && `(${t('deceased')})`}</span>
+                    <Card title={t('agentCard_family')} icon={<Baby className="w-5 h-5 text-sky-400"/>}>
+                        {hasFamily ? (
+                            <ul className="space-y-1 text-sm">
+                                {parents.map(parent => (
+                                    <li key={parent.id} className="flex justify-between p-1.5 bg-slate-700/50 rounded-md">
+                                        <span>{parent.name} {!parent.isAlive && `(${t('deceased')})`}</span>
+                                        <span className="text-slate-400 text-xs">{t('agentCard_parent_relation')}</span>
+                                    </li>
+                                ))}
+                                {children.map(child => (
+                                    <li key={child.id} className="flex justify-between p-1.5 bg-slate-700/50 rounded-md">
+                                        <span>{child.name} {!child.isAlive && `(${t('deceased')})`}</span>
                                         <span className="text-slate-400 text-xs">{t('agentCard_child_relation')}</span>
-                                    </li>;
-                                })}
+                                    </li>
+                                ))}
                             </ul>
-                        ) : <p className="text-sm text-slate-400">{t('agentCard_no_children')}</p>}
+                        ) : <p className="text-sm text-slate-400">{t('agentCard_no_family')}</p>}
                     </Card>
                     <Card title={t('agentCard_property')} icon={<Home className="w-5 h-5 text-sky-400"/>}>
                         {entities.filter(e => e.ownerId === agent.id).length > 0 ? (
@@ -284,12 +296,31 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, allAgents, entities
                     }
                 >
                     <div className="space-y-3 max-h-64 overflow-y-auto bg-slate-900/50 p-2 rounded-md">
-                        {[...agent.jailJournal].reverse().map((entry, index) => (
-                            <div key={index} className="text-sm text-slate-300 border-b border-slate-700 pb-2 last:border-b-0">
-                                <p className="text-xs text-slate-500 font-mono mb-1">Step: {entry.timestamp}</p>
-                                <p className="whitespace-pre-wrap">{entry.entry}</p>
-                            </div>
-                        ))}
+                        {[...agent.jailJournal].reverse().map((entry, index) => {
+                            let title = '';
+                            let icon = <Notebook className="w-4 h-4 text-slate-500" />;
+                            switch(entry.type) {
+                                case 'parole_hearing':
+                                    title = t('agentCard_journalEntryType_parole_hearing');
+                                    icon = <Gavel className="w-4 h-4 text-yellow-400" />;
+                                    break;
+                                case 'release_analysis':
+                                    title = t('agentCard_journalEntryType_release_analysis');
+                                    icon = <Sparkles className="w-4 h-4 text-green-400" />;
+                                    break;
+                                default:
+                                    title = t('agentCard_journalEntryType_personal');
+                            }
+                            return (
+                                <div key={index} className="text-sm text-slate-300 border-b border-slate-700 pb-2 last:border-b-0">
+                                    <p className="text-xs text-slate-500 font-mono mb-1 flex justify-between items-center">
+                                        <span>Step: {entry.timestamp}</span>
+                                        <span className="flex items-center gap-1 font-sans text-slate-400">{icon} {title}</span>
+                                    </p>
+                                    <p className="whitespace-pre-wrap">{entry.entry}</p>
+                                </div>
+                            );
+                        })}
                     </div>
                 </Card>
             )}

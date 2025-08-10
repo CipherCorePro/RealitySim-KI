@@ -1,4 +1,4 @@
-import type { WorldState, Agent, Action, EnvironmentState, Emotions, Beliefs, Entity, Goal, Personality, Skills, Technology, Recipe, Law, Government, LogEntry, Psyche } from './types';
+import type { WorldState, Agent, Action, EnvironmentState, Emotions, Beliefs, Entity, Goal, Personality, Skills, Technology, Recipe, Law, Government, LogEntry, Psyche, Statistics, QuantumConsciousnessModule } from './types';
 
 export const RESONANCE_DECAY_RATE = 0.95;
 export const RESONANCE_THRESHOLD = 0.1;
@@ -28,7 +28,7 @@ export const CHILDHOOD_MAX_AGE = 12;
 export const ADOLESCENCE_MAX_AGE = 19;
 export const ADULTHOOD_MAX_AGE = 65;
 
-export const ROLES = ['Worker', 'Healer', 'Scientist', 'Leader', 'Trader', 'Crafter', 'Guard', 'Counselor', 'Entrepreneur'];
+export const ROLES = ['Worker', 'Healer', 'Scientist', 'Leader', 'Trader', 'Crafter', 'Guard', 'Counselor', 'Entrepreneur', 'Journalist'];
 export const RESOURCE_TYPES = ['food', 'water', 'wood', 'medicine', 'iron', 'stone', 'coal', 'sand', 'clay'];
 export const SKILL_TYPES = ['healing', 'woodcutting', 'rhetoric', 'combat', 'construction', 'farming', 'mining', 'crafting', 'trading'];
 
@@ -44,9 +44,9 @@ export const STRESS_THRESHOLD_FOR_PERSONALITY_SHIFT = 70;
 // Economy
 export const INITIAL_CURRENCY = 50;
 export const RESOURCE_PURCHASE_COST = 150;
-export const WORK_FOR_MONEY_AMOUNT = 10;
+export const WORK_FOR_MONEY_AMOUNT = 50;
 export const FOUND_FACTORY_COST = { currency: 300, wood: 20, stone: 20 };
-export const FACTORY_WAGE = 15;
+export const FACTORY_WAGE = 75;
 export const FACTORY_OWNER_PROFIT_PER_WORKER = 5;
 
 
@@ -119,6 +119,7 @@ export const STATUS_FROM_GOAL_COMPLETION = 10;
 export const PERSONALITY_TRAITS = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'];
 export const BOREDOM_INCREASE_RATE = 0.05;
 export const PSYCHE_DECAY_RATE = 0.995;
+export const CONSCIOUSNESS_DECAY_RATE = 0.998;
 
 
 export const defaultEmotions = (): Emotions => ({ happiness: 0.5, sadness: 0.1, anger: 0.1, fear: 0.1, trust: 0.3, love: 0.1 });
@@ -127,9 +128,19 @@ export const defaultSkills = (): Skills => ({ healing: 1, woodcutting: 1, rhetor
 export const defaultPsyche = (): Psyche => ({
     empathy: 0.5, vengefulness: 0.1, forgiveness: 0.5, searchForMeaning: 0.2, decisionPressure: 0.1,
     fearOfDeath: 0.2, boredom: 0.0, inspiration: 0.1, fanaticism: 0.1, spiritualNeed: 0.3, jealousy: 0.1,
+    serenity: 0.1, agitation: 0.1,
+});
+export const defaultConsciousness = (): QuantumConsciousnessModule => ({
+    self_awareness: 0.2,
+    agency: 0.2,
 });
 export const defaultQTable = (): { [key: string]: number } => ({});
-
+export const initialStatistics: Statistics = {
+    marriages: {},
+    births: [],
+    imprisonments: {},
+    fights: {},
+};
 
 // --- INITIAL WORLD STATE ---
 export const initialWorldState: WorldState = {
@@ -139,6 +150,7 @@ export const initialWorldState: WorldState = {
     width: 30,
     height: 30,
     election: null,
+    subquantumField: null,
   },
   agents: [
     {
@@ -162,7 +174,8 @@ export const initialWorldState: WorldState = {
       stress: 10, socialStatus: 50,
       skills: { healing: 15, rhetoric: 10, farming: 5, combat: 3, construction: 8, woodcutting: 7, mining: 2, crafting: 4, trading: 8 },
       trauma: [], currency: INITIAL_CURRENCY,
-      psyche: { empathy: 0.7, vengefulness: 0.1, forgiveness: 0.8, searchForMeaning: 0.5, decisionPressure: 0.2, fearOfDeath: 0.1, boredom: 0.1, inspiration: 0.6, fanaticism: 0.2, spiritualNeed: 0.4, jealousy: 0.1 },
+      psyche: { ...defaultPsyche(), empathy: 0.7, vengefulness: 0.1, forgiveness: 0.8, searchForMeaning: 0.5, decisionPressure: 0.2, fearOfDeath: 0.1, boredom: 0.1, inspiration: 0.6, fanaticism: 0.2, spiritualNeed: 0.4, jealousy: 0.1 },
+      consciousness: defaultConsciousness(),
       qTable: {}, lastStressLevel: 10,
     },
     {
@@ -185,7 +198,8 @@ export const initialWorldState: WorldState = {
       stress: 25, socialStatus: 40,
       skills: { healing: 2, rhetoric: 4, farming: 10, combat: 8, construction: 12, woodcutting: 15, mining: 8, crafting: 6, trading: 3 },
       trauma: [], currency: INITIAL_CURRENCY,
-      psyche: { empathy: 0.3, vengefulness: 0.4, forgiveness: 0.2, searchForMeaning: 0.1, decisionPressure: 0.4, fearOfDeath: 0.4, boredom: 0.3, inspiration: 0.2, fanaticism: 0.4, spiritualNeed: 0.6, jealousy: 0.3 },
+      psyche: { ...defaultPsyche(), empathy: 0.3, vengefulness: 0.4, forgiveness: 0.2, searchForMeaning: 0.1, decisionPressure: 0.4, fearOfDeath: 0.4, boredom: 0.3, inspiration: 0.2, fanaticism: 0.4, spiritualNeed: 0.6, jealousy: 0.3 },
+      consciousness: defaultConsciousness(),
       qTable: {}, lastStressLevel: 25,
     },
     {
@@ -206,8 +220,28 @@ export const initialWorldState: WorldState = {
       personality: { openness: 0.2, conscientiousness: 0.9, extraversion: 0.5, agreeableness: 0.3, neuroticism: 0.4 },
       goals: [], stress: 15, socialStatus: 60,
       skills: { combat: 15, rhetoric: 5 }, trauma: [], currency: 70,
-      psyche: { empathy: 0.4, vengefulness: 0.2, forgiveness: 0.6, searchForMeaning: 0.1, decisionPressure: 0.6, fearOfDeath: 0.3, boredom: 0.5, inspiration: 0.1, fanaticism: 0.8, spiritualNeed: 0.1, jealousy: 0.1 },
+      psyche: { ...defaultPsyche(), empathy: 0.4, vengefulness: 0.2, forgiveness: 0.6, searchForMeaning: 0.1, decisionPressure: 0.6, fearOfDeath: 0.3, boredom: 0.5, inspiration: 0.1, fanaticism: 0.8, spiritualNeed: 0.1, jealousy: 0.1 },
+      consciousness: defaultConsciousness(),
       qTable: {}, lastStressLevel: 15,
+    },
+     {
+      id: 'agent-journalist-1',
+      name: 'The Chronicle',
+      description: 'An impartial (or is it?) observer, documenting the life and times of this world.',
+      x: 15, y: 15,
+      beliefNetwork: { 'knowledge_is_sacred': 0.9, 'tradition_important': 0.6 },
+      emotions: { happiness: 0.5, sadness: 0.1, anger: 0.1, fear: 0.1, trust: 0.5, love: 0.1 },
+      resonance: {}, socialMemory: [], longTermMemory: [], lastActions: [], adminAgent: false, health: 100, isAlive: true,
+      sickness: null, conversationHistory: [], age: 99, genome: ["G-INTELLIGENT", "G-LONGEVITY"],
+      relationships: {}, 
+      cultureId: null, religionId: null, role: 'Journalist',
+      offspringCount: 0, childrenIds: [], hunger: 0, thirst: 0, fatigue: 0, inventory: { research_notes: 10 },
+      personality: { openness: 0.9, conscientiousness: 0.8, extraversion: 0.7, agreeableness: 0.5, neuroticism: 0.2 },
+      goals: [], stress: 5, socialStatus: 70,
+      skills: { rhetoric: 25 }, trauma: [], currency: 200,
+      psyche: { ...defaultPsyche(), empathy: 0.6, vengefulness: 0.1, forgiveness: 0.5, searchForMeaning: 0.9, decisionPressure: 0.2, fearOfDeath: 0.1, boredom: 0.1, inspiration: 0.8, fanaticism: 0.3, spiritualNeed: 0.4, jealousy: 0.1 },
+      consciousness: defaultConsciousness(),
+      qTable: {}, lastStressLevel: 5,
     },
     {
       id: 'agent-admin',
@@ -226,6 +260,7 @@ export const initialWorldState: WorldState = {
       offspringCount: 0, childrenIds: [], hunger: 0, thirst: 0, fatigue: 0, inventory: {},
       personality: defaultPersonality(), goals: [], stress: 0, socialStatus: 100, skills: defaultSkills(), trauma: [], currency: 99999,
       psyche: defaultPsyche(),
+      consciousness: defaultConsciousness(),
       qTable: {}, lastStressLevel: 0,
     }
   ],
@@ -255,5 +290,7 @@ export const initialWorldState: WorldState = {
   techTree: TECH_TREE,
   recipes: RECIPES,
   actions: [],
+  mediaBroadcasts: [],
   transactions: [],
+  statistics: initialStatistics,
 };
